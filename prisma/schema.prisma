@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Instrument {
+  id             String   @id @default(cuid())
+  instrumentKey  String   @unique
+  tradingSymbol  String
+  companyName    String
+  isin           String   @unique
+  exchange       String   @default("NSE")
+  sector         String?
+  isNifty500     Boolean  @default(true)
+  isActive       Boolean  @default(true)
+  updatedAt      DateTime @updatedAt
+
+  scanResults ScanResult[]
+  candles     CachedCandle[]
+
+  @@index([tradingSymbol])
+  @@index([isNifty500, isActive])
+}
+
+model ScanSession {
+  id           String       @id @default(cuid())
+  startedAt    DateTime     @default(now())
+  completedAt  DateTime?
+  status       String       @default("running")
+  triggerType  String       @default("manual")
+  totalStocks  Int          @default(0)
+  scannedCount Int          @default(0)
+  errorCount   Int          @default(0)
+  patternsFound Int         @default(0)
+  results      ScanResult[]
+
+  @@index([status])
+  @@index([startedAt])
+}
+
+model ScanResult {
+  id              String   @id @default(cuid())
+  scanSessionId   String
+  instrumentId    String
+  patternName     String
+  patternCategory String
+  direction       String
+  signalStrength  Float
+  confidence      Float
+  tier            Int      @default(3)
+  confluenceScore Int      @default(0)
+  weeklyTrend     String?
+  entryPrice      Float?
+  stopLoss        Float?
+  target1         Float?
+  target2         Float?
+  riskRewardRatio Float?
+  currentPrice    Float
+  rsiValue        Float?
+  volumeRatio     Float?
+  ema9            Float?
+  ema21           Float?
+  ema50           Float?
+  ema200          Float?
+  patternData     String?
+  detectedAt      DateTime @default(now())
+
+  scanSession ScanSession @relation(fields: [scanSessionId], references: [id], onDelete: Cascade)
+  instrument  Instrument  @relation(fields: [instrumentId], references: [id])
+
+  @@index([scanSessionId, signalStrength])
+  @@index([patternName])
+  @@index([direction])
+  @@index([instrumentId])
+  @@index([tier, signalStrength])
+}
+
+model CachedCandle {
+  id           String   @id @default(cuid())
+  instrumentId String
+  interval     String
+  timestamp    DateTime
+  open         Float
+  high         Float
+  low          Float
+  close        Float
+  volume       Int
+  oi           Int      @default(0)
+  fetchedAt    DateTime @default(now())
+
+  instrument Instrument @relation(fields: [instrumentId], references: [id])
+
+  @@unique([instrumentId, interval, timestamp])
+  @@index([instrumentId, interval, timestamp])
+}
+
+model AuthToken {
+  id           String   @id @default("singleton")
+  accessToken  String
+  expiresAt    DateTime
+  clientId     String
+  clientSecret String
+  redirectUri  String
+  updatedAt    DateTime @updatedAt
+}
+
+model AppSettings {
+  id               String  @id @default("singleton")
+  scanScheduleHour Int     @default(15)
+  scanScheduleMin  Int     @default(30)
+  autoScanEnabled  Boolean @default(true)
+  maxTopResults    Int     @default(10)
+}

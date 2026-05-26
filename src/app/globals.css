@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 14% 7%;
+    --foreground: 35 30% 87%;
+    --card: 240 14% 10%;
+    --card-foreground: 31 38% 91%;
+    --primary: 18 76% 63%;
+    --primary-foreground: 240 14% 7%;
+    --secondary: 240 13% 12%;
+    --secondary-foreground: 35 30% 87%;
+    --muted: 240 13% 16%;
+    --muted-foreground: 0 0% 53%;
+    --accent: 18 76% 63%;
+    --accent-foreground: 31 38% 91%;
+    --destructive: 0 63% 51%;
+    --destructive-foreground: 35 30% 87%;
+    --border: 240 12% 19%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(240, 14%, 10%);
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(240, 12%, 25%);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(240, 12%, 35%);
+}
+
+/* Signal strength colors */
+.signal-high {
+  color: #22c55e;
+}
+.signal-medium {
+  color: #eab308;
+}
+.signal-low {
+  color: #ef4444;
+}
