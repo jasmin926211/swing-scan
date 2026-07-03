@@ -1,6 +1,13 @@
-import { format, subDays, startOfDay, isSameDay } from 'date-fns';
+import { subDays } from 'date-fns';
 import prisma from '@/lib/prisma';
 import upstoxClient from './client';
+import { rateLimitedFetch } from './rate-limiter';
+import {
+  istDateKey,
+  istStartOfDay,
+  isSameISTDay,
+  isNSETradingDay,
+} from '@/lib/time/market-time';
 import type { UpstoxHistoricalResponse } from './types';
 import type { CandleData } from '@/types/stock';
 
@@ -70,10 +77,10 @@ export async function fetchIntradayCandle(
     const encodedKey = encodeURIComponent(instrumentKey);
     const url = `${UPSTOX_INTRADAY_BASE}/${encodedKey}/${interval}`;
 
-    // Intraday historical candle is a PUBLIC endpoint — use direct fetch, no auth needed
-    const response = await fetch(url, {
+    // Intraday historical candle is a PUBLIC endpoint (no auth), but it still hits
+    // Upstox — route it through the shared rate limiter so a full scan can't flood it.
+    const response = await rateLimitedFetch(url, {
       headers: { Accept: 'application/json' },
-      cache: 'no-store',
     });
 
     if (!response.ok) {
@@ -159,12 +166,20 @@ export async function fetchMarketQuote(
 export async function fetchTodayCandle(
   instrumentKey: string
 ): Promise<CandleData | null> {
+  // Guard: never fabricate a "today" candle on a weekend or NSE holiday.
+  // On non-trading days the quote/intraday endpoints return the LAST session's
+  // numbers, which would otherwise be stamped with today's (closed) date and
+  // duplicate the real last candle. (Evaluated in IST.)
+  if (!isNSETradingDay(new Date())) {
+    return null;
+  }
+
   // Strategy 1: Market quote API (authenticated, most reliable for current price)
   const quote = await fetchMarketQuote(instrumentKey);
   if (quote && quote.ltp > 0) {
     console.log(`[LivePrice] Got market quote for ${instrumentKey}: LTP=${quote.ltp}`);
     return {
-      timestamp: startOfDay(new Date()),
+      timestamp: istStartOfDay(new Date()),
       open: quote.open > 0 ? quote.open : quote.ltp,
       high: quote.high > 0 ? quote.high : quote.ltp,
       low: quote.low > 0 ? quote.low : quote.ltp,
@@ -185,7 +200,7 @@ export async function fetchTodayCandle(
   if (minuteCandle) {
     console.log(`[LivePrice] Got 1min intraday for ${instrumentKey}: close=${minuteCandle.close}`);
     return {
-      timestamp: startOfDay(new Date()),
+      timestamp: istStartOfDay(new Date()),
       open: minuteCandle.open,
       high: minuteCandle.high,
       low: minuteCandle.low,
@@ -216,7 +231,7 @@ export async function fetchAndCacheCandles(
   interval: string,
   days: number
 ): Promise<CandleData[]> {
-  const today = startOfDay(new Date());
+  const today = istStartOfDay(new Date());
 
   // Check if we have cached candles fetched today
   const cachedCount = await prisma.cachedCandle.count({
@@ -252,9 +267,10 @@ export async function fetchAndCacheCandles(
       volume: candle.volume,
     }));
   } else {
-    // Fetch from Upstox API
-    const toDate = format(new Date(), 'yyyy-MM-dd');
-    const fromDate = format(subDays(new Date(), days), 'yyyy-MM-dd');
+    // Fetch from Upstox API. Date range is computed in IST so "today"/"N days ago"
+    // match the NSE trading calendar regardless of the server timezone.
+    const toDate = istDateKey(new Date());
+    const fromDate = istDateKey(subDays(new Date(), days));
 
     historicalCandles = await fetchHistoricalCandles(
       instrumentKey,
@@ -263,29 +279,27 @@ export async function fetchAndCacheCandles(
       toDate
     );
 
-    // Delete old cached candles for this instrument + interval, then insert fresh data
-    await prisma.cachedCandle.deleteMany({
-      where: {
-        instrumentId,
-        interval,
-      },
-    });
-
+    // Refresh the cache atomically: under high scan concurrency two workers could
+    // otherwise both delete then both insert, colliding on the
+    // @@unique([instrumentId, interval, timestamp]) constraint and dropping the stock.
     if (historicalCandles.length > 0) {
-      // Batch insert candles
-      await prisma.cachedCandle.createMany({
-        data: historicalCandles.map((candle) => ({
-          instrumentId,
-          interval,
-          timestamp: candle.timestamp,
-          open: candle.open,
-          high: candle.high,
-          low: candle.low,
-          close: candle.close,
-          volume: candle.volume,
-          oi: 0,
-        })),
-      });
+      await prisma.$transaction([
+        prisma.cachedCandle.deleteMany({ where: { instrumentId, interval } }),
+        prisma.cachedCandle.createMany({
+          data: historicalCandles.map((candle) => ({
+            instrumentId,
+            interval,
+            timestamp: candle.timestamp,
+            open: candle.open,
+            high: candle.high,
+            low: candle.low,
+            close: candle.close,
+            volume: candle.volume,
+            oi: 0,
+          })),
+          skipDuplicates: true,
+        }),
+      ]);
     }
   }
 
@@ -295,7 +309,7 @@ export async function fetchAndCacheCandles(
     const todayCandle = await fetchTodayCandle(instrumentKey);
     if (todayCandle) {
       const lastCandle = historicalCandles[historicalCandles.length - 1];
-      const todayAlreadyExists = lastCandle && isSameDay(lastCandle.timestamp, todayCandle.timestamp);
+      const todayAlreadyExists = lastCandle && isSameISTDay(lastCandle.timestamp, todayCandle.timestamp);
 
       if (todayAlreadyExists) {
         // Replace the last candle with fresh live data

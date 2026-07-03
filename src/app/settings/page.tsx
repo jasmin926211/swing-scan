@@ -44,14 +44,17 @@ export default function SettingsPage() {
               </p>
             </div>
             <button
+              type="button"
+              role="switch"
+              aria-checked={autoScan}
               onClick={() => setAutoScan(!autoScan)}
-              className={`relative h-6 w-11 rounded-full transition-colors ${
+              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-0 transition-colors ${
                 autoScan ? 'bg-primary' : 'bg-secondary'
               }`}
             >
               <span
-                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                  autoScan ? 'translate-x-5' : 'translate-x-0.5'
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+                  autoScan ? 'translate-x-[22px]' : 'translate-x-0.5'
                 }`}
               />
             </button>

@@ -18,6 +18,7 @@ import {
 import { formatPrice, formatSignalStrength, getDirectionBg } from '@/lib/utils';
 import { PATTERN_DISPLAY_NAMES } from '@/types/pattern';
 import { computeEMAForChart, type CandleDataPoint } from '@/components/charts/utils';
+import type { PatternOverlay } from '@/lib/patterns/overlay';
 
 const CandlestickChart = dynamic(
   () => import('@/components/charts/CandlestickChart'),
@@ -52,6 +53,19 @@ interface StockResult {
   patternDisplayName?: string;
 }
 
+interface ChartPattern {
+  patternName: string;
+  direction: string;
+  signalStrength: number;
+  tier: number;
+  confluenceScore: number;
+  entryPrice: number | null;
+  stopLoss: number | null;
+  target1: number | null;
+  target2: number | null;
+  overlay: PatternOverlay;
+}
+
 interface NewsItem {
   title: string;
   link: string;
@@ -65,6 +79,8 @@ export default function StockDetailPage() {
   const symbol = params.symbol as string;
   const [results, setResults] = useState<StockResult[]>([]);
   const [candles, setCandles] = useState<CandleDataPoint[]>([]);
+  const [chartPatterns, setChartPatterns] = useState<ChartPattern[]>([]);
+  const [activePatternIdx, setActivePatternIdx] = useState(0);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -97,6 +113,8 @@ export default function StockDetailPage() {
       const data = await res.json();
       if (data.success && data.data) {
         setCandles(data.data.candles);
+        setChartPatterns(data.data.patterns ?? []);
+        setActivePatternIdx(0);
       }
     } catch {
       // Ignore - chart won't render
@@ -147,43 +165,77 @@ export default function StockDetailPage() {
           <Activity className="mr-2 h-5 w-5 animate-pulse" />
           Loading...
         </div>
-      ) : results.length === 0 ? (
-        <div className="py-20 text-center text-muted-foreground">
-          <BarChart3 className="mx-auto mb-3 h-8 w-8" />
-          <p>No patterns detected for this stock in the latest scan.</p>
-        </div>
       ) : (
         <>
-          {/* Candlestick Chart */}
-          {candles.length > 0 && primaryResult && (
-            <div className="rounded-xl border border-border bg-card p-4">
-              <h3 className="mb-3 text-base font-semibold text-card-foreground">
-                Price Chart (Daily)
-              </h3>
-              <CandlestickChart
-                candles={candles}
-                height={450}
-                priceLevels={[
-                  ...(primaryResult.entryPrice
-                    ? [{ price: primaryResult.entryPrice, color: '#E8855B', label: 'Entry' }]
-                    : []),
-                  ...(primaryResult.stopLoss
-                    ? [{ price: primaryResult.stopLoss, color: '#ef4444', label: 'Stop Loss' }]
-                    : []),
-                  ...(primaryResult.target1
-                    ? [{ price: primaryResult.target1, color: '#22c55e', label: 'Target 1' }]
-                    : []),
-                  ...(primaryResult.target2
-                    ? [{ price: primaryResult.target2, color: '#22c55e', label: 'Target 2' }]
-                    : []),
-                ]}
-                emaOverlays={[
-                  { period: 9, color: '#f59e0b', data: computeEMAForChart(candles, 9) },
-                  { period: 21, color: '#8b5cf6', data: computeEMAForChart(candles, 21) },
-                ]}
-              />
+          {candles.length === 0 && results.length === 0 && (
+            <div className="py-20 text-center text-muted-foreground">
+              <BarChart3 className="mx-auto mb-3 h-8 w-8" />
+              <p>No chart data available for this stock yet.</p>
             </div>
           )}
+
+          {/* Candlestick Chart with pattern proof */}
+          {candles.length > 0 && (() => {
+            const activePattern = chartPatterns[activePatternIdx];
+            const levelSource = activePattern ?? primaryResult ?? null;
+            return (
+              <div className="rounded-xl border border-border bg-card p-4">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                  <h3 className="text-base font-semibold text-card-foreground">
+                    Price Chart (Daily)
+                  </h3>
+                  {chartPatterns.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="mr-1 font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+                        Show pattern
+                      </span>
+                      {chartPatterns.map((p, i) => (
+                        <button
+                          key={`${p.patternName}-${i}`}
+                          onClick={() => setActivePatternIdx(i)}
+                          className={`rounded-full border px-2.5 py-1 font-mono text-[11px] transition-colors ${
+                            i === activePatternIdx
+                              ? 'border-primary/40 bg-primary/15 text-primary'
+                              : 'border-border text-muted-foreground hover:bg-secondary'
+                          }`}
+                        >
+                          {PATTERN_DISPLAY_NAMES[p.patternName] || p.patternName}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <CandlestickChart
+                  candles={candles}
+                  height={450}
+                  patternOverlays={activePattern ? [activePattern.overlay] : []}
+                  priceLevels={[
+                    ...(levelSource?.entryPrice
+                      ? [{ price: levelSource.entryPrice, color: '#53B9EA', label: 'Entry' }]
+                      : []),
+                    ...(levelSource?.stopLoss
+                      ? [{ price: levelSource.stopLoss, color: '#E3507A', label: 'Stop Loss' }]
+                      : []),
+                    ...(levelSource?.target1
+                      ? [{ price: levelSource.target1, color: '#4CFA9D', label: 'Target 1' }]
+                      : []),
+                    ...(levelSource?.target2
+                      ? [{ price: levelSource.target2, color: '#4CFA9D', label: 'Target 2' }]
+                      : []),
+                  ]}
+                  emaOverlays={[
+                    { period: 9, color: '#F5A623', data: computeEMAForChart(candles, 9) },
+                    { period: 21, color: '#A330FF', data: computeEMAForChart(candles, 21) },
+                  ]}
+                />
+                {chartPatterns.length > 0 && (
+                  <p className="mt-2 font-mono text-[11px] text-muted-foreground">
+                    Hover the chart over the pattern to see its name and the criteria it passed (✓) or failed (✗).
+                  </p>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Primary Signal Card */}
           {primaryResult && (

@@ -10,6 +10,7 @@ import {
   fitTrendline,
   computeSignalStrength,
   calculateRiskReward,
+  confirmedBreakDown,
 } from '@/lib/patterns/utils';
 
 // ---------------------------------------------------------------------------
@@ -20,6 +21,8 @@ const NAME = 'broadening_wedge';
 const DIR: PatternDirection = 'bearish';
 const MIN_CANDLES = 20;
 const MIN_TOUCHES = 2;
+/** Bound the wedge to a recent window (was fit over the full history). */
+const MAX_LOOKBACK = 50;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -91,9 +94,12 @@ export const broadeningWedgeDetector: PatternDetector = {
   detect(candles: CandleData[], indicators: IndicatorData): PatternResult {
     if (candles.length < MIN_CANDLES) return noDetection();
 
-    // ----- Identify pivot points -----
-    const pivotHighs = findPivotHighs(candles, 3, 3);
-    const pivotLows = findPivotLows(candles, 3, 3);
+    const lookback = Math.min(candles.length, MAX_LOOKBACK);
+    const win = candles.slice(-lookback);
+
+    // ----- Identify pivot points (within the window) -----
+    const pivotHighs = findPivotHighs(win, 3, 3);
+    const pivotLows = findPivotLows(win, 3, 3);
 
     if (pivotHighs.length < MIN_TOUCHES || pivotLows.length < MIN_TOUCHES) {
       return noDetection();
@@ -123,7 +129,7 @@ export const broadeningWedgeDetector: PatternDetector = {
 
     // ----- Compute widths -----
     const wedgeStart = Math.min(pivotHighs[0].index, pivotLows[0].index);
-    const lastIdx = candles.length - 1;
+    const lastIdx = win.length - 1;
 
     const resistanceAtStart =
       resistanceLine.slope * wedgeStart + resistanceLine.intercept;
@@ -144,14 +150,16 @@ export const broadeningWedgeDetector: PatternDetector = {
 
     // ----- Recent range for target calculation -----
     const recentRange = currentWidth;
-    const lastClose = candles[lastIdx].close;
+    const lastClose = win[lastIdx].close;
+    const prevClose = win[lastIdx - 1].close;
+    const supportAtPrev = supportLine.slope * (lastIdx - 1) + supportLine.intercept;
 
-    // ----- Proximity: how close price is to support line -----
-    const positionInWedge = currentWidth > 0
-      ? (lastClose - supportAtLast) / currentWidth
-      : 0.5;
-    // Closer to support = closer to bearish breakdown
-    const proximityToBreakout = Math.max(0, Math.min(1, 1 - positionInWedge));
+    // Require a CONFIRMED breakdown below support (was a proximity score, so it
+    // fired while price was still inside this already-unreliable expanding shape).
+    if (!confirmedBreakDown(lastClose, prevClose, supportAtLast, supportAtPrev)) {
+      return noDetection();
+    }
+    const proximityToBreakout = 1.0;
 
     // ----- Signal scoring -----
     const patternConfidence = Math.min(
@@ -216,7 +224,7 @@ export const broadeningWedgeDetector: PatternDetector = {
         startWidth: parseFloat(startWidth.toFixed(2)),
         currentWidth: parseFloat(currentWidth.toFixed(2)),
         expansionRatio: parseFloat(expansionRatio.toFixed(3)),
-        positionInWedge: parseFloat(positionInWedge.toFixed(3)),
+        breakoutConfirmed: true,
         lastVolumeRatio: parseFloat(lastVolumeRatio.toFixed(2)),
       },
     };

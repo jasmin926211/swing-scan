@@ -11,6 +11,8 @@ import {
   isVolumeDecreasing,
   computeSignalStrength,
   calculateRiskReward,
+  confirmedBreakUp,
+  hasPriorUptrend,
 } from '@/lib/patterns/utils';
 
 // ---------------------------------------------------------------------------
@@ -318,14 +320,20 @@ export const cupAndHandleDetector: PatternDetector = {
     // ----- No valid pattern found -----
     if (!bestCup || !bestHandle || bestScore < 0.35) return noDetection();
 
-    // ----- Step 2: Breakout proximity -----
-    const currentPrice = slice[slice.length - 1].close;
-    const distToBreakout = bestCup.rimLevel > 0
-      ? (currentPrice - bestCup.rimLevel) / bestCup.rimLevel
-      : 0;
-    const proximityToBreakout = distToBreakout >= 0
-      ? 1.0
-      : Math.max(0, 1.0 + distToBreakout * 20);
+    // ----- Step 2: Prior uptrend into the cup + CONFIRMED rim breakout -----
+    // A cup & handle is a continuation pattern: it needs a prior advance, then a
+    // confirmed close above the rim. (Was: fired within ~5% below the rim with no
+    // prior-trend requirement.)
+    const offset = candles.length - lookback;
+    if (!hasPriorUptrend(candles, offset + bestCup.leftRimIdx, 20, 8)) return noDetection();
+
+    const lastSliceIdx = slice.length - 1;
+    const currentPrice = slice[lastSliceIdx].close;
+    const prevClose = slice[lastSliceIdx - 1].close;
+    if (!confirmedBreakUp(currentPrice, prevClose, bestCup.rimLevel, bestCup.rimLevel)) {
+      return noDetection();
+    }
+    const proximityToBreakout = 1.0;
 
     // ----- Step 3: Volume analysis -----
     // Volume should be higher at rims and lower at bottom

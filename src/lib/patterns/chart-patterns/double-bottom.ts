@@ -11,6 +11,8 @@ import {
   isPriceNear,
   computeSignalStrength,
   calculateRiskReward,
+  confirmedBreakUp,
+  hasPriorDowntrend,
 } from '@/lib/patterns/utils';
 
 // ---------------------------------------------------------------------------
@@ -137,19 +139,27 @@ export const doubleBottomDetector: PatternDetector = {
 
     if (!bestBottom1 || !bestBottom2) return noDetection();
 
-    // ----- Step 4: Assess current price relative to neckline -----
-    const currentPrice = windowCandles[windowCandles.length - 1].close;
+    // ----- Step 4: Require prior downtrend + a CONFIRMED neckline breakout -----
+    const b1OrigIdx = bestBottom1.index + offset;
+    const b2OrigIdx = bestBottom2.index + offset;
     const bottomLevel = (bestBottom1.price + bestBottom2.price) / 2;
     const patternHeight = bestNecklinePrice - bottomLevel;
 
-    // Price should be approaching or above the neckline (within 3% below is ok)
-    const nearNeckline = currentPrice >= bestNecklinePrice * 0.97;
-    if (!nearNeckline) return noDetection();
+    // Context gate: a double bottom must end a decline, not appear mid-range.
+    if (!hasPriorDowntrend(candles, b1OrigIdx, 20, 6)) return noDetection();
+
+    // Confirmation gate: last bar CLOSES above the neckline, prior bar at/below —
+    // a fresh confirmed breakout (replaces the "within 3% below, no bound" test).
+    const lastIdx = candles.length - 1;
+    const lastClose = candles[lastIdx].close;
+    const prevClose = candles[lastIdx - 1].close;
+    if (!confirmedBreakUp(lastClose, prevClose, bestNecklinePrice, bestNecklinePrice)) {
+      return noDetection();
+    }
+    const currentPrice = lastClose;
 
     // ----- Step 5: Volume analysis -----
     // Ideally volume is higher on the second bottom than the first
-    const b1OrigIdx = bestBottom1.index + offset;
-    const b2OrigIdx = bestBottom2.index + offset;
     const vol1 = candles[b1OrigIdx]?.volume ?? 0;
     const vol2 = candles[b2OrigIdx]?.volume ?? 0;
     const volumeConfirmation = vol2 > vol1 ? 0.9 : 0.5;

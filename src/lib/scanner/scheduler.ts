@@ -3,7 +3,7 @@ import { runScan, isScanning } from './engine';
 
 let scheduledTask: cron.ScheduledTask | null = null;
 
-export function startScheduler(hour: number = 15, minute: number = 30) {
+export function startScheduler(hour: number = 15, minute: number = 45) {
   if (scheduledTask) {
     scheduledTask.stop();
   }

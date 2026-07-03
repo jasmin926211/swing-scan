@@ -11,6 +11,7 @@ import {
   isVolumeDecreasing,
   computeSignalStrength,
   calculateRiskReward,
+  confirmedBreakDown,
 } from '@/lib/patterns/utils';
 
 // ---------------------------------------------------------------------------
@@ -21,6 +22,9 @@ const NAME = 'rising_wedge';
 const DIR: PatternDirection = 'bearish';
 const MIN_CANDLES = 20;
 const MIN_TOUCHES = 2;
+/** Bound the wedge to a recent window — fitting over the full 200-bar history
+ *  matched almost any trending stock (audited critical bug). */
+const MAX_LOOKBACK = 50;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -90,9 +94,14 @@ export const risingWedgeDetector: PatternDetector = {
   detect(candles: CandleData[], indicators: IndicatorData): PatternResult {
     if (candles.length < MIN_CANDLES) return noDetection();
 
-    // ----- Identify pivot points -----
-    const pivotHighs = findPivotHighs(candles, 3, 3);
-    const pivotLows = findPivotLows(candles, 3, 3);
+    // Bound to a recent window so the trendlines describe a real wedge, not a
+    // 200-bar regression that matches anything.
+    const lookback = Math.min(candles.length, MAX_LOOKBACK);
+    const win = candles.slice(-lookback);
+
+    // ----- Identify pivot points (within the window) -----
+    const pivotHighs = findPivotHighs(win, 3, 3);
+    const pivotLows = findPivotLows(win, 3, 3);
 
     if (pivotHighs.length < MIN_TOUCHES || pivotLows.length < MIN_TOUCHES) {
       return noDetection();
@@ -126,26 +135,24 @@ export const risingWedgeDetector: PatternDetector = {
     const avgRSquared = (resistanceLine.rSquared + supportLine.rSquared) / 2;
     if (avgRSquared < 0.5) return noDetection();
 
-    // ----- Volume decreasing within wedge -----
-    const wedgeStart = Math.min(
-      pivotHighs[0].index,
-      pivotLows[0].index,
-    );
-    const wedgeEnd = candles.length - 1;
-    const volDecreasing = isVolumeDecreasing(candles, wedgeStart, wedgeEnd);
+    // ----- Volume decreasing within wedge (window-relative indices) -----
+    const wedgeStart = Math.min(pivotHighs[0].index, pivotLows[0].index);
+    const lastIdx = win.length - 1;
+    const volDecreasing = isVolumeDecreasing(win, wedgeStart, lastIdx);
 
-    // ----- Proximity to breakdown -----
-    const lastIdx = candles.length - 1;
-    const lastClose = candles[lastIdx].close;
+    // ----- Require a CONFIRMED breakdown below the support line -----
+    const lastClose = win[lastIdx].close;
+    const prevClose = win[lastIdx - 1].close;
     const supportAtLast = supportLine.slope * lastIdx + supportLine.intercept;
+    const supportAtPrev = supportLine.slope * (lastIdx - 1) + supportLine.intercept;
     const resistanceAtLast = resistanceLine.slope * lastIdx + resistanceLine.intercept;
     const wedgeWidth = resistanceAtLast - supportAtLast;
 
-    // How close price is to the support line (0 = at support, 1 = at resistance)
-    const positionInWedge = wedgeWidth > 0
-      ? (lastClose - supportAtLast) / wedgeWidth
-      : 0.5;
-    const proximityToBreakout = Math.max(0, Math.min(1, 1 - positionInWedge));
+    // Was a circular "how close is price to the line" score; now it must actually break.
+    if (!confirmedBreakDown(lastClose, prevClose, supportAtLast, supportAtPrev)) {
+      return noDetection();
+    }
+    const proximityToBreakout = 1.0;
 
     // ----- Convergence ratio: how much narrower the wedge is vs at start -----
     const supportAtStart = supportLine.slope * wedgeStart + supportLine.intercept;
@@ -203,7 +210,7 @@ export const risingWedgeDetector: PatternDetector = {
         wedgeWidth,
         convergenceRatio: parseFloat(convergenceRatio.toFixed(3)),
         volumeDecreasing: volDecreasing,
-        positionInWedge: parseFloat(positionInWedge.toFixed(3)),
+        breakoutConfirmed: true,
       },
     };
   },

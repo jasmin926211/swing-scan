@@ -12,6 +12,8 @@ import {
   fitTrendline,
   computeSignalStrength,
   calculateRiskReward,
+  confirmedBreakDown,
+  hasPriorUptrend,
 } from '@/lib/patterns/utils';
 
 // ---------------------------------------------------------------------------
@@ -163,11 +165,21 @@ export const headAndShouldersDetector: PatternDetector = {
 
     const patternHeight = bestHead.price - necklineAtHead;
 
-    // ----- Step 4: Check current price relative to neckline -----
-    const currentPrice = windowCandles[windowCandles.length - 1].close;
+    // ----- Step 4: Prior uptrend + CONFIRMED neckline breakdown -----
+    // H&S is a reversal: it must cap an advance, and only triggers on a confirmed
+    // close below the (sloped) neckline. (Was "within 3% above the neckline" — which
+    // fired before the break AND long after price had already collapsed through it.)
+    if (!hasPriorUptrend(candles, bestLS.index + offset, 20, 6)) return noDetection();
 
-    // Price must be near or below the neckline (within 3% above)
-    if (currentPrice > necklineAtCurrent * 1.03) return noDetection();
+    const lastWinIdx = windowCandles.length - 1;
+    const currentPrice = windowCandles[lastWinIdx].close;
+    const prevClose = windowCandles[lastWinIdx - 1].close;
+    const necklineAtPrev = necklineTrendline
+      ? necklineTrendline.slope * (lastWinIdx - 1) + necklineTrendline.intercept
+      : necklineAtCurrent;
+    if (!confirmedBreakDown(currentPrice, prevClose, necklineAtCurrent, necklineAtPrev)) {
+      return noDetection();
+    }
 
     // ----- Step 5: Volume analysis -----
     // Classic H&S: volume decreases from left shoulder to head to right shoulder

@@ -11,6 +11,8 @@ import {
   isPriceNear,
   computeSignalStrength,
   calculateRiskReward,
+  confirmedBreakDown,
+  hasPriorUptrend,
 } from '@/lib/patterns/utils';
 
 // ---------------------------------------------------------------------------
@@ -130,18 +132,29 @@ export const doubleTopDetector: PatternDetector = {
 
     if (!bestTop1 || !bestTop2) return noDetection();
 
-    // ----- Step 4: Assess current price relative to neckline -----
-    const currentPrice = windowCandles[windowCandles.length - 1].close;
+    // ----- Step 4: Require prior uptrend + a CONFIRMED neckline breakdown -----
+    const t1OrigIdx = bestTop1.index + offset;
+    const t2OrigIdx = bestTop2.index + offset;
     const topLevel = (bestTop1.price + bestTop2.price) / 2;
     const patternHeight = topLevel - bestNecklinePrice;
 
-    // Price should be near or below the neckline (within 3% above is ok)
-    const nearNeckline = currentPrice <= bestNecklinePrice * 1.03;
-    if (!nearNeckline) return noDetection();
+    // Context gate: a double top must cap an advance, not appear mid-range or in a
+    // downtrend. (This was previously only a soft score nudge.)
+    if (!hasPriorUptrend(candles, t1OrigIdx, 20, 6)) return noDetection();
+
+    // Confirmation gate: the last bar must CLOSE below the neckline having been
+    // at/above it on the prior bar — a fresh, confirmed breakdown. This replaces the
+    // old "within 3% above the neckline, no lower bound" test that fired both before
+    // the break AND long after price had already collapsed through it (stale signals).
+    const lastIdx = candles.length - 1;
+    const lastClose = candles[lastIdx].close;
+    const prevClose = candles[lastIdx - 1].close;
+    if (!confirmedBreakDown(lastClose, prevClose, bestNecklinePrice, bestNecklinePrice)) {
+      return noDetection();
+    }
+    const currentPrice = lastClose;
 
     // ----- Step 5: Volume analysis -----
-    const t1OrigIdx = bestTop1.index + offset;
-    const t2OrigIdx = bestTop2.index + offset;
     const vol1 = candles[t1OrigIdx]?.volume ?? 0;
     const vol2 = candles[t2OrigIdx]?.volume ?? 0;
     // Volume typically lower on second top (bearish divergence)

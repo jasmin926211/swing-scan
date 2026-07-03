@@ -271,6 +271,71 @@ export function computeSignalStrength(params: {
   return Math.max(0, Math.min(0.90, raw));
 }
 
+// ---------------------------------------------------------------------------
+// Confirmed-breakout helpers (the model copied from channel-breakout: a signal
+// fires only when the LAST bar closes beyond a level AND the PRIOR bar was still
+// inside — i.e. a fresh, confirmed break, not "price is somewhere near the line").
+// This replaces the circular "trendline-through-the-current-bar + within 5%" test
+// that made most detectors fire while the pattern was still forming.
+// ---------------------------------------------------------------------------
+
+/** Fresh confirmed break ABOVE a level: last close above, previous close at/below. */
+export function confirmedBreakUp(
+  lastClose: number,
+  prevClose: number,
+  levelAtLast: number,
+  levelAtPrev: number,
+): boolean {
+  return lastClose > levelAtLast && prevClose <= levelAtPrev;
+}
+
+/** Fresh confirmed break BELOW a level: last close below, previous close at/above. */
+export function confirmedBreakDown(
+  lastClose: number,
+  prevClose: number,
+  levelAtLast: number,
+  levelAtPrev: number,
+): boolean {
+  return lastClose < levelAtLast && prevClose >= levelAtPrev;
+}
+
+/** Net percentage change of close over [startIdx, endIdx] (endIdx inclusive). */
+export function closeChangePct(candles: CandleData[], startIdx: number, endIdx: number): number {
+  if (startIdx < 0 || endIdx >= candles.length || startIdx >= endIdx) return 0;
+  const start = candles[startIdx].close;
+  const end = candles[endIdx].close;
+  if (start === 0) return 0;
+  return ((end - start) / start) * 100;
+}
+
+/**
+ * Did a meaningful UPtrend lead INTO the pattern? Required context for bearish
+ * reversals (a double top / H&S must top out an advance, not appear mid-range).
+ * Looks at the `lookback` bars ending at `patternStartIdx`.
+ */
+export function hasPriorUptrend(
+  candles: CandleData[],
+  patternStartIdx: number,
+  lookback = 20,
+  minRisePct = 6,
+): boolean {
+  const start = Math.max(0, patternStartIdx - lookback);
+  if (patternStartIdx - start < 5) return false; // not enough runway
+  return closeChangePct(candles, start, patternStartIdx) >= minRisePct;
+}
+
+/** Did a meaningful DOWNtrend lead into the pattern? Context for bullish reversals. */
+export function hasPriorDowntrend(
+  candles: CandleData[],
+  patternStartIdx: number,
+  lookback = 20,
+  minDropPct = 6,
+): boolean {
+  const start = Math.max(0, patternStartIdx - lookback);
+  if (patternStartIdx - start < 5) return false;
+  return closeChangePct(candles, start, patternStartIdx) <= -minDropPct;
+}
+
 /**
  * Calculates the risk-reward ratio for a trade.
  * risk = |entry - stopLoss|, reward = |target - entry|

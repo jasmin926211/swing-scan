@@ -125,6 +125,7 @@ const REVERSAL_PATTERNS = new Set([
 function enrichResult(
   result: PatternResult,
   indicators: IndicatorData,
+  currentPrice: number,
   detectorTier?: PatternTier,
 ): PatternResult {
   // Determine tier from detector, PATTERN_TIERS mapping, or default to 3
@@ -133,20 +134,14 @@ function enrichResult(
     (PATTERN_TIERS[result.patternName]?.tier as PatternTier) ??
     3;
 
-  // If result already has confluence data, use it
-  if (result.confluenceScore !== undefined && result.confluenceScore > 0) {
-    return { ...result, tier };
-  }
+  // Confluence is scored on the CURRENT price (last close). The old code used
+  // `entryPrice ?? 0`, which made `isAtKeyLevel` compute |0 - level|/level ≈ 1 for
+  // every level whenever entry was null — so the "at key level" point could never
+  // score. We also recompute uniformly for EVERY pattern (previously detectors that
+  // self-reported confluence were scored on a different scale).
+  const direction = result.direction === 'bearish' ? 'bearish' as const : 'bullish' as const;
 
-  // Compute confluence for patterns that don't have it yet
-  const price = result.entryPrice ?? 0;
-  const direction = result.direction === 'bullish' ? 'bullish' as const
-    : result.direction === 'bearish' ? 'bearish' as const
-    : 'bullish' as const; // neutral defaults to bullish for confluence calc
-
-  const { score, details } = computeConfluence(price, direction, indicators);
-
-  // Recompute signal strength with confluence bonus/penalty
+  const { score, details } = computeConfluence(currentPrice, direction, indicators);
   const signalStrength = computeFinalSignalStrength(result.signalStrength, score, tier);
 
   return {
@@ -172,12 +167,32 @@ function enrichResult(
  * @param indicators - Pre-computed indicator data.
  * @returns Sorted array of detected patterns (highest signal strength first).
  */
+/**
+ * Defense-in-depth: a detector bug (e.g. a bad trendline projection mixing
+ * absolute/relative indices) must never surface as a tradeable signal. Reject any
+ * pattern whose levels are nonsensical relative to the current price.
+ */
+export function hasSaneLevels(result: PatternResult, currentPrice: number): boolean {
+  const { entryPrice: e, stopLoss: s, target1: t1, direction } = result;
+  if (e == null || s == null || t1 == null) return true; // levels optional for some patterns
+  for (const v of [e, s, t1]) {
+    if (!Number.isFinite(v) || v <= 0) return false;
+  }
+  // Entry must sit near the current price — a confirmed break enters ~here.
+  if (Math.abs(e - currentPrice) / currentPrice > 0.30) return false;
+  // Stop and first target must be on the correct sides of entry.
+  if (direction === 'bullish') return s < e && e < t1;
+  if (direction === 'bearish') return t1 < e && e < s;
+  return true; // neutral: no directional side check
+}
+
 export function runAllPatterns(
   candles: CandleData[],
   indicators: IndicatorData,
 ): PatternResult[] {
   if (candles.length < 30) return [];
 
+  const currentPrice = candles[candles.length - 1].close;
   const detectedPatterns: PatternResult[] = [];
 
   for (const detector of ALL_PATTERN_DETECTORS) {
@@ -185,8 +200,8 @@ export function runAllPatterns(
       const rawResult = detector.detect(candles, indicators);
       if (!rawResult.detected) continue;
 
-      // Enrich with tier and confluence data
-      const result = enrichResult(rawResult, indicators, detector.tier);
+      // Enrich with tier and confluence data (scored on the current price)
+      const result = enrichResult(rawResult, indicators, currentPrice, detector.tier);
 
       // Hard volume filter: reject reversal patterns with volume < 1.5x
       if (REVERSAL_PATTERNS.has(result.patternName)) {
@@ -195,12 +210,24 @@ export function runAllPatterns(
         }
       }
 
-      // Minimum signal strength threshold after confluence adjustments
-      if (result.signalStrength > 0.3) {
+      // Defense-in-depth: drop any pattern with nonsensical trade levels.
+      if (!hasSaneLevels(result, currentPrice)) {
+        console.error(
+          `[Patterns] ${result.patternName} produced insane levels ` +
+            `(price=${currentPrice}, entry=${result.entryPrice}, stop=${result.stopLoss}, t1=${result.target1}) — dropped`
+        );
+        continue;
+      }
+
+      // Minimum signal strength threshold after confluence adjustments.
+      // Raised 0.30 → 0.45: with the widened confluence multiplier, unconfirmed
+      // signals now fall below this and are filtered out (fewer, higher-quality).
+      if (result.signalStrength >= 0.45) {
         detectedPatterns.push(result);
       }
-    } catch {
-      // Skip patterns that fail — don't let one bad detection kill the whole scan
+    } catch (err) {
+      // Log instead of silently swallowing (was hiding real detector bugs).
+      console.error(`[Patterns] ${detector.name} threw:`, err instanceof Error ? err.message : err);
       continue;
     }
   }

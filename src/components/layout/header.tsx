@@ -32,10 +32,10 @@ export function Header() {
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card/80 px-6 backdrop-blur-sm">
       <div>
-        <h2 className="text-lg font-semibold tracking-tight text-card-foreground">
+        <h2 className="text-xl font-bold leading-tight tracking-tight text-card-foreground">
           Stock Pattern Scanner
         </h2>
-        <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+        <p className="mt-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
           Nifty 500 &mdash; All 25 Patterns &mdash; 5-7 Day Swing
         </p>
       </div>
