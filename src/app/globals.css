@@ -4,21 +4,22 @@
 
 @layer base {
   :root {
-    --background: 240 14% 7%;
-    --foreground: 35 30% 87%;
-    --card: 240 14% 10%;
-    --card-foreground: 31 38% 91%;
-    --primary: 18 76% 63%;
-    --primary-foreground: 240 14% 7%;
-    --secondary: 240 13% 12%;
-    --secondary-foreground: 35 30% 87%;
-    --muted: 240 13% 16%;
-    --muted-foreground: 0 0% 53%;
-    --accent: 18 76% 63%;
-    --accent-foreground: 31 38% 91%;
-    --destructive: 0 63% 51%;
-    --destructive-foreground: 35 30% 87%;
-    --border: 240 12% 19%;
+    /* Palette from Figma "Crypto Dashboard - RecehTok Dark" (exact hex in comments) */
+    --background: 244 50% 13%; /* #121030 */
+    --foreground: 240 40% 86%; /* #CECEEA */
+    --card: 243 42% 17%; /* #1B193D */
+    --card-foreground: 240 40% 86%; /* #CECEEA */
+    --primary: 199 78% 62%; /* #53B9EA */
+    --primary-foreground: 244 50% 13%; /* #121030 */
+    --secondary: 242 37% 28%; /* #2F2D61 */
+    --secondary-foreground: 240 40% 86%; /* #CECEEA */
+    --muted: 243 39% 21%; /* #23214C */
+    --muted-foreground: 244 18% 51%; /* #6F6C99 */
+    --accent: 209 100% 59%; /* #309AFF */
+    --accent-foreground: 0 0% 100%; /* #FFFFFF */
+    --destructive: 343 72% 60%; /* #E3507A */
+    --destructive-foreground: 0 0% 100%; /* #FFFFFF */
+    --border: 242 35% 28%; /* #312F62 */
     --radius: 0.75rem;
   }
 }
@@ -45,23 +46,23 @@
   width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: hsl(240, 14%, 10%);
+  background: #1b193d;
 }
 ::-webkit-scrollbar-thumb {
-  background: hsl(240, 12%, 25%);
+  background: #3d3c7d;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(240, 12%, 35%);
+  background: #59588d;
 }
 
 /* Signal strength colors */
 .signal-high {
-  color: #22c55e;
+  color: #4cfa9d;
 }
 .signal-medium {
-  color: #eab308;
+  color: #f5a623;
 }
 .signal-low {
-  color: #ef4444;
+  color: #e3507a;
 }

@@ -11,6 +11,8 @@ import {
   isVolumeDecreasing,
   computeSignalStrength,
   calculateRiskReward,
+  confirmedBreakUp,
+  confirmedBreakDown,
 } from '@/lib/patterns/utils';
 
 // ---------------------------------------------------------------------------
@@ -20,6 +22,8 @@ import {
 const NAME = 'symmetrical_triangle';
 const MIN_CANDLES = 20;
 const MIN_TOUCHES = 2;
+/** Bound the triangle to a recent window (was fit over the full history). */
+const MAX_LOOKBACK = 50;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -112,9 +116,12 @@ export const symmetricalTriangleDetector: PatternDetector = {
   detect(candles: CandleData[], indicators: IndicatorData): PatternResult {
     if (candles.length < MIN_CANDLES) return noDetection();
 
-    // ----- Identify pivot points -----
-    const pivotHighs = findPivotHighs(candles, 3, 3);
-    const pivotLows = findPivotLows(candles, 3, 3);
+    const lookback = Math.min(candles.length, MAX_LOOKBACK);
+    const win = candles.slice(-lookback);
+
+    // ----- Identify pivot points (within the window) -----
+    const pivotHighs = findPivotHighs(win, 3, 3);
+    const pivotLows = findPivotLows(win, 3, 3);
 
     if (pivotHighs.length < MIN_TOUCHES || pivotLows.length < MIN_TOUCHES) {
       return noDetection();
@@ -136,7 +143,7 @@ export const symmetricalTriangleDetector: PatternDetector = {
     if (Math.abs(slopeDiff) < 1e-10) return noDetection(); // parallel (unlikely)
 
     const apexX = (resistanceLine.intercept - supportLine.intercept) / slopeDiff;
-    const lastIdx = candles.length - 1;
+    const lastIdx = win.length - 1;
 
     // Apex should be ahead of or near the current candle
     if (apexX < lastIdx - 5) return noDetection(); // apex is too far in the past
@@ -176,32 +183,27 @@ export const symmetricalTriangleDetector: PatternDetector = {
     }
 
     // ----- Volume decreasing -----
-    const volDecreasing = isVolumeDecreasing(candles, triStart, lastIdx);
+    const volDecreasing = isVolumeDecreasing(win, triStart, lastIdx);
 
-    // ----- Determine direction -----
-    const lastClose = candles[lastIdx].close;
+    // ----- Direction is UNKNOWN until a confirmed break -----
+    // The old code guessed a direction and defaulted to bullish while price was
+    // still mid-triangle — a wrong-way signal half the time. Now we require a
+    // confirmed close beyond a boundary, else no signal.
+    const lastClose = win[lastIdx].close;
+    const prevClose = win[lastIdx - 1].close;
+    const resistanceAtPrev = resistanceLine.slope * (lastIdx - 1) + resistanceLine.intercept;
+    const supportAtPrev = supportLine.slope * (lastIdx - 1) + supportLine.intercept;
 
-    // Check for breakout
     let direction: PatternDirection;
-    if (lastClose > resistanceAtLast) {
-      direction = 'bullish'; // broke above resistance
-    } else if (lastClose < supportAtLast) {
-      direction = 'bearish'; // broke below support
+    if (confirmedBreakUp(lastClose, prevClose, resistanceAtLast, resistanceAtPrev)) {
+      direction = 'bullish';
+    } else if (confirmedBreakDown(lastClose, prevClose, supportAtLast, supportAtPrev)) {
+      direction = 'bearish';
     } else {
-      // No breakout yet -- default to prior trend direction
-      const priorTrend = determinePriorTrend(candles, triStart);
-      direction = priorTrend === 'neutral' ? 'bullish' : priorTrend;
+      return noDetection();
     }
 
-    // ----- Proximity to breakout -----
-    const positionInTriangle = currentWidth > 0
-      ? (lastClose - supportAtLast) / currentWidth
-      : 0.5;
-    // Near either edge = close to breakout
-    const proximityToBreakout = Math.max(
-      0,
-      Math.min(1, 1 - Math.abs(positionInTriangle - 0.5) * 2 + 0.3),
-    );
+    const proximityToBreakout = 1.0; // break already confirmed
 
     // Convergence ratio
     const convergenceRatio = 1 - (currentWidth / baseWidth);
@@ -276,8 +278,8 @@ export const symmetricalTriangleDetector: PatternDetector = {
         convergenceRatio: parseFloat(convergenceRatio.toFixed(3)),
         apexIndex: parseFloat(apexX.toFixed(1)),
         volumeDecreasing: volDecreasing,
-        priorTrend: determinePriorTrend(candles, triStart),
-        positionInTriangle: parseFloat(positionInTriangle.toFixed(3)),
+        priorTrend: determinePriorTrend(win, triStart),
+        breakoutConfirmed: true,
       },
     };
   },

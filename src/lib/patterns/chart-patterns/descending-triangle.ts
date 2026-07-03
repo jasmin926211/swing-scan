@@ -14,6 +14,7 @@ import {
   isVolumeDecreasing,
   computeSignalStrength,
   calculateRiskReward,
+  confirmedBreakDown,
 } from '@/lib/patterns/utils';
 
 // ---------------------------------------------------------------------------
@@ -141,15 +142,14 @@ export const descendingTriangleDetector: PatternDetector = {
     const formationEnd = lastIdx;
     const volDecreasing = isVolumeDecreasing(slice, formationStart, formationEnd);
 
-    // ----- Step 7: Breakdown proximity -----
+    // ----- Step 7: Require a CONFIRMED breakdown below the flat support -----
+    // (Was: fired while price was merely within ~5% above the line.)
     const currentPrice = slice[lastIdx].close;
-    const distToBreakdown = supportLevel > 0
-      ? (supportLevel - currentPrice) / supportLevel
-      : 0;
-    // Proximity to breakdown: 1.0 when at or below support, scales down
-    const proximityToBreakout = distToBreakdown >= 0
-      ? 1.0
-      : Math.max(0, 1.0 + distToBreakdown * 20);
+    const prevClose = slice[lastIdx - 1].close;
+    if (!confirmedBreakDown(currentPrice, prevClose, supportLevel, supportLevel)) {
+      return noDetection();
+    }
+    const proximityToBreakout = 1.0;
 
     // ----- Step 8: Pattern quality scoring -----
     const numTouches = pivotHighs.length + pivotLows.length;

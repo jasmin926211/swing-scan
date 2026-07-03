@@ -135,15 +135,32 @@ export function rsiContext(indicators: IndicatorData, direction: 'bullish' | 'be
 }
 
 /**
- * Check if RSI confirms the direction.
- * Bullish: RSI <= 50 (oversold territory)
- * Bearish: RSI >= 50 (overbought territory)
+ * Check if RSI confirms the direction — with a NEUTRAL DEAD ZONE so it isn't a
+ * coin flip. Previously bullish passed at RSI<=50 and bearish at RSI>=50, so any
+ * reading confirmed *something*. Now the 45–55 band confirms neither side.
+ * Bullish: RSI <= 45 (leaning oversold / room to run up)
+ * Bearish: RSI >= 55 (leaning overbought / room to fall)
  */
 export function rsiConfirms(indicators: IndicatorData, direction: 'bullish' | 'bearish'): boolean {
   const rsi = last(indicators.rsi);
   if (rsi === undefined) return false;
-  if (direction === 'bullish') return rsi <= 50;
-  return rsi >= 50;
+  if (direction === 'bullish') return rsi <= 45;
+  return rsi >= 55;
+}
+
+/**
+ * Whether the short/medium EMA stack (9 / 21 / 50) supports the direction.
+ * Bullish: 9 > 21 > 50 (stacked up).  Bearish: 9 < 21 < 50 (stacked down).
+ * A real, independent confluence factor (replaces the old always-true point).
+ */
+export function emaTrendAligned(indicators: IndicatorData, direction: 'bullish' | 'bearish'): boolean {
+  const e9 = last(indicators.ema9);
+  const e21 = last(indicators.ema21);
+  const e50 = last(indicators.ema50);
+  if (e9 === undefined || e21 === undefined || e50 === undefined) return false;
+  if (!Number.isFinite(e9) || !Number.isFinite(e21) || !Number.isFinite(e50)) return false;
+  if (direction === 'bullish') return e9 > e21 && e21 > e50;
+  return e9 < e21 && e21 < e50;
 }
 
 // ---------------------------------------------------------------------------
@@ -188,13 +205,15 @@ export function weeklyTrendAligns(indicators: IndicatorData, direction: 'bullish
 // ---------------------------------------------------------------------------
 
 /**
- * Build the 5-point confluence score:
- * 1. Daily pattern detected (+1)
- * 2. Volume >= 1.5x average (+1)
- * 3. At key support/resistance or Fibonacci level (+1)
- * 4. Weekly trend agrees (+1)
- * 5. RSI confirms oversold/overbought (+1)
+ * Build the 5-point confluence score from FIVE INDEPENDENT confirmations
+ * (no free point — the pattern being detected is not itself a confirmation):
+ * 1. Volume >= 1.5x average
+ * 2. At key support/resistance or Fibonacci level
+ * 3. Weekly trend agrees
+ * 4. RSI confirms direction (strict bands)
+ * 5. EMA stack (9/21/50) supports direction
  *
+ * `price` should be the CURRENT price (last close), not a possibly-null entry.
  * Returns the score (0-5) and details.
  */
 export function computeConfluence(
@@ -203,19 +222,20 @@ export function computeConfluence(
   indicators: IndicatorData,
 ): { score: number; details: ConfluenceDetails } {
   const details: ConfluenceDetails = {
-    dailyPattern: true, // always true since pattern was detected
+    dailyPattern: true, // context flag for display; NOT counted toward the score
     volumeConfirmed: passesVolumeFilter(indicators),
     atKeyLevel: isAtKeyLevel(price, indicators),
     weeklyTrendAligned: weeklyTrendAligns(indicators, direction),
     rsiConfirmed: rsiConfirms(indicators, direction),
+    emaTrendAligned: emaTrendAligned(indicators, direction),
   };
 
   const score = [
-    details.dailyPattern,
     details.volumeConfirmed,
     details.atKeyLevel,
     details.weeklyTrendAligned,
     details.rsiConfirmed,
+    details.emaTrendAligned,
   ].filter(Boolean).length;
 
   return { score, details };
@@ -251,6 +271,7 @@ export function noDetection(
       atKeyLevel: false,
       weeklyTrendAligned: false,
       rsiConfirmed: false,
+      emaTrendAligned: false,
     },
     patternData: {},
   };
@@ -263,9 +284,12 @@ export function noDetection(
  * than bunching at 100%. Only exceptional setups (high base + full
  * confluence) approach the 95% cap.
  *
- * Confluence multiplier:
- *   5/5 → ×1.08,  4/5 → ×1.05,  3/5 → ×1.02,
- *   2/5 → ×0.95,  1/5 → ×0.85,  0/5 → ×0.75
+ * Confluence multiplier (WIDENED so confluence actually discriminates — the old
+ * ×0.75–×1.08 range meant a perfect setup scored barely 8% above a zero-confluence
+ * one, so everything bunched high). Now low confluence is punished hard, pushing
+ * unconfirmed signals below the filter cutoff:
+ *   5/5 → ×1.15,  4/5 → ×1.02,  3/5 → ×0.90,
+ *   2/5 → ×0.72,  1/5 → ×0.55,  0/5 → ×0.40
  *
  * Tier penalties further reduce unreliable patterns without confluence.
  */
@@ -278,17 +302,17 @@ export function computeFinalSignalStrength(
 
   // Multiplicative confluence adjustment (not additive — prevents bunching at 100%)
   if (confluenceScore >= 5) {
-    strength *= 1.08;
+    strength *= 1.15;
   } else if (confluenceScore === 4) {
-    strength *= 1.05;
-  } else if (confluenceScore === 3) {
     strength *= 1.02;
+  } else if (confluenceScore === 3) {
+    strength *= 0.90;
   } else if (confluenceScore === 2) {
-    strength *= 0.95;
+    strength *= 0.72;
   } else if (confluenceScore === 1) {
-    strength *= 0.85;
+    strength *= 0.55;
   } else {
-    strength *= 0.75;
+    strength *= 0.40;
   }
 
   // Tier 2 penalty if confluence < 3 (these patterns need confirmation)

@@ -5,6 +5,8 @@ export async function register() {
     await cleanupStuckSessions();
 
     const { startScheduler } = await import('@/lib/scanner/scheduler');
-    startScheduler(15, 30); // 3:30 PM IST
+    // 3:45 PM IST — 15 min after the 3:30 close so the day's candle is settled,
+    // not the mid-closing-auction print you'd capture exactly at the bell.
+    startScheduler(15, 45);
   }
 }

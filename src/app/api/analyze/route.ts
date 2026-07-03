@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { fetchAndCacheCandles, fetchTodayCandle } from '@/lib/upstox/historical';
+import { calendarDaysForTradingDays } from '@/lib/time/market-time';
 import { computeAllIndicators } from '@/lib/indicators';
 import { runAllPatterns } from '@/lib/patterns';
 import type { PatternResult } from '@/types/pattern';
@@ -149,12 +150,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch 200 days of candles (uses cache when available)
+    // Fetch enough daily history to seed EMA200 (uses cache when available)
     const candles = await fetchAndCacheCandles(
       instrument.id,
       instrument.instrumentKey,
       'day',
-      200,
+      calendarDaysForTradingDays(260),
     );
 
     if (candles.length < 30) {

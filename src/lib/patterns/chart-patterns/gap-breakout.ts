@@ -79,7 +79,9 @@ export const gapBreakoutDetector: PatternDetector = {
       const gapIdx = candles.length - offset;
       const prevIdx = gapIdx - 1;
 
-      if (prevIdx < 0 || gapIdx >= candles.length) continue;
+      // Skip a gap on the very last bar: there is no subsequent bar to confirm the
+      // gap held, so the "not filled" sustain check would be trivially (wrongly) true.
+      if (prevIdx < 0 || gapIdx > candles.length - 2) continue;
 
       const gapCandle = candles[gapIdx];
       const prevCandle = candles[prevIdx];

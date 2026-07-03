@@ -37,14 +37,14 @@ export function Sidebar() {
           <TrendingUp className="h-5 w-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-base font-semibold tracking-tight text-card-foreground">SwingScan</h1>
-          <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Pattern Detection</p>
+          <h1 className="text-[17px] font-bold leading-none tracking-tight text-card-foreground">SwingScan</h1>
+          <p className="mt-1 font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">Pattern Detection</p>
         </div>
       </div>
 
       {/* Navigation */}
       <nav className="mt-6 space-y-1 px-3">
-        <div className="mb-3 px-3 font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+        <div className="mb-3 px-3 font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground/70">
           Navigation
         </div>
         {navItems.map((item) => {
@@ -65,8 +65,8 @@ export function Sidebar() {
                   : 'border-transparent text-muted-foreground hover:border-border hover:bg-secondary hover:text-foreground'
               )}
             >
-              <Icon className="h-[18px] w-[18px]" />
-              <span className="font-mono text-xs tracking-[0.04em]">{item.label}</span>
+              <Icon className="h-[18px] w-[18px]" strokeWidth={isActive ? 2.4 : 2} />
+              <span className={cn('font-mono text-xs tracking-[0.02em]', isActive ? 'font-semibold' : 'font-medium')}>{item.label}</span>
             </Link>
           );
         })}
@@ -74,9 +74,9 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className="absolute bottom-0 left-0 right-0 border-t border-border p-4">
-        <div className="space-y-1 font-mono text-[10px] text-muted-foreground">
-          <p className="uppercase tracking-[0.15em]">Auto-scan: 3:30 PM IST</p>
-          <p>Nifty 500 Stocks</p>
+        <div className="space-y-1 font-mono text-[10px] text-muted-foreground/80">
+          <p className="font-medium uppercase tracking-[0.2em]">Auto-scan: 3:30 PM IST</p>
+          <p className="tracking-[0.02em]">Nifty 500 Stocks</p>
         </div>
       </div>
     </aside>

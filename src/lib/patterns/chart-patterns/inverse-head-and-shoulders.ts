@@ -12,6 +12,8 @@ import {
   fitTrendline,
   computeSignalStrength,
   calculateRiskReward,
+  confirmedBreakUp,
+  hasPriorDowntrend,
 } from '@/lib/patterns/utils';
 
 // ---------------------------------------------------------------------------
@@ -160,11 +162,20 @@ export const inverseHeadAndShouldersDetector: PatternDetector = {
 
     const patternHeight = necklineAtHead - bestHead.price;
 
-    // ----- Step 4: Check current price relative to neckline -----
-    const currentPrice = windowCandles[windowCandles.length - 1].close;
+    // ----- Step 4: Prior downtrend + CONFIRMED neckline breakout -----
+    // Inverse H&S is a bullish reversal: it must end a decline and only triggers on
+    // a confirmed close ABOVE the (sloped) neckline (was "within 3% below").
+    if (!hasPriorDowntrend(candles, bestLS.index + offset, 20, 6)) return noDetection();
 
-    // Price must be near or above the neckline (within 3% below is ok)
-    if (currentPrice < necklineAtCurrent * 0.97) return noDetection();
+    const lastWinIdx = windowCandles.length - 1;
+    const currentPrice = windowCandles[lastWinIdx].close;
+    const prevClose = windowCandles[lastWinIdx - 1].close;
+    const necklineAtPrev = necklineTrendline
+      ? necklineTrendline.slope * (lastWinIdx - 1) + necklineTrendline.intercept
+      : necklineAtCurrent;
+    if (!confirmedBreakUp(currentPrice, prevClose, necklineAtCurrent, necklineAtPrev)) {
+      return noDetection();
+    }
 
     // ----- Step 5: Volume analysis -----
     // Ideal iH&S: volume increases through the pattern (especially on breakout)

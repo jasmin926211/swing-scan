@@ -46,7 +46,7 @@ export function findPivotHighs(
 
     // Check left side.
     for (let j = i - leftBars; j < i; j++) {
-      if (candles[j].high > candidateHigh) {
+      if (candles[j].high >= candidateHigh) {
         isPivot = false;
         break;
       }
@@ -56,7 +56,7 @@ export function findPivotHighs(
 
     // Check right side.
     for (let j = i + 1; j <= i + rightBars; j++) {
-      if (candles[j].high > candidateHigh) {
+      if (candles[j].high >= candidateHigh) {
         isPivot = false;
         break;
       }
@@ -99,7 +99,7 @@ export function findPivotLows(
 
     // Check left side.
     for (let j = i - leftBars; j < i; j++) {
-      if (candles[j].low < candidateLow) {
+      if (candles[j].low <= candidateLow) {
         isPivot = false;
         break;
       }
@@ -109,7 +109,7 @@ export function findPivotLows(
 
     // Check right side.
     for (let j = i + 1; j <= i + rightBars; j++) {
-      if (candles[j].low < candidateLow) {
+      if (candles[j].low <= candidateLow) {
         isPivot = false;
         break;
       }

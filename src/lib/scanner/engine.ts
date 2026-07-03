@@ -5,6 +5,15 @@ import { PatternResult } from '@/types/pattern';
 import { computeAllIndicators } from '@/lib/indicators';
 import { runAllPatterns } from '@/lib/patterns';
 import { fetchAndCacheCandles } from '@/lib/upstox/historical';
+import { calendarDaysForTradingDays } from '@/lib/time/market-time';
+
+/**
+ * Daily history window in CALENDAR days. EMA200 needs 200 completed TRADING bars
+ * just to begin producing values, so 200 calendar days (~136 sessions) left it
+ * permanently NaN and disabled the golden/death cross. This targets ~260 trading
+ * days (~379 calendar days) so EMA200 is well seeded.
+ */
+const DAILY_HISTORY_CALENDAR_DAYS = calendarDaysForTradingDays(260);
 
 /**
  * Processing concurrency — how many stocks are processed simultaneously.
@@ -88,12 +97,12 @@ export async function runScan(
     const allPromises = instruments.map((instrument) =>
       processLimit(async () => {
         try {
-          // Fetch historical candles (200 days for pattern detection)
+          // Fetch daily history (enough to seed EMA200 — see constant above)
           const candles = await fetchAndCacheCandles(
             instrument.id,
             instrument.instrumentKey,
             'day',
-            200
+            DAILY_HISTORY_CALENDAR_DAYS
           );
 
           if (candles.length < 30) {
@@ -143,9 +152,15 @@ export async function runScan(
           }
 
           scannedCount++;
-        } catch {
+        } catch (err) {
           errorCount++;
           scannedCount++;
+          // Was silently swallowed — a broken feed (expired auth, rate limits,
+          // parse errors) looked identical to "scanned fine, no pattern". Log it.
+          console.error(
+            `[Scanner] Failed to process ${instrument.tradingSymbol}:`,
+            err instanceof Error ? err.message : err
+          );
         }
 
         // Update progress periodically (not every stock — reduces DB writes)
@@ -162,11 +177,16 @@ export async function runScan(
 
     await Promise.all(allPromises);
 
-    // Mark scan as completed
+    // Safety gate: if a large fraction of stocks failed to fetch/process, the data
+    // feed is broken (expired token, API outage, rate limits). Do NOT present those
+    // results as authoritative — mark the session failed so the UI withholds them.
+    const errorRate = instruments.length > 0 ? errorCount / instruments.length : 0;
+    const scanBroken = errorRate > 0.5;
+
     await prisma.scanSession.update({
       where: { id: session.id },
       data: {
-        status: 'completed',
+        status: scanBroken ? 'failed' : 'completed',
         completedAt: new Date(),
         scannedCount,
         errorCount,
@@ -174,7 +194,14 @@ export async function runScan(
       },
     });
 
-    console.log(`Scan completed: ${scannedCount} stocks, ${patternsFound} patterns, ${errorCount} errors`);
+    if (scanBroken) {
+      console.error(
+        `[Scanner] Scan FAILED — ${errorCount}/${instruments.length} stocks errored (${(errorRate * 100).toFixed(0)}%). ` +
+          `Results withheld; check Upstox auth / API health.`
+      );
+    } else {
+      console.log(`Scan completed: ${scannedCount} stocks, ${patternsFound} patterns, ${errorCount} errors`);
+    }
     return session.id;
   } catch (error) {
     await prisma.scanSession.update({

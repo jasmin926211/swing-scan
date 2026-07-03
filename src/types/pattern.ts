@@ -30,11 +30,12 @@ export interface EnrichedPatternResult extends PatternResult {
 }
 
 export interface ConfluenceDetails {
-  dailyPattern: boolean;          // Pattern on daily chart
+  dailyPattern: boolean;          // Pattern detected on daily chart (context flag, not scored)
   volumeConfirmed: boolean;       // Volume >= 1.5x average
   atKeyLevel: boolean;            // At support/resistance or Fibonacci level
   weeklyTrendAligned: boolean;    // Weekly trend agrees with direction
-  rsiConfirmed: boolean;          // RSI confirms oversold/overbought
+  rsiConfirmed: boolean;          // RSI confirms direction (strict bands, not a coin flip)
+  emaTrendAligned: boolean;       // EMA stack (9/21/50) supports the direction
 }
 
 export interface PatternDetector {
