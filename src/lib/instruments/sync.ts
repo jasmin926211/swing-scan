@@ -1,17 +1,21 @@
 import prisma from '@/lib/prisma';
-import { fetchNSEEquityInstruments } from '@/lib/upstox/instruments';
+import { fetchNSEEquityInstruments, fetchNifty500Sectors } from '@/lib/upstox/instruments';
 
 /**
  * Sync all NSE equity instruments from Upstox into the database.
- * Downloads the latest instrument master file, filters for equities,
- * and upserts them into the database.
+ * Downloads the latest instrument master file, filters for equities, and upserts
+ * them — populating the correct sector (from the NSE Nifty-500 list) and the
+ * isNifty500 flag. Non-Nifty-500 equities get sector "Other".
  */
 export async function syncInstruments(): Promise<{
   created: number;
   updated: number;
   total: number;
 }> {
-  const instruments = await fetchNSEEquityInstruments();
+  const [instruments, nifty500] = await Promise.all([
+    fetchNSEEquityInstruments(),
+    fetchNifty500Sectors(),
+  ]);
 
   let created = 0;
   let updated = 0;
@@ -23,6 +27,10 @@ export async function syncInstruments(): Promise<{
 
     const promises = batch.map(async (inst) => {
       const isin = inst.isin!;
+      const n5 = nifty500.get(isin);
+      const sector = n5 ? n5.industry : 'Other';
+      const companyName = n5?.company || inst.name || inst.short_name || inst.trading_symbol;
+
       const existing = await prisma.instrument.findUnique({
         where: { isin },
       });
@@ -32,17 +40,19 @@ export async function syncInstruments(): Promise<{
         create: {
           instrumentKey: inst.instrument_key,
           tradingSymbol: inst.trading_symbol,
-          companyName: inst.name || inst.short_name || inst.trading_symbol,
+          companyName,
           isin,
           exchange: 'NSE',
-          sector: null,
-          isNifty500: true,
+          sector,
+          isNifty500: !!n5,
           isActive: true,
         },
         update: {
           instrumentKey: inst.instrument_key,
           tradingSymbol: inst.trading_symbol,
-          companyName: inst.name || inst.short_name || inst.trading_symbol,
+          companyName,
+          sector,          // keep sectors correct on every sync
+          isNifty500: !!n5,
           isActive: true,
         },
       });

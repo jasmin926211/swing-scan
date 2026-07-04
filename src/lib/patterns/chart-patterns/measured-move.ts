@@ -7,6 +7,8 @@ import {
 import {
   computeSignalStrength,
   calculateRiskReward,
+  confirmedBreakUp,
+  confirmedBreakDown,
 } from '@/lib/patterns/utils';
 
 // ---------------------------------------------------------------------------
@@ -208,29 +210,26 @@ export const measuredMoveDetector: PatternDetector = {
 
       if (!correction) continue;
 
-      // ----- Check if wave 3 is starting or in progress -----
+      // ----- Wave 3 must RESUME with a confirmed break beyond point C -----
+      // The trade trigger: the last bar closes beyond the correction end (C) in the
+      // impulse direction, having been inside on the prior bar. This removes the flood
+      // of speculative "wave 3 might be starting" signals — measured move now fires
+      // only on the confirmed continuation bar.
       const wave3StartIdx = correction.endIdx;
       const lastIdx = candles.length - 1;
       const candlesSinceCorrection = lastIdx - wave3StartIdx;
+      if (candlesSinceCorrection < 1 || candlesSinceCorrection > MAX_WAVE_LENGTH) continue;
 
-      // Wave 3 should be starting (0-3 candles) or in progress
-      if (candlesSinceCorrection < 0 || candlesSinceCorrection > MAX_WAVE_LENGTH) {
-        continue;
-      }
-
-      // Check direction of wave 3 matches wave 1
-      const wave3CurrentPrice = candles[lastIdx].close;
       const wave3StartPrice = correction.correctionEndPrice;
+      const lastClose = candles[lastIdx].close;
+      const prevClose = candles[lastIdx - 1].close;
+      const resumed = wave1.direction === 'up'
+        ? confirmedBreakUp(lastClose, prevClose, wave3StartPrice, wave3StartPrice)
+        : confirmedBreakDown(lastClose, prevClose, wave3StartPrice, wave3StartPrice);
+      if (!resumed) continue;
 
-      let wave3InCorrectDirection: boolean;
-      if (wave1.direction === 'up') {
-        wave3InCorrectDirection = wave3CurrentPrice > wave3StartPrice;
-      } else {
-        wave3InCorrectDirection = wave3CurrentPrice < wave3StartPrice;
-      }
-
-      // If wave 3 has started (> 2 candles), it should be in the right direction
-      if (candlesSinceCorrection > 2 && !wave3InCorrectDirection) continue;
+      const wave3CurrentPrice = lastClose;
+      const wave3InCorrectDirection = true; // confirmed by the break above
 
       // ----- Calculate wave 3 progress -----
       const wave3CurrentMagnitude = Math.abs(wave3CurrentPrice - wave3StartPrice);
@@ -272,7 +271,7 @@ export const measuredMoveDetector: PatternDetector = {
       const volumeConfirmation = Math.min(1, recentVolumeRatio / 1.5);
 
       const trendAlignment = wave3InCorrectDirection ? 0.85 : 0.4;
-      const proximityToBreakout = progressScore;
+      const proximityToBreakout = 1.0; // confirmed wave-3 break
 
       const signalStrength = computeSignalStrength({
         patternConfidence,

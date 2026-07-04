@@ -231,7 +231,10 @@ export async function getLatestScanResults(limit: number = 10) {
   const results = await prisma.scanResult.findMany({
     where: { scanSessionId: latestSession.id },
     include: { instrument: true },
-    orderBy: { signalStrength: 'desc' },
+    // Rank by RELIABILITY first (tier 1 → 3), then signal strength. Previously this
+    // sorted by strength only, so a Tier-3 pattern (e.g. measured_move) could top the
+    // list above confirmed Tier-1 setups. Highest-reliability signals now surface first.
+    orderBy: [{ tier: 'asc' }, { signalStrength: 'desc' }],
     take: limit,
   });
 

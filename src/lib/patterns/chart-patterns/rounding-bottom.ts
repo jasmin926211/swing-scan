@@ -8,6 +8,7 @@ import {
   linearRegression,
   computeSignalStrength,
   calculateRiskReward,
+  confirmedBreakUp,
 } from '@/lib/patterns/utils';
 
 // ---------------------------------------------------------------------------
@@ -205,9 +206,11 @@ export const roundingBottomDetector: PatternDetector = {
       // Curve must have meaningful depth (> 3% of left rim price)
       if (curveDepth <= 0 || (curveDepth / leftRimPrice) * 100 < 3) continue;
 
-      // Right rim should be near or above left rim level for a completed pattern
+      // Require a CONFIRMED breakout above the left rim (was: fired within 5% below
+      // the rim, before the saucer actually completed).
       const rimRatio = rightRimPrice / leftRimPrice;
-      if (rimRatio < 0.95) continue; // not yet recovered enough
+      const prevClose = candles[candles.length - 2].close;
+      if (!confirmedBreakUp(rightRimPrice, prevClose, leftRimPrice, leftRimPrice)) continue;
 
       // ----- Volume U-shape -----
       const volUShape = isVolumeUShape(candles, startIdx, candles.length - 1);
@@ -216,8 +219,7 @@ export const roundingBottomDetector: PatternDetector = {
       const patternConfidence = Math.min(1, quad.rSquared);
       const volumeConfirmation = volUShape ? 0.85 : 0.35;
       const trendAlignment = rimRatio >= 1.0 ? 0.9 : 0.6;
-      // Proximity: how close the right rim is to breaking above the left rim
-      const proximityToBreakout = Math.min(1, Math.max(0, rimRatio - 0.95) / 0.10);
+      const proximityToBreakout = 1.0; // confirmed breakout above the rim
 
       const signalStrength = computeSignalStrength({
         patternConfidence,
