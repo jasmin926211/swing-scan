@@ -1,5 +1,6 @@
 import { gunzipSync } from 'zlib';
 import { PrismaClient } from '@prisma/client';
+import { fetchNifty500Sectors } from '@/lib/upstox/instruments';
 
 const prisma = new PrismaClient();
 
@@ -8,6 +9,9 @@ const NSE_INSTRUMENTS_URL =
 
 async function main() {
   console.log('Downloading NSE instrument master from Upstox...');
+
+  // Authoritative sector source (Upstox master has no sector field).
+  const nifty500 = await fetchNifty500Sectors();
 
   const response = await fetch(NSE_INSTRUMENTS_URL);
   if (!response.ok) {
@@ -40,6 +44,10 @@ async function main() {
     const batch = equityInstruments.slice(i, i + batchSize);
 
     const promises = batch.map(async (inst: any) => {
+      const n5 = nifty500.get(inst.isin);
+      const sector = n5 ? n5.industry : 'Other';
+      const companyName = n5?.company || inst.name || inst.short_name || inst.trading_symbol;
+
       const existing = await prisma.instrument.findUnique({
         where: { isin: inst.isin },
       });
@@ -49,17 +57,19 @@ async function main() {
         create: {
           instrumentKey: inst.instrument_key,
           tradingSymbol: inst.trading_symbol,
-          companyName: inst.name || inst.short_name || inst.trading_symbol,
+          companyName,
           isin: inst.isin,
           exchange: 'NSE',
-          sector: null,
-          isNifty500: true,
+          sector,
+          isNifty500: !!n5,
           isActive: true,
         },
         update: {
           instrumentKey: inst.instrument_key,
           tradingSymbol: inst.trading_symbol,
-          companyName: inst.name || inst.short_name || inst.trading_symbol,
+          companyName,
+          sector,
+          isNifty500: !!n5,
           isActive: true,
         },
       });
