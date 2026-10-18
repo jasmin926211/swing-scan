@@ -8,8 +8,8 @@ import { barTime, pct, price } from "@/lib/format";
 import type { AccuracyState } from "./AccuracyCheck";
 
 const MODELS: { id: ModelName; label: string; note: string }[] = [
-  { id: "fast", label: "Fast", note: "quickest" },
-  { id: "balanced", label: "Balanced", note: "default" },
+  { id: "fast", label: "Fast", note: "recommended: as accurate as the larger models in testing, and quickest" },
+  { id: "balanced", label: "Balanced", note: "larger model, ~5× slower" },
   { id: "accurate", label: "Thorough", note: "largest model, ~3× slower" },
 ];
 
@@ -40,7 +40,7 @@ export function ForecastPanel({
   onForecast: (f: Forecast) => void;
   accuracy: AccuracyState;
 }) {
-  const [model, setModel] = useState<ModelName>("balanced");
+  const [model, setModel] = useState<ModelName>("fast");
   const [horizon, setHorizon] = useState(HORIZON[interval].value);
   const [samples, setSamples] = useState(20);
   const [running, setRunning] = useState(false);
