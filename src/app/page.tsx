@@ -1,438 +1,273 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import {
-  TrendingUp,
-  TrendingDown,
-  Activity,
-  BarChart3,
-  Clock,
-  Target,
-  ShieldAlert,
-  Shield,
-  X,
-  ArrowUpRight,
-} from 'lucide-react';
-import { formatPrice, formatSignalStrength, getDirectionBg, timeAgo } from '@/lib/utils';
-import { PATTERN_DISPLAY_NAMES } from '@/types/pattern';
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import clsx from "clsx";
+import { ArrowDown, ArrowUp, ChevronRight, Search } from "lucide-react";
+import { getMarketStocks, type MarketStocks, type Stock } from "@/lib/api";
+import { MARKETS, changeColor, compact, marketStateLabel, price, signedPct } from "@/lib/format";
+import { useMarket } from "@/lib/market";
+import { RangeBar } from "@/components/RangeBar";
 
-interface ScanResultItem {
-  id: string;
-  tradingSymbol: string;
-  companyName: string;
-  patternName: string;
-  patternCategory: string;
-  direction: string;
-  signalStrength: number;
-  confidence: number;
-  tier: number;
-  confluenceScore: number;
-  weeklyTrend: string | null;
-  entryPrice: number | null;
-  stopLoss: number | null;
-  target1: number | null;
-  target2: number | null;
-  riskRewardRatio: number | null;
-  currentPrice: number;
-  rsiValue: number | null;
-  volumeRatio: number | null;
-  sector?: string;
-  patternDisplayName?: string;
-}
+type SortKey = "symbol" | "price" | "change_pct" | "volume" | "market_cap";
+type View = "all" | "gainers" | "losers" | "active";
 
-interface ScanSession {
-  id: string;
-  startedAt: string;
-  completedAt: string | null;
-  status: string;
-  totalStocks: number;
-  scannedCount: number;
-  patternsFound: number;
-  triggerType: string;
-}
+const VIEWS: { id: View; label: string; sort: [SortKey, 1 | -1] }[] = [
+  { id: "all", label: "All", sort: ["market_cap", -1] },
+  { id: "gainers", label: "Top gainers", sort: ["change_pct", -1] },
+  { id: "losers", label: "Top losers", sort: ["change_pct", 1] },
+  { id: "active", label: "Most active", sort: ["volume", -1] },
+];
 
 export default function Dashboard() {
+  const { market } = useMarket();
   const router = useRouter();
-  const [results, setResults] = useState<ScanResultItem[]>([]);
-  const [session, setSession] = useState<ScanSession | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [authAlert, setAuthAlert] = useState(false);
+  const [data, setData] = useState<MarketStocks | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [sector, setSector] = useState("");
+  const [view, setView] = useState<View>("all");
+  const [sort, setSort] = useState<[SortKey, 1 | -1]>(["market_cap", -1]);
 
+  const marketOpen = data?.indices.some((i) => i.market_state === "REGULAR") ?? false;
+
+  // Live quotes: poll every 15s while the market is open, every minute otherwise.
+  // Background tabs skip polls and catch up as soon as they become visible again.
   useEffect(() => {
-    fetchResults();
-  }, []);
-
-  async function handleScanClick() {
-    try {
-      const authRes = await fetch('/api/auth/token');
-      const authData = await authRes.json();
-      if (!authData.success || !authData.data?.connected || authData.data?.expired) {
-        setAuthAlert(true);
-        return;
+    let alive = true;
+    let timer: ReturnType<typeof setTimeout>;
+    async function load(force = false) {
+      clearTimeout(timer);
+      if (force || document.visibilityState === "visible") {
+        try {
+          const next = await getMarketStocks(market);
+          if (!alive) return;
+          setData(next);
+          setError(null);
+        } catch (e) {
+          if (alive) setError((e as Error).message);
+        }
       }
-    } catch {
-      setAuthAlert(true);
-      return;
+      if (alive) timer = setTimeout(load, marketOpen ? 15_000 : 60_000);
     }
-    router.push('/scanner');
+    const onVisible = () => document.visibilityState === "visible" && load();
+    load(true);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [market, marketOpen]);
+
+  // A new country starts from a clean slate.
+  useEffect(() => {
+    setData(null);
+    setSector("");
+    setQuery("");
+  }, [market]);
+
+  const sectors = useMemo(() => [...new Set(data?.stocks.map((s) => s.sector))].sort(), [data]);
+
+  const rows = useMemo(() => {
+    if (!data) return [];
+    const q = query.trim().toLowerCase();
+    const [key, dir] = sort;
+    return data.stocks
+      .filter((s) => (!sector || s.sector === sector) && (!q || s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)))
+      .sort((a, b) => {
+        if (key === "symbol") return dir * a.symbol.localeCompare(b.symbol);
+        const av = a[key] ?? null;
+        const bv = b[key] ?? null;
+        if (av == null) return 1; // missing quotes always last
+        if (bv == null) return -1;
+        return dir * (av - bv);
+      });
+  }, [data, query, sector, sort]);
+
+  function chooseView(v: (typeof VIEWS)[number]) {
+    setView(v.id);
+    setSort(v.sort);
   }
 
-  async function fetchResults() {
-    try {
-      const res = await fetch('/api/scan/results?limit=10');
-      const data = await res.json();
-      if (data.success && data.data) {
-        setResults(data.data.results || []);
-        setSession(data.data.session || null);
-      }
-    } catch {
-      // Ignore
-    } finally {
-      setLoading(false);
-    }
+  function toggleSort(key: SortKey) {
+    setView("all");
+    setSort(([k, d]) => (k === key ? [key, d === 1 ? -1 : 1] : [key, key === "symbol" ? 1 : -1]));
   }
 
-  const bullishCount = results.filter((r) => r.direction === 'bullish').length;
-  const bearishCount = results.filter((r) => r.direction === 'bearish').length;
+  const open = (symbol: string) => router.push(`/stock/${market}/${encodeURIComponent(symbol)}`);
+  const typedTicker = query.trim().toUpperCase();
 
   return (
     <div className="space-y-6">
-      {/* Auth Alert */}
-      {authAlert && (
-        <div className="relative rounded-xl border border-red-500/20 bg-red-500/5 p-5">
-          <button
-            onClick={() => setAuthAlert(false)}
-            className="absolute right-3 top-3 rounded-lg p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-          </button>
-          <div className="flex items-start gap-4">
-            <div className="rounded-full bg-red-500/10 p-2.5">
-              <Shield className="h-5 w-5 text-red-400" />
-            </div>
-            <div className="flex-1">
-              <h4 className="font-semibold text-card-foreground">Upstox Login Required</h4>
-              <p className="mt-1 text-sm text-muted-foreground">
-                You need to connect your Upstox account before scanning stocks. The scanner uses Upstox API to fetch real-time market data.
-              </p>
-              <Link
-                href="/auth"
-                className="mt-3 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-mono text-xs font-medium uppercase tracking-[0.05em] text-primary-foreground transition-colors hover:bg-primary/90"
-              >
-                <Shield className="h-3.5 w-3.5" />
-                Connect Upstox
-              </Link>
-            </div>
-          </div>
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">
+            {MARKETS[market].name} · {MARKETS[market].universe}
+          </h1>
+          <p className="mt-0.5 text-sm text-ink-2">Pick a stock to run a Kronos forecast on it.</p>
         </div>
-      )}
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Last Scan"
-          value={session ? timeAgo(session.completedAt || session.startedAt) : 'Never'}
-          subtitle={session ? `${session.scannedCount}/${session.totalStocks} stocks` : 'No scans yet'}
-          icon={<Clock className="h-5 w-5" />}
-          color="text-primary"
-        />
-        <StatCard
-          title="Patterns Found"
-          value={session?.patternsFound?.toString() || '0'}
-          subtitle="Across all stocks"
-          icon={<Activity className="h-5 w-5" />}
-          color="text-purple-500"
-        />
-        <StatCard
-          title="Bullish Signals"
-          value={bullishCount.toString()}
-          subtitle="In top 10"
-          icon={<TrendingUp className="h-5 w-5" />}
-          color="text-green-500"
-        />
-        <StatCard
-          title="Bearish Signals"
-          value={bearishCount.toString()}
-          subtitle="In top 10"
-          icon={<TrendingDown className="h-5 w-5" />}
-          color="text-red-500"
-        />
-      </div>
-
-      {/* Top 10 Signals Table */}
-      <div className="rounded-xl border border-border bg-card">
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <div>
-            <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
-              Latest Results
-            </div>
-            <h3 className="text-lg font-semibold text-card-foreground">Top 10 Trading Signals</h3>
-          </div>
-          <button
-            onClick={handleScanClick}
-            className="flex items-center gap-1 rounded-lg bg-primary px-4 py-2 font-mono text-xs font-medium tracking-[0.05em] text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            <ScanIcon />
-            SCAN NOW
-          </button>
-        </div>
-
-        {loading ? (
-          <div className="p-12 text-center text-muted-foreground">
-            <Activity className="mx-auto mb-3 h-8 w-8 animate-pulse" />
-            <p>Loading results...</p>
-          </div>
-        ) : results.length === 0 ? (
-          <div className="p-12 text-center text-muted-foreground">
-            <BarChart3 className="mx-auto mb-3 h-8 w-8" />
-            <p className="text-lg font-medium">No scan results yet</p>
-            <p className="mt-1 text-sm">
-              Go to{' '}
-              <Link href="/auth" className="text-primary hover:underline">
-                Upstox Auth
-              </Link>{' '}
-              to connect, then run your first scan.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border text-left font-mono text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
-                  <th className="px-6 py-3">#</th>
-                  <th className="px-6 py-3">Stock</th>
-                  <th className="px-6 py-3">Pattern</th>
-                  <th className="px-6 py-3">Tier</th>
-                  <th className="px-6 py-3">Direction</th>
-                  <th className="px-6 py-3">Strength</th>
-                  <th className="px-6 py-3">Confluence</th>
-                  <th className="px-6 py-3">Entry</th>
-                  <th className="px-6 py-3">Stop Loss</th>
-                  <th className="px-6 py-3">Target</th>
-                  <th className="px-6 py-3">R:R</th>
-                  <th className="px-6 py-3">RSI</th>
-                  <th className="px-6 py-3"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {results.map((result, idx) => {
-                  const strength = formatSignalStrength(result.signalStrength);
-                  return (
-                    <tr
-                      key={result.id}
-                      className="border-b border-border/50 transition-colors hover:bg-secondary/30"
-                    >
-                      <td className="px-6 py-4 font-mono text-sm text-muted-foreground">
-                        {idx + 1}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div>
-                          <p className="font-semibold text-foreground">
-                            {result.tradingSymbol}
-                          </p>
-                          <p className="font-mono text-[11px] text-muted-foreground">
-                            {formatPrice(result.currentPrice)}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-sm font-medium text-foreground">
-                          {result.patternDisplayName ||
-                            PATTERN_DISPLAY_NAMES[result.patternName] ||
-                            result.patternName}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <TierBadge tier={result.tier} />
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 font-mono text-[11px] font-medium ${getDirectionBg(
-                            result.direction
-                          )}`}
-                        >
-                          {result.direction === 'bullish' ? (
-                            <TrendingUp className="h-3 w-3" />
-                          ) : result.direction === 'bearish' ? (
-                            <TrendingDown className="h-3 w-3" />
-                          ) : null}
-                          {result.direction}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className="h-2 w-16 rounded-full bg-secondary">
-                            <div
-                              className="h-2 rounded-full"
-                              style={{
-                                width: `${result.signalStrength * 100}%`,
-                                backgroundColor: strength.color,
-                              }}
-                            />
-                          </div>
-                          <span className={`font-mono text-[11px] font-medium ${strength.className}`}>
-                            {(result.signalStrength * 100).toFixed(0)}%
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <ConfluenceDots score={result.confluenceScore} />
-                      </td>
-                      <td className="px-6 py-4 font-mono text-sm text-foreground">
-                        {formatPrice(result.entryPrice)}
-                      </td>
-                      <td className="px-6 py-4 font-mono text-sm text-red-400">
-                        {formatPrice(result.stopLoss)}
-                      </td>
-                      <td className="px-6 py-4 font-mono text-sm text-green-400">
-                        {formatPrice(result.target1)}
-                      </td>
-                      <td className="px-6 py-4">
-                        {result.riskRewardRatio ? (
-                          <span className="font-mono text-sm font-medium text-foreground">
-                            1:{result.riskRewardRatio.toFixed(1)}
-                          </span>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">-</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        {result.rsiValue ? (
-                          <span
-                            className={`font-mono text-sm font-medium ${
-                              result.rsiValue > 70
-                                ? 'text-red-400'
-                                : result.rsiValue < 30
-                                ? 'text-green-400'
-                                : 'text-foreground'
-                            }`}
-                          >
-                            {result.rsiValue.toFixed(0)}
-                          </span>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">-</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <Link
-                          href={`/stock/${result.tradingSymbol}`}
-                          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                        >
-                          <ArrowUpRight className="h-4 w-4" />
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+        {data && (
+          <p className="flex items-center gap-2 text-xs text-ink-3">
+            <span className={clsx("h-1.5 w-1.5 rounded-full", marketOpen ? "bg-up" : "bg-ink-3")} />
+            {marketStateLabel(data.indices[0]?.market_state)} · updated{" "}
+            {new Date(data.updated_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+          </p>
         )}
       </div>
 
-      {/* Quick Info */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="rounded-xl border border-border bg-card p-6">
-          <h3 className="mb-3 flex items-center gap-2 text-base font-semibold text-card-foreground">
-            <Target className="h-5 w-5 text-primary" />
-            How It Works
-          </h3>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            <li>Scans all Nifty 500 stocks using Upstox API</li>
-            <li>Detects 35+ patterns: candlestick, chart, and crossover signals</li>
-            <li>3-tier reliability system: Tier 1 (high), Tier 2 (medium), Tier 3 (early warning)</li>
-            <li>5-point confluence scoring: pattern + volume + S/R level + weekly trend + RSI</li>
-            <li>Fibonacci retracement and support/resistance confluence detection</li>
-            <li>Hard volume filter: reversal patterns rejected below 1.5x average volume</li>
-          </ul>
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {(data?.indices ?? Array.from({ length: 4 }, () => null)).map((ix, i) => (
+          <div key={ix?.ticker ?? i} className="rounded-xl border border-line p-4">
+            {ix ? (
+              <>
+                <p className="text-xs text-ink-2">{ix.name}</p>
+                <p className="tabular mt-1 text-lg font-semibold">{price(ix.price, market)}</p>
+                <p className={clsx("tabular text-xs", changeColor(ix.change))}>
+                  {ix.change != null && (ix.change > 0 ? "+" : "") + price(ix.change, market)} ({signedPct(ix.change_pct)})
+                </p>
+              </>
+            ) : (
+              <div className="h-[60px] animate-pulse rounded bg-wash" />
+            )}
+          </div>
+        ))}
+      </section>
+
+      <section className="rounded-xl border border-line">
+        <div className="flex flex-wrap items-center gap-3 border-b border-line p-3">
+          <label className="relative min-w-[220px] flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search symbol or company"
+              className="w-full rounded-lg border border-line py-2 pl-9 pr-3 text-sm outline-none focus:border-ink-3"
+            />
+          </label>
+          <select
+            value={sector}
+            onChange={(e) => setSector(e.target.value)}
+            className="max-w-[220px] rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink-2 outline-none focus:border-ink-3"
+          >
+            <option value="">All sectors</option>
+            {sectors.map((s) => (
+              <option key={s}>{s}</option>
+            ))}
+          </select>
+          <div className="-mx-1 flex gap-1 overflow-x-auto px-1 text-sm">
+            {VIEWS.map((v) => (
+              <button
+                key={v.id}
+                onClick={() => chooseView(v)}
+                className={clsx(
+                  "whitespace-nowrap rounded-lg px-3 py-1.5 transition-colors",
+                  view === v.id ? "bg-wash font-medium text-ink" : "text-ink-2 hover:text-ink",
+                )}
+              >
+                {v.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-6">
-          <h3 className="mb-3 flex items-center gap-2 text-base font-semibold text-card-foreground">
-            <ShieldAlert className="h-5 w-5 text-yellow-500" />
-            Risk Management
-          </h3>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            <li>Always use the suggested stop-loss levels</li>
-            <li>Never risk more than 1-2% of capital per trade</li>
-            <li>Patterns with R:R below 1:1.5 should be avoided</li>
-            <li>Confirm signals with volume surge (Volume Ratio &gt; 1.5x)</li>
-            <li>Best for 5-7 day swing holding period</li>
-          </ul>
+        {error && !data && <p className="p-6 text-sm text-down">Could not load prices: {error}</p>}
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs text-ink-3">
+                <Th onClick={() => toggleSort("symbol")} sort={sort} k="symbol">Stock</Th>
+                <th className="hidden px-3 py-2.5 font-normal lg:table-cell">Sector</th>
+                <Th onClick={() => toggleSort("price")} sort={sort} k="price" right>Price</Th>
+                <Th onClick={() => toggleSort("change_pct")} sort={sort} k="change_pct" right>Change</Th>
+                <th className="hidden px-3 py-2.5 font-normal md:table-cell">Day range</th>
+                <Th onClick={() => toggleSort("volume")} sort={sort} k="volume" right className="hidden sm:table-cell">Volume</Th>
+                <Th onClick={() => toggleSort("market_cap")} sort={sort} k="market_cap" right className="hidden md:table-cell">Mkt cap</Th>
+                <th className="w-8" />
+              </tr>
+            </thead>
+            <tbody>
+              {!data &&
+                Array.from({ length: 12 }, (_, i) => (
+                  <tr key={i} className="border-t border-line">
+                    <td colSpan={8} className="px-3 py-3">
+                      <div className="h-5 animate-pulse rounded bg-wash" />
+                    </td>
+                  </tr>
+                ))}
+              {rows.map((s) => (
+                <Row key={s.symbol} s={s} market={market} onOpen={open} />
+              ))}
+            </tbody>
+          </table>
         </div>
-      </div>
+
+        {data && rows.length === 0 && (
+          <div className="p-6 text-sm text-ink-2">
+            No stock in the {MARKETS[market].universe} matches “{query}”.
+            {/^[A-Z0-9.&^-]{1,20}$/.test(typedTicker) && (
+              <button onClick={() => open(typedTicker)} className="ml-2 font-medium text-accent hover:underline">
+                Open {typedTicker} anyway →
+              </button>
+            )}
+          </div>
+        )}
+        {data && rows.length > 0 && (
+          <p className="border-t border-line px-3 py-2.5 text-xs text-ink-3">
+            {rows.length} of {data.stocks.length} stocks · prices from Yahoo Finance
+          </p>
+        )}
+      </section>
     </div>
   );
 }
 
-function StatCard({
-  title,
-  value,
-  subtitle,
-  icon,
-  color,
+function Th({
+  children,
+  onClick,
+  sort,
+  k,
+  right,
+  className,
 }: {
-  title: string;
-  value: string;
-  subtitle: string;
-  icon: React.ReactNode;
-  color: string;
+  children: React.ReactNode;
+  onClick: () => void;
+  sort: [SortKey, 1 | -1];
+  k: SortKey;
+  right?: boolean;
+  className?: string;
 }) {
+  const active = sort[0] === k;
+  const Icon = sort[1] === 1 ? ArrowUp : ArrowDown;
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      <div className="flex items-center justify-between">
-        <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground">{title}</p>
-        <div className={color}>{icon}</div>
-      </div>
-      <p className="mt-2 text-2xl font-bold text-card-foreground">{value}</p>
-      <p className="mt-1 font-mono text-[11px] text-muted-foreground">{subtitle}</p>
-    </div>
+    <th className={clsx("px-3 py-2.5 font-normal", right && "text-right", className)} aria-sort={active ? (sort[1] === 1 ? "ascending" : "descending") : "none"}>
+      <button onClick={onClick} className={clsx("inline-flex items-center gap-1 hover:text-ink", active && "text-ink")}>
+        {children}
+        {active && <Icon className="h-3 w-3" />}
+      </button>
+    </th>
   );
 }
 
-function ScanIcon() {
+function Row({ s, market, onOpen }: { s: Stock; market: "in" | "us"; onOpen: (symbol: string) => void }) {
   return (
-    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-    </svg>
-  );
-}
-
-function TierBadge({ tier }: { tier: number }) {
-  const config = {
-    1: { label: 'T1', className: 'bg-green-500/15 text-green-400 border-green-500/30' },
-    2: { label: 'T2', className: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30' },
-    3: { label: 'T3', className: 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30' },
-  }[tier] ?? { label: `T${tier}`, className: 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30' };
-
-  return (
-    <span className={`inline-flex items-center rounded border px-1.5 py-0.5 font-mono text-[10px] font-bold ${config.className}`}>
-      {config.label}
-    </span>
-  );
-}
-
-function ConfluenceDots({ score }: { score: number }) {
-  const maxDots = 5;
-  return (
-    <div className="flex items-center gap-1" title={`Confluence: ${score}/5`}>
-      {Array.from({ length: maxDots }, (_, i) => (
-        <div
-          key={i}
-          className={`h-2 w-2 rounded-full ${
-            i < score
-              ? score >= 4
-                ? 'bg-green-500'
-                : score >= 3
-                ? 'bg-yellow-500'
-                : 'bg-red-500'
-              : 'bg-zinc-700'
-          }`}
-        />
-      ))}
-      <span className="ml-1 font-mono text-[11px] text-muted-foreground">{score}/5</span>
-    </div>
+    <tr onClick={() => onOpen(s.symbol)} className="group cursor-pointer border-t border-line hover:bg-wash">
+      <td className="px-3 py-2.5">
+        <p className="font-medium">{s.symbol}</p>
+        <p className="max-w-[220px] truncate text-xs text-ink-3">{s.name}</p>
+      </td>
+      <td className="hidden max-w-[180px] truncate px-3 py-2.5 text-xs text-ink-2 lg:table-cell">{s.sector}</td>
+      <td className="tabular px-3 py-2.5 text-right font-medium">{price(s.price, market)}</td>
+      <td className={clsx("tabular px-3 py-2.5 text-right", changeColor(s.change_pct))}>{signedPct(s.change_pct)}</td>
+      <td className="hidden px-3 py-2.5 md:table-cell">
+        <RangeBar low={s.low} high={s.high} value={s.price} market={market} />
+      </td>
+      <td className="tabular hidden px-3 py-2.5 text-right text-ink-2 sm:table-cell">{compact(s.volume, market)}</td>
+      <td className="tabular hidden px-3 py-2.5 text-right text-ink-2 md:table-cell">{compact(s.market_cap, market)}</td>
+      <td className="pr-3 text-ink-3 group-hover:text-ink">
+        <ChevronRight className="h-4 w-4" />
+      </td>
+    </tr>
   );
 }

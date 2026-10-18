@@ -1,35 +1,24 @@
-import type { Metadata } from 'next';
-import { JetBrains_Mono } from 'next/font/google';
-import './globals.css';
-import { Sidebar } from '@/components/layout/sidebar';
-import { Header } from '@/components/layout/header';
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { Header } from "@/components/Header";
+import { MarketProvider } from "@/lib/market";
 
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-jetbrains-mono',
-  display: 'swap',
-});
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
 export const metadata: Metadata = {
-  title: 'SwingScan - Stock Pattern Scanner',
-  description: 'Scan Nifty 500 stocks for 25 chart patterns - 5-7 day swing trading signals',
+  title: "Kronos — Stock Forecasts",
+  description: "Live India and USA stock prices with on-demand Kronos forecasts",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`dark ${jetbrainsMono.variable}`}>
-      <body className="font-sans">
-        <div className="flex min-h-screen">
-          <Sidebar />
-          <main className="ml-64 flex-1">
-            <Header />
-            <div className="p-6">{children}</div>
-          </main>
-        </div>
+    <html lang="en" className={inter.variable}>
+      <body className="min-h-screen font-sans">
+        <MarketProvider>
+          <Header />
+          <main className="mx-auto max-w-7xl px-4 py-6 md:px-6">{children}</main>
+        </MarketProvider>
       </body>
     </html>
   );
