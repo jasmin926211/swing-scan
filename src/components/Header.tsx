@@ -15,6 +15,7 @@ const HOME_SECTIONS = [
   { href: "/#features", label: "Features" },
   { href: "/#accuracy", label: "Accuracy" },
   { href: "/#coverage", label: "Markets" },
+  { href: "/#faq", label: "FAQ" },
 ];
 
 export function Header() {

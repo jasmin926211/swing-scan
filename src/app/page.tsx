@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BarChart3, CandlestickChart, Check, Layers, ShieldCheck, Sparkles, Target } from "lucide-react";
+import { ArrowRight, BarChart3, CandlestickChart, Check, ChevronDown, Layers, ShieldCheck, Sparkles, Target } from "lucide-react";
 import { HeroArt } from "@/components/home/HeroArt";
 import { MarketSnapshot } from "@/components/home/MarketSnapshot";
 import { ACCURACY, COVERAGE } from "@/lib/site";
@@ -60,6 +60,37 @@ const IDEAS = [
   {
     title: "Prefer defined risk",
     body: "Spreads cap what you can lose. Selling naked options can lose many times what it earns, on a single bad day.",
+  },
+];
+
+const FAQ = [
+  {
+    q: "Should I buy just because Kronos says “Bullish”?",
+    a: "No. “Bullish” means at least 60% of Kronos’ sampled paths end higher and the average path is up; it is a probability, not a signal to act on alone. Check the trust note under the forecast first, then decide entry, stop-loss and position size from your own plan. If Kronos hasn’t beaten “price stays flat” on that stock recently, the forecast is flagged as low trust.",
+  },
+  {
+    q: "Which timeframe should I use for swing or intraday trading?",
+    a: "Use daily candles for swing trades of a few days to a few weeks; that is where Kronos has been tested most (1 to 10 trading days ahead). Hourly candles suit short-term views over the next one or two sessions, and weekly candles suit positional trades. Hourly and weekly forecasts haven’t been tested as thoroughly, so lean harder on the per-stock track record there.",
+  },
+  {
+    q: "Are prices real-time? Can I scalp with them?",
+    a: "Close to real-time, not tick-by-tick. During market hours stock prices refresh about every 20 seconds and the page updates every 30, so a price can be up to about a minute old (Yahoo itself may add a few seconds). Indian option chains refresh every 30 seconds. That works for swing and positional decisions, not for scalping: always check the live price in your broker before placing an order.",
+  },
+  {
+    q: "Does Kronos know about results, news or RBI / Fed decisions?",
+    a: "No. Kronos only reads price and volume candles. It doesn’t know about upcoming earnings, dividends, splits, budget announcements, rate decisions or company news, so it can’t predict the gap those cause. Be most careful around result dates and big economic events, when a forecast built on recent candles matters least.",
+  },
+  {
+    q: "Which stocks does it work best on?",
+    a: "Large, liquid stocks and indices: in our tests Kronos did best on large caps and worst on small stocks in strong trends. Thinly traded stocks also gap more and trade with wide spreads, so both the forecast and your fill are worse. The Markets page shows the day’s value traded for every stock, and the top gainers and losers only include liquid names.",
+  },
+  {
+    q: "How should I use the F&O trade ideas?",
+    a: "As a starting point for defined-risk trades, valued at expiry and per lot. Each idea shows its chance of profit twice: on Kronos’ paths and on the option market’s implied volatility. Trust an idea more when both agree; Kronos tends to overrate selling options. Before trading, check the option’s volume, open interest and bid-ask spread, the lot size and your broker’s margin, and remember the values assume you hold until expiry.",
+  },
+  {
+    q: "Can I place trades from CandleTrade?",
+    a: "No, and that is deliberate. CandleTrade is for analysis: it never places, modifies or cancels orders. The Upstox connection used for Indian F&O prices is read-only. You place every trade yourself in your broker’s app, and the decision and the risk stay with you.",
   },
 ];
 
@@ -216,6 +247,21 @@ export default function Home() {
                 </div>
               </dl>
             </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* FAQ */}
+      <Section id="faq" eyebrow="FAQ" title="Questions traders ask before they trust a forecast">
+        <div className="divide-y divide-line rounded-xl border border-line">
+          {FAQ.map(({ q, a }) => (
+            <details key={q} className="group px-5 py-4 [&_summary::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium">
+                {q}
+                <ChevronDown className="h-4 w-4 shrink-0 text-ink-3 transition-transform group-open:rotate-180" />
+              </summary>
+              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-ink-2">{a}</p>
+            </details>
           ))}
         </div>
       </Section>
