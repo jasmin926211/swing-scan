@@ -288,3 +288,7 @@ export type PublicOverview = {
 
 /** Signed-out view of a market: indices, the largest stocks and today's biggest movers. */
 export const getPublicOverview = (m: MarketId) => request<PublicOverview>(`/api/public/markets/${m}/overview`);
+
+export const CONTACT_TOPICS = ["General question", "Bug report", "Feature request", "Account", "Partnership"] as const;
+export type ContactMessage = { name: string; email: string; topic: (typeof CONTACT_TOPICS)[number]; message: string; website: string };
+export const sendContact = (m: ContactMessage) => post<{ ok: boolean }>("/api/contact", m);

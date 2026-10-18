@@ -1,11 +1,12 @@
 import Link from "next/link";
+import { CONTACT } from "@/lib/site";
 import { Logo } from "./Logo";
 
 export function Footer() {
   return (
     <footer className="mt-20 border-t border-line">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 md:grid-cols-4 md:px-6">
-        <div className="space-y-3 md:col-span-2">
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:grid-cols-3 md:grid-cols-5 md:px-6">
+        <div className="space-y-3 sm:col-span-3 md:col-span-2">
           <Logo />
           <p className="max-w-sm text-sm leading-relaxed text-ink-2">
             Live Indian and US markets with Kronos forecasts and an honest track record next to every one.
@@ -18,6 +19,15 @@ export function Footer() {
             { href: "/fno", label: "Futures & options" },
             { href: "/#accuracy", label: "Accuracy" },
             { href: "/signup", label: "Create an account" },
+          ]}
+        />
+        <FooterColumn
+          title="Company"
+          links={[
+            { href: "/about", label: "About us" },
+            { href: "/contact", label: "Contact us" },
+            { href: `mailto:${CONTACT.email}`, label: CONTACT.email },
+            { href: `tel:${CONTACT.phone}`, label: CONTACT.phoneDisplay },
           ]}
         />
         <FooterColumn
@@ -50,7 +60,11 @@ function FooterColumn({ title, links }: { title: string; links: { href: string; 
       <ul className="mt-3 space-y-2 text-sm">
         {links.map((l) => (
           <li key={l.href}>
-            {l.href.startsWith("http") ? (
+            {l.href.startsWith("mailto:") || l.href.startsWith("tel:") ? (
+              <a href={l.href} className="break-all text-ink-2 hover:text-ink">
+                {l.label}
+              </a>
+            ) : l.href.startsWith("http") ? (
               <a href={l.href} target="_blank" rel="noreferrer" className="text-ink-2 hover:text-ink">
                 {l.label}
               </a>

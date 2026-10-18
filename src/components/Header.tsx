@@ -10,12 +10,10 @@ import { MARKETS } from "@/lib/format";
 import { useMarket } from "@/lib/market";
 import { Logo } from "./Logo";
 
-const HOME_SECTIONS = [
-  { href: "/#market", label: "Live market" },
-  { href: "/#features", label: "Features" },
-  { href: "/#accuracy", label: "Accuracy" },
-  { href: "/#coverage", label: "Markets" },
-  { href: "/#faq", label: "FAQ" },
+const PUBLIC_PAGES = [
+  { href: "/", label: "Home" },
+  { href: "/about", label: "About us" },
+  { href: "/contact", label: "Contact us" },
 ];
 
 export function Header() {
@@ -38,15 +36,13 @@ export function Header() {
               </NavLink>
             </nav>
           ) : (
-            pathname === "/" && (
-              <nav className="hidden gap-1 text-sm md:flex">
-                {HOME_SECTIONS.map((s) => (
-                  <NavLink key={s.href} href={s.href} active={false}>
-                    {s.label}
-                  </NavLink>
-                ))}
-              </nav>
-            )
+            <nav className="hidden gap-1 text-sm md:flex">
+              {PUBLIC_PAGES.map((p) => (
+                <NavLink key={p.href} href={p.href} active={pathname === p.href}>
+                  {p.label}
+                </NavLink>
+              ))}
+            </nav>
           )}
         </div>
 
@@ -146,9 +142,11 @@ function UserMenu() {
             <p className="truncate text-xs text-ink-3">{user.email}</p>
           </div>
           <div className="my-1 border-t border-line" />
-          <Link href="/" onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2 text-sm text-ink-2 hover:bg-wash">
-            CandleTrade home
-          </Link>
+          {PUBLIC_PAGES.map((p) => (
+            <Link key={p.href} href={p.href} onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2 text-sm text-ink-2 hover:bg-wash">
+              {p.href === "/" ? "CandleTrade home" : p.label}
+            </Link>
+          ))}
           <button onClick={signOut} className="w-full rounded-lg px-3 py-2 text-left text-sm text-ink-2 hover:bg-wash">
             Sign out
           </button>

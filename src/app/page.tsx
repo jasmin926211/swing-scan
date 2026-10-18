@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { ArrowRight, BarChart3, CandlestickChart, Check, ChevronDown, Layers, ShieldCheck, Sparkles, Target } from "lucide-react";
+import { ArrowRight, CandlestickChart, Check, ChevronDown, Layers, Sparkles, Target } from "lucide-react";
 import { HeroArt } from "@/components/home/HeroArt";
 import { MarketSnapshot } from "@/components/home/MarketSnapshot";
-import { ACCURACY, COVERAGE } from "@/lib/site";
-
-const pct = (v: number, digits = 1) => `${(v * 100).toFixed(digits)}%`;
+import { Section, Stat, pct } from "@/components/marketing";
+import { ACCURACY } from "@/lib/site";
 
 const FEATURES = [
   {
@@ -90,7 +89,7 @@ const FAQ = [
   },
   {
     q: "Can I place trades from CandleTrade?",
-    a: "No, and that is deliberate. CandleTrade is for analysis: it never places, modifies or cancels orders. The Upstox connection used for Indian F&O prices is read-only. You place every trade yourself in your broker’s app, and the decision and the risk stay with you.",
+    a: "No, and that is deliberate. CandleTrade is for analysis: it never places, modifies or cancels orders. The Upstox connection is used only to read Indian F&O prices; CandleTrade has no feature that places or changes orders. You place every trade yourself in your broker’s app, and the decision and the risk stay with you.",
   },
 ];
 
@@ -169,86 +168,21 @@ export default function Home() {
         </div>
       </Section>
 
-      {/* Accuracy & reliability */}
+      {/* Accuracy at a glance */}
       <Section
         id="accuracy"
-        eyebrow="Accuracy & reliability"
-        title="How good is it, honestly?"
-        intro={`We test Kronos the strict way: forecasting from past dates using only the data available then, and comparing with what actually happened. Latest test: ${ACCURACY.forecasts} forecasts on ${ACCURACY.stocks} large US and Indian stocks, ${ACCURACY.horizonDays} trading days ahead (${ACCURACY.testedOn}).`}
+        eyebrow="Accuracy"
+        title="Honest numbers, not hype"
+        intro={`Tested the strict way: forecasting from past dates with only the data available then. ${ACCURACY.forecasts} forecasts on ${ACCURACY.stocks} large US and Indian stocks, ${ACCURACY.horizonDays} trading days ahead.`}
       >
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-3">
           <Stat value={pct(ACCURACY.directionRight)} label="Direction called right" note="A coin flip gets 50%" />
           <Stat value={pct(ACCURACY.avgError)} label={`Average price error after ${ACCURACY.horizonDays} days`} note={`Assuming “no change”: ${pct(ACCURACY.noChangeError)}`} />
-          <Stat value={pct(ACCURACY.rawBandCoverage, 0)} label="Outcomes inside Kronos’ raw 80% range" note="Too narrow, so we widen it" />
           <Stat value={String(ACCURACY.forecasts)} label="Walk-forward forecasts" note="No peeking at the future" />
         </div>
-        <div className="mt-8 grid gap-8 lg:grid-cols-2">
-          <div>
-            <h3 className="font-semibold">What that means for you</h3>
-            <p className="mt-2 text-sm leading-relaxed text-ink-2">
-              Kronos has a real but modest edge on direction for large, liquid stocks, and it is overconfident about how
-              far prices will move. It is weakest on small stocks in strong trends. No model predicts single stocks
-              reliably, so CandleTrade is built to show you when not to trust it.
-            </p>
-          </div>
-          <ul className="space-y-3 text-sm">
-            {[
-              ["Per-stock track record", "Every forecast is followed by a replay on that stock’s recent past."],
-              ["Calibrated ranges", "Kronos’ ranges are widened to match how often prices really landed inside them."],
-              ["Low-trust warnings", "Forecasts on stocks where Kronos lost to “no change” are flagged in red."],
-              ["Market cross-check", "F&O ideas are also valued on the option market’s implied volatility."],
-            ].map(([t, b]) => (
-              <li key={t} className="flex gap-3">
-                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-up" />
-                <span>
-                  <span className="font-medium">{t}.</span> <span className="text-ink-2">{b}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="mt-8 grid gap-4 text-sm md:grid-cols-3">
-          <Reliability title="Data you can trace">
-            Prices from Yahoo Finance, refreshed every 15–20 seconds during market hours. Indian F&amp;O from Upstox. Stock
-            lists from NSE, BSE and Nasdaq.
-          </Reliability>
-          <Reliability title="Completed candles only">
-            Kronos only sees finished bars; today’s still-forming candle is left out, so forecasts don’t change on intraday noise.
-          </Reliability>
-          <Reliability title="Read-only by design">
-            CandleTrade never places orders. Broker access is read-only, and your password is stored only as a strong hash.
-          </Reliability>
-        </div>
-      </Section>
-
-      {/* Supported markets */}
-      <Section id="coverage" eyebrow="Supported markets" title="Two markets, every listed stock">
-        <div className="grid gap-4 md:grid-cols-2">
-          {Object.values(COVERAGE).map((m) => (
-            <div key={m.name} className="rounded-xl border border-line p-6">
-              <div className="flex items-baseline justify-between">
-                <h3 className="text-lg font-semibold">{m.name}</h3>
-                <span className="text-sm text-ink-3">{m.exchanges}</span>
-              </div>
-              <p className="tabular mt-4 text-3xl font-semibold tracking-tight">{m.stocks}</p>
-              <p className="text-sm text-ink-2">stocks with live prices</p>
-              <dl className="mt-5 space-y-3 text-sm">
-                <div>
-                  <dt className="text-xs text-ink-3">Indices</dt>
-                  <dd className="mt-0.5">{m.indices.join(" · ")}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-ink-3">Derivatives</dt>
-                  <dd className="mt-0.5 text-ink-2">{m.fno}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-ink-3">Charts &amp; forecasts</dt>
-                  <dd className="mt-0.5 text-ink-2">Hourly, daily and weekly candles with Kronos forecasts</dd>
-                </div>
-              </dl>
-            </div>
-          ))}
-        </div>
+        <Link href="/about#accuracy" className="mt-6 inline-flex items-center gap-1.5 text-sm font-medium hover:underline">
+          How we test and what we do about the weak spots <ArrowRight className="h-4 w-4" />
+        </Link>
       </Section>
 
       {/* FAQ */}
@@ -284,37 +218,5 @@ export default function Home() {
         </div>
       </section>
     </main>
-  );
-}
-
-function Section({ id, eyebrow, title, intro, children }: { id: string; eyebrow: string; title: string; intro?: string; children: React.ReactNode }) {
-  return (
-    <section id={id} className="mx-auto max-w-7xl scroll-mt-20 px-4 py-16 md:px-6">
-      <p className="text-xs font-semibold uppercase tracking-wider text-[#2a78d6]">{eyebrow}</p>
-      <h2 className="mt-2 text-3xl font-semibold tracking-tight">{title}</h2>
-      {intro && <p className="mt-3 max-w-3xl leading-relaxed text-ink-2">{intro}</p>}
-      <div className="mt-8">{children}</div>
-    </section>
-  );
-}
-
-function Stat({ value, label, note }: { value: string; label: string; note: string }) {
-  return (
-    <div className="rounded-xl border border-line p-5">
-      <p className="tabular text-3xl font-semibold tracking-tight">{value}</p>
-      <p className="mt-1 text-sm">{label}</p>
-      <p className="mt-1 text-xs text-ink-3">{note}</p>
-    </div>
-  );
-}
-
-function Reliability({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl bg-wash p-5">
-      <p className="flex items-center gap-2 font-medium">
-        <BarChart3 className="h-4 w-4 text-ink-3" /> {title}
-      </p>
-      <p className="mt-2 leading-relaxed text-ink-2">{children}</p>
-    </div>
   );
 }

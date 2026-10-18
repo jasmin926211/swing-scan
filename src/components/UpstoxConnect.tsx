@@ -42,7 +42,7 @@ export function UpstoxConnect({ compact = false }: { compact?: boolean }) {
       <h2 className="text-sm font-semibold">Connect Upstox for live Indian F&amp;O prices</h2>
       <p className="mt-0.5 text-xs text-ink-3">
         Futures quotes and option chains for NSE come from Upstox. The login lasts until 03:30 IST, so connect once each
-        trading day. Read-only: this app never places orders.
+        trading day. CandleTrade only reads prices with it and never places orders.
       </p>
       {status.configured ? (
         <form onSubmit={connect} className="mt-3 flex flex-wrap gap-2">
