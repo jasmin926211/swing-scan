@@ -34,7 +34,14 @@ export type Stock = Partial<Quote> & {
   ticker: string;
   fo?: boolean;
   turnover?: number | null;
+  cap?: CapCategory | null;
+  /** today's volume / 3-month average volume */
+  rel_volume?: number | null;
+  /** % from the 52-week high (0 or negative) and low (0 or positive) */
+  from_high?: number | null;
+  from_low?: number | null;
 };
+export type CapCategory = "large" | "mid" | "small" | "micro";
 export type IndexQuote = Partial<Quote> & { ticker: string; name: string };
 export type StockPage = {
   market: MarketId;
@@ -42,6 +49,7 @@ export type StockPage = {
   market_open: boolean;
   indices: IndexQuote[];
   total: number;
+  cap_counts: Record<"all" | CapCategory, number>;
   listed: number;
   priced: number;
   offset: number;
@@ -49,13 +57,27 @@ export type StockPage = {
   sectors: string[];
   exchanges: string[];
 };
-export type StockQuery = {
+export type StockFilters = {
   q?: string;
   sector?: string;
   exchange?: string;
   fo?: boolean;
-  min_turnover?: number;
-  sort?: "symbol" | "price" | "change_pct" | "volume" | "market_cap" | "turnover";
+  cap?: CapCategory | "";
+  min_price?: number | null;
+  max_price?: number | null;
+  min_change?: number | null;
+  max_change?: number | null;
+  min_volume?: number | null;
+  min_turnover?: number | null;
+  min_rel_volume?: number | null;
+  /** within this % of the 52-week high / low */
+  near_high?: number | null;
+  near_low?: number | null;
+  min_pe?: number | null;
+  max_pe?: number | null;
+};
+export type StockQuery = StockFilters & {
+  sort?: "symbol" | "price" | "change_pct" | "volume" | "rel_volume" | "turnover" | "market_cap" | "from_high" | "pe";
   desc?: boolean;
   offset?: number;
   limit?: number;
@@ -156,7 +178,8 @@ const stockPath = (m: MarketId, symbol: string) => `/api/markets/${m}/stocks/${e
 
 export function getStocks(m: MarketId, query: StockQuery) {
   const params = new URLSearchParams();
-  for (const [k, v] of Object.entries(query)) if (v !== undefined && v !== "" && v !== false) params.set(k, String(v));
+  // Booleans are always sent: dropping `false` would turn desc=false (ascending) into the server's default.
+  for (const [k, v] of Object.entries(query)) if (v !== undefined && v !== null && v !== "") params.set(k, String(v));
   return request<StockPage>(`/api/markets/${m}/stocks?${params}`);
 }
 export const getQuote = (m: MarketId, symbol: string) => request<StockQuote>(stockPath(m, symbol));
