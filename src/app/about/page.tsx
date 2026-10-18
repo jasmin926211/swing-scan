@@ -75,21 +75,22 @@ export default function About() {
         id="accuracy"
         eyebrow="Accuracy & reliability"
         title="How good is it, honestly?"
-        intro={`We test our AI the strict way: forecasting from past dates using only the data available then, and comparing with what actually happened. Latest test: ${ACCURACY.forecasts} forecasts on ${ACCURACY.stocks} large US and Indian stocks, ${ACCURACY.horizonDays} trading days ahead (${ACCURACY.testedOn}).`}
+        intro={`We test our AI the strict way: forecasting from past dates using only the data available then, and comparing with what actually happened. Latest test: ${ACCURACY.forecasts} forecasts on ${ACCURACY.stocks} Indian and US stocks, large and small, ${ACCURACY.horizonDays} trading days ahead (${ACCURACY.testedOn}).`}
       >
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Stat value={pct(ACCURACY.directionRight)} label="Direction called right" note="A coin flip gets 50%" />
+          <Stat value={pct(ACCURACY.directionRight)} label="Direction called right" note={`A coin flip gets 50%; 1 day ahead: ${pct(ACCURACY.shortTermDirection)}`} />
           <Stat value={pct(ACCURACY.avgError)} label={`Average price error after ${ACCURACY.horizonDays} days`} note={`Assuming “no change”: ${pct(ACCURACY.noChangeError)}`} />
-          <Stat value={pct(ACCURACY.rawBandCoverage, 0)} label="Outcomes inside the AI’s raw 80% range" note="Too narrow, so we widen it" />
+          <Stat value={pct(ACCURACY.rawBandCoverage, 0)} label="Outcomes inside the AI’s raw 80% range" note="Too narrow, so we widen it to hold 80%" />
           <Stat value={String(ACCURACY.forecasts)} label="Walk-forward forecasts" note="No peeking at the future" />
         </div>
         <div className="mt-8 grid gap-8 lg:grid-cols-2">
           <div>
             <h3 className="font-semibold">What that means for you</h3>
             <p className="mt-2 text-sm leading-relaxed text-ink-2">
-              The AI has a real but modest edge on direction for large, liquid stocks, and it is overconfident about how
-              far prices will move. It is weakest on small stocks in strong trends. No model predicts single stocks
-              reliably, so CandleTrade is built to show you when not to trust it.
+              The AI’s edge on direction is weak: about 56% right 10 days ahead and close to a coin flip over one to
+              three days, and its price error is no better than assuming the price stays flat. Its raw ranges were far
+              too narrow, so we widen them to match how often prices really landed inside. No model predicts single
+              stocks reliably, so CandleTrade is built to show you when not to trust it.
             </p>
           </div>
           <ul className="space-y-3 text-sm">

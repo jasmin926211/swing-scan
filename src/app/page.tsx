@@ -81,7 +81,7 @@ const FAQ = [
   },
   {
     q: "Which stocks does it work best on?",
-    a: "Large, liquid stocks and indices: in our tests the AI did best on large caps and worst on small stocks in strong trends. Thinly traded stocks also gap more and trade with wide spreads, so both the forecast and your fill are worse. The Markets page shows the day’s value traded for every stock, and the top gainers and losers only include liquid names.",
+    a: "Large, liquid stocks and indices. Thinly traded stocks gap more and trade with wide spreads, so both the forecast and your fill are worse. The Markets page shows the day’s value traded for every stock, and the top gainers and losers only include liquid names.",
   },
   {
     q: "How should I use the F&O trade ideas?",
@@ -173,10 +173,10 @@ export default function Home() {
         id="accuracy"
         eyebrow="Accuracy"
         title="Honest numbers, not hype"
-        intro={`Tested the strict way: forecasting from past dates with only the data available then. ${ACCURACY.forecasts} forecasts on ${ACCURACY.stocks} large US and Indian stocks, ${ACCURACY.horizonDays} trading days ahead.`}
+        intro={`Tested the strict way: forecasting from past dates with only the data available then. ${ACCURACY.forecasts} forecasts on ${ACCURACY.stocks} Indian and US stocks, large and small, ${ACCURACY.horizonDays} trading days ahead.`}
       >
         <div className="grid gap-4 sm:grid-cols-3">
-          <Stat value={pct(ACCURACY.directionRight)} label="Direction called right" note="A coin flip gets 50%" />
+          <Stat value={pct(ACCURACY.directionRight)} label="Direction called right" note={`A coin flip gets 50%; 1 day ahead: ${pct(ACCURACY.shortTermDirection)}`} />
           <Stat value={pct(ACCURACY.avgError)} label={`Average price error after ${ACCURACY.horizonDays} days`} note={`Assuming “no change”: ${pct(ACCURACY.noChangeError)}`} />
           <Stat value={String(ACCURACY.forecasts)} label="Walk-forward forecasts" note="No peeking at the future" />
         </div>

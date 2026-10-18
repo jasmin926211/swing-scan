@@ -14,7 +14,7 @@ const OUTLOOK = {
 };
 
 export function FnoIdeas({ market, symbol, expiry }: { market: MarketId; symbol: string; expiry: string }) {
-  const [model, setModel] = useState<ModelName>("balanced");
+  const [model, setModel] = useState<ModelName>("fast");
   const [samples, setSamples] = useState(30);
   const [result, setResult] = useState<IdeasResult | null>(null);
   const [running, setRunning] = useState(false);
@@ -57,7 +57,7 @@ export function FnoIdeas({ market, symbol, expiry }: { market: MarketId; symbol:
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <select value={model} onChange={(e) => setModel(e.target.value as ModelName)} className="rounded-lg border border-line bg-white px-2 py-1.5 text-ink-2">
-            <option value="fast">Fast</option>
+            <option value="fast">Fast (recommended)</option>
             <option value="balanced">Balanced</option>
             <option value="accurate">Thorough (slowest)</option>
           </select>
@@ -110,8 +110,9 @@ export function FnoIdeas({ market, symbol, expiry }: { market: MarketId; symbol:
 
           <div className="rounded-lg bg-wash px-3 py-2 text-xs leading-relaxed text-ink-2">
             Each idea is valued twice: on the AI&apos;s paths, and on the option market&apos;s own expectation (its implied
-            volatility). In testing the AI&apos;s range was too narrow (its 80% band held the outcome ~41% of the time), so it
-            overrates selling options. Trust an idea more when both columns agree. Analysis only, not advice.
+            volatility). The AI&apos;s ranges are widened to match how often prices really landed inside them, but its
+            direction calls are only slightly better than a coin flip. Trust an idea more when both columns agree.
+            Analysis only, not advice.
           </div>
 
           <div className="overflow-x-auto">
