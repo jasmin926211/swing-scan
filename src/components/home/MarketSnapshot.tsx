@@ -50,7 +50,7 @@ export function MarketSnapshot() {
               role="tab"
               aria-selected={market === m}
               onClick={() => setMarket(m)}
-              className={clsx("rounded-md px-3.5 py-1 transition-colors", market === m ? "bg-ink text-white" : "text-ink-2 hover:text-ink")}
+              className={clsx("rounded-md px-3.5 py-1 transition-colors", market === m ? "bg-ink text-paper" : "text-ink-2 hover:text-ink")}
             >
               <span className="mr-1.5">{MARKETS[m].flag}</span>
               {MARKETS[m].name}

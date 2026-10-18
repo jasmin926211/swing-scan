@@ -13,11 +13,11 @@ const STYLE: Record<PatternStyle, string> = {
 };
 
 const STATUS: Record<PatternStatus, { label: string; cls: string }> = {
-  new: { label: "New: entry at the next open", cls: "bg-[#eaf2fb] text-accent" },
-  awaiting_confirmation: { label: "Waiting for a confirmation candle", cls: "bg-[#fdf4e3] text-[#8a5a00]" },
-  open: { label: "Trade still open", cls: "bg-[#eaf2fb] text-accent" },
-  target_hit: { label: "Target hit", cls: "bg-[#e8f6f0] text-up" },
-  stopped: { label: "Stopped out", cls: "bg-[#fcebeb] text-down" },
+  new: { label: "New: entry at the next open", cls: "bg-accent-wash text-accent" },
+  awaiting_confirmation: { label: "Waiting for a confirmation candle", cls: "bg-warn-wash text-warn" },
+  open: { label: "Trade still open", cls: "bg-accent-wash text-accent" },
+  target_hit: { label: "Target hit", cls: "bg-up-wash text-up" },
+  stopped: { label: "Stopped out", cls: "bg-down-wash text-down" },
   expired: { label: "Closed at the end of the holding period", cls: "bg-wash text-ink-2" },
 };
 
@@ -72,7 +72,7 @@ export function ValidatedPatterns({ signals, liquid, loading, error, market, sel
                 <button
                   onClick={() => onSelect(selected === i ? null : i)}
                   aria-pressed={selected === i}
-                  className={clsx("block w-full px-4 py-3 text-left transition-colors", selected === i ? "bg-[#f3f7fc]" : "hover:bg-wash")}
+                  className={clsx("block w-full px-4 py-3 text-left transition-colors", selected === i ? "bg-select" : "hover:bg-wash")}
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <span className={clsx("inline-flex items-center gap-1 text-sm font-semibold", up ? "text-up" : "text-down")}>

@@ -206,7 +206,7 @@ export default function Markets() {
             role="tab"
             aria-selected={display === d}
             onClick={() => setDisplay(d)}
-            className={clsx("rounded-md px-3.5 py-1 transition-colors", display === d ? "bg-ink text-white" : "text-ink-2 hover:text-ink")}
+            className={clsx("rounded-md px-3.5 py-1 transition-colors", display === d ? "bg-ink text-paper" : "text-ink-2 hover:text-ink")}
           >
             {d === "list" ? "Screener" : "Heatmap"}
           </button>
@@ -265,7 +265,7 @@ export default function Markets() {
               )}
             >
               <SlidersHorizontal className="h-4 w-4" /> Filters
-              {activeCount > 0 && <span className="rounded-full bg-ink px-1.5 text-xs text-white">{activeCount}</span>}
+              {activeCount > 0 && <span className="rounded-full bg-ink px-1.5 text-xs text-paper">{activeCount}</span>}
             </button>
             {(activeCount > 0 || screen || search || sort.key !== DEFAULT_SORT.key || !sort.desc) && (
               <button onClick={resetAll} className="inline-flex items-center gap-1 text-sm text-ink-2 hover:text-ink">
@@ -281,7 +281,7 @@ export default function Markets() {
                   aria-pressed={screen === s.id}
                   className={clsx(
                     "whitespace-nowrap rounded-full border px-3 py-1 transition-colors",
-                    screen === s.id ? "border-ink bg-ink text-white" : "border-line text-ink-2 hover:border-ink-3 hover:text-ink",
+                    screen === s.id ? "border-ink bg-ink text-paper" : "border-line text-ink-2 hover:border-ink-3 hover:text-ink",
                   )}
                 >
                   {s.label}
@@ -416,7 +416,7 @@ function Row({ s, market, onOpen }: { s: Stock; market: MarketId; onOpen: (symbo
           {s.signal && (
             <span
               title={`Active validated pattern: ${s.signal.patterns.join(", ")}`}
-              className={clsx("rounded px-1 text-[10px] font-normal", s.signal.bullish ? "bg-[#e8f6f0] text-up" : "bg-[#fcebeb] text-down")}
+              className={clsx("rounded px-1 text-[10px] font-normal", s.signal.bullish ? "bg-up-wash text-up" : "bg-down-wash text-down")}
             >
               {s.signal.bullish ? "▲" : "▼"} pattern
             </span>

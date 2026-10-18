@@ -54,7 +54,7 @@ export function UpstoxConnect({ compact = false }: { compact?: boolean }) {
             autoComplete="current-password"
             className="min-w-[260px] flex-1 rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-ink-3"
           />
-          <button disabled={busy || !key} className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
+          <button disabled={busy || !key} className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-paper disabled:opacity-50">
             {busy ? "Opening Upstox…" : "Connect Upstox"}
           </button>
         </form>

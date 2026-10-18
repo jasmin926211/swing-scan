@@ -100,7 +100,7 @@ export default function Home() {
       <section className="mx-auto grid max-w-7xl items-center gap-12 px-4 pb-16 pt-14 md:px-6 lg:grid-cols-2 lg:pt-20">
         <div>
           <p className="inline-flex items-center gap-2 rounded-full border border-line px-3 py-1 text-xs text-ink-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#2a78d6]" /> AI forecasts · India &amp; USA
+            <span className="h-1.5 w-1.5 rounded-full bg-accent" /> AI forecasts · India &amp; USA
           </p>
           <h1 className="mt-5 text-4xl font-semibold leading-[1.1] tracking-tight md:text-5xl">
             Read the market candle by candle, and see how often the forecast was right.
@@ -110,7 +110,7 @@ export default function Home() {
             years of candlestick data. Every forecast comes with its own track record, so you know when to trust it.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/signup" className="inline-flex items-center gap-2 rounded-lg bg-ink px-5 py-3 text-sm font-medium text-white hover:opacity-90">
+            <Link href="/signup" className="inline-flex items-center gap-2 rounded-lg bg-ink px-5 py-3 text-sm font-medium text-paper hover:opacity-90">
               Get started free <ArrowRight className="h-4 w-4" />
             </Link>
             <Link href="#market" className="rounded-lg border border-line px-5 py-3 text-sm font-medium hover:bg-wash">
@@ -138,7 +138,7 @@ export default function Home() {
         <div className="grid gap-4 md:grid-cols-2">
           {FEATURES.map(({ icon: Icon, title, body }) => (
             <div key={title} className="rounded-xl border border-line p-6">
-              <Icon className="h-5 w-5 text-[#2a78d6]" />
+              <Icon className="h-5 w-5 text-accent" />
               <h3 className="mt-4 font-semibold">{title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-ink-2">{body}</p>
             </div>
@@ -147,7 +147,7 @@ export default function Home() {
         <ol className="mt-10 grid gap-6 md:grid-cols-4">
           {STEPS.map((s, i) => (
             <li key={s.title}>
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-xs font-semibold text-white">{i + 1}</span>
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-xs font-semibold text-paper">{i + 1}</span>
               <h4 className="mt-3 text-sm font-semibold">{s.title}</h4>
               <p className="mt-1 text-sm leading-relaxed text-ink-2">{s.body}</p>
             </li>
@@ -202,16 +202,16 @@ export default function Home() {
 
       {/* Final call to action */}
       <section className="mx-auto max-w-7xl px-4 md:px-6">
-        <div className="flex flex-col items-start justify-between gap-6 rounded-2xl bg-ink px-8 py-10 text-white md:flex-row md:items-center">
+        <div className="flex flex-col items-start justify-between gap-6 rounded-2xl bg-ink px-8 py-10 text-paper md:flex-row md:items-center">
           <div>
             <h2 className="text-2xl font-semibold tracking-tight">Start reading the market with better odds.</h2>
-            <p className="mt-2 text-sm text-white/70">Free account. Every stock, every forecast, with its track record.</p>
+            <p className="mt-2 text-sm text-paper/70">Free account. Every stock, every forecast, with its track record.</p>
           </div>
           <div className="flex gap-3">
-            <Link href="/signup" className="rounded-lg bg-white px-5 py-3 text-sm font-medium text-ink hover:opacity-90">
+            <Link href="/signup" className="rounded-lg bg-paper px-5 py-3 text-sm font-medium text-ink hover:opacity-90">
               Create account
             </Link>
-            <Link href="/signin" className="rounded-lg border border-white/25 px-5 py-3 text-sm font-medium text-white hover:bg-white/10">
+            <Link href="/signin" className="rounded-lg border border-paper/25 px-5 py-3 text-sm font-medium text-paper hover:bg-paper/10">
               Sign in
             </Link>
           </div>

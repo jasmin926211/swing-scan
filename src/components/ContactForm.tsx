@@ -6,7 +6,7 @@ import { CONTACT_TOPICS, sendContact, type ContactMessage } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
 const EMPTY: ContactMessage = { name: "", email: "", topic: "General question", message: "", website: "" };
-const INPUT = "w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none focus:border-ink-3";
+const INPUT = "w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-ink-3";
 
 export function ContactForm() {
   const { user } = useAuth();
@@ -98,7 +98,7 @@ export function ContactForm() {
       {error && <p className="text-sm text-down">{error}</p>}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs text-ink-3">We can’t give personal investment advice.</p>
-        <button disabled={busy} className="rounded-lg bg-ink px-5 py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60">
+        <button disabled={busy} className="rounded-lg bg-ink px-5 py-2.5 text-sm font-medium text-paper hover:opacity-90 disabled:opacity-60">
           {busy ? "Sending…" : "Send message"}
         </button>
       </div>

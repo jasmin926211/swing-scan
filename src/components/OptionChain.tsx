@@ -49,7 +49,7 @@ export function OptionChain({ chain, market }: { chain: Chain; market: MarketId 
               return (
                 <tr key={r.strike} className={clsx("border-t border-line", atm && "font-semibold")}>
                   <Side side={r.call} market={market} itm={r.strike < spot} order="call" />
-                  <td className={clsx("px-3 py-1.5 text-center", atm ? "bg-ink text-white" : "bg-wash")}>{price(r.strike, market)}</td>
+                  <td className={clsx("px-3 py-1.5 text-center", atm ? "bg-ink text-paper" : "bg-wash")}>{price(r.strike, market)}</td>
                   <Side side={r.put} market={market} itm={r.strike > spot} order="put" />
                 </tr>
               );
@@ -81,7 +81,7 @@ function Side({ side, market, itm, order }: { side: OptionSide | null; market: M
   return (
     <>
       {ordered.map((c, i) => (
-        <td key={i} className={clsx("px-2 py-1.5 text-right", itm && "bg-[#f3f7fc]")}>
+        <td key={i} className={clsx("px-2 py-1.5 text-right", itm && "bg-select")}>
           {c}
         </td>
       ))}

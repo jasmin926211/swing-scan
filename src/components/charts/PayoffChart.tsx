@@ -4,7 +4,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 import type { Idea, MarketId } from "@/lib/api";
 import { money, price } from "@/lib/format";
-import { COLORS, FONT } from "@/lib/charts/theme";
+import { useChartColors, FONT } from "@/lib/charts/theme";
 import { duration, useReducedMotion } from "@/lib/charts/motion";
 import { useWidth } from "@/lib/charts/useWidth";
 
@@ -20,6 +20,7 @@ const BINS = 24;
 export function PayoffChart({ idea, finalPrices, spot, lotSize, market }: {
   idea: Idea; finalPrices: number[]; spot: number; lotSize: number; market: MarketId;
 }) {
+  const COLORS = useChartColors();
   const [box, width] = useWidth<HTMLDivElement>();
   const reduced = useReducedMotion();
   const uid = useId().replace(/:/g, "");
@@ -138,14 +139,14 @@ export function PayoffChart({ idea, finalPrices, spot, lotSize, market }: {
           </g>
 
           {hoverX != null && (
-            <line x1={M.left + hoverX} x2={M.left + hoverX} y1={M.top} y2={distTop + DIST_H} stroke="#c9c9c4" strokeDasharray="3 3" pointerEvents="none" />
+            <line x1={M.left + hoverX} x2={M.left + hoverX} y1={M.top} y2={distTop + DIST_H} stroke={COLORS.crosshair} strokeDasharray="3 3" pointerEvents="none" />
           )}
           <rect x={M.left} y={M.top} width={innerW} height={PAYOFF_H + GAP + DIST_H} fill="transparent"
             onMouseMove={(e) => setHoverX(d3.pointer(e)[0] - M.left)} onMouseLeave={() => setHoverX(null)} />
         </svg>
       )}
       {hx != null && hp != null && share != null && hoverX != null && (
-        <div className="pointer-events-none absolute top-2 z-10 rounded-lg border border-line bg-white px-3 py-2 text-xs shadow-sm"
+        <div className="pointer-events-none absolute top-2 z-10 rounded-lg border border-line bg-paper px-3 py-2 text-xs shadow-sm"
           style={hoverX > innerW / 2 ? { right: width - (M.left + hoverX) + 12 } : { left: M.left + hoverX + 12 }}>
           <p className="text-ink-3">If it expires at {price(hx, market)}</p>
           <p className={`tabular font-semibold ${hp >= 0 ? "text-up" : "text-down"}`}>{money(hp, market)} per lot</p>

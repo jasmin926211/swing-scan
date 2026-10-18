@@ -182,7 +182,7 @@ export default function StockPage() {
             </div>
             {forecast && (
               <label className="flex items-center gap-2 text-xs text-ink-2">
-                <input type="checkbox" checked={showPaths} onChange={(e) => setShowPaths(e.target.checked)} className="accent-[#2a78d6]" />
+                <input type="checkbox" checked={showPaths} onChange={(e) => setShowPaths(e.target.checked)} className="accent-accent" />
                 Show all {forecast.paths.length} sampled paths
               </label>
             )}

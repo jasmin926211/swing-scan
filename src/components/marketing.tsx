@@ -4,7 +4,7 @@ import { BarChart3 } from "lucide-react";
 export function Section({ id, eyebrow, title, intro, children }: { id?: string; eyebrow: string; title: string; intro?: string; children: React.ReactNode }) {
   return (
     <section id={id} className="mx-auto max-w-7xl scroll-mt-20 px-4 py-16 md:px-6">
-      <p className="text-xs font-semibold uppercase tracking-wider text-[#2a78d6]">{eyebrow}</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-accent">{eyebrow}</p>
       <h2 className="mt-2 text-3xl font-semibold tracking-tight">{title}</h2>
       {intro && <p className="mt-3 max-w-3xl leading-relaxed text-ink-2">{intro}</p>}
       <div className="mt-8">{children}</div>
@@ -38,7 +38,7 @@ export function PageHero({ eyebrow, title, intro }: { eyebrow: string; title: st
   return (
     <section className="border-b border-line">
       <div className="mx-auto max-w-7xl px-4 pb-14 pt-16 md:px-6">
-        <p className="text-xs font-semibold uppercase tracking-wider text-[#2a78d6]">{eyebrow}</p>
+        <p className="text-xs font-semibold uppercase tracking-wider text-accent">{eyebrow}</p>
         <h1 className="mt-3 max-w-3xl text-4xl font-semibold leading-tight tracking-tight md:text-5xl">{title}</h1>
         <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink-2">{intro}</p>
       </div>

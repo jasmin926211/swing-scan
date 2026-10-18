@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 import type { MarketId, OptionChain } from "@/lib/api";
 import { compact, price } from "@/lib/format";
-import { COLORS, FONT } from "@/lib/charts/theme";
+import { useChartColors, FONT } from "@/lib/charts/theme";
 import { duration, useReducedMotion } from "@/lib/charts/motion";
 import { useWidth } from "@/lib/charts/useWidth";
 
@@ -15,6 +15,7 @@ const STRIKE_W = 78; // centre column with the strike labels
 /** Open interest by strike: calls grow to the left, puts to the right, from a shared strike column.
  *  Spot and max pain are marked; bars animate out from the centre when the chain loads. */
 export function OIButterfly({ rows, chain, market }: { rows: OptionChain["rows"]; chain: OptionChain; market: MarketId }) {
+  const COLORS = useChartColors();
   const [box, width] = useWidth<HTMLDivElement>();
   const reduced = useReducedMotion();
   const svgRef = useRef<SVGSVGElement>(null);
@@ -100,7 +101,7 @@ export function OIButterfly({ rows, chain, market }: { rows: OptionChain["rows"]
         </svg>
       )}
       {h && hover != null && (
-        <div className="pointer-events-none absolute z-10 rounded-lg border border-line bg-white px-3 py-2 text-xs shadow-sm"
+        <div className="pointer-events-none absolute z-10 rounded-lg border border-line bg-paper px-3 py-2 text-xs shadow-sm"
           style={{ top: yRow(hover) + ROW + 4, left: centre - 40 }}>
           <p className="font-medium">Strike {price(h.strike, market)}</p>
           <p className="tabular mt-0.5 text-ink-2">

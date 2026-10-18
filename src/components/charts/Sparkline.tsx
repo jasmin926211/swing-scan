@@ -2,13 +2,14 @@
 
 import { useEffect, useId, useRef } from "react";
 import * as d3 from "d3";
-import { COLORS } from "@/lib/charts/theme";
+import { useChartColors } from "@/lib/charts/theme";
 import { duration, useReducedMotion } from "@/lib/charts/motion";
 
 /** Small intraday line against the previous close (dashed). Green above it, red below; draws in on first load. */
 export function Sparkline({ points, prevClose, width = 132, height = 40 }: {
   points: [number, number][]; prevClose: number | null; width?: number; height?: number;
 }) {
+  const COLORS = useChartColors();
   const reduced = useReducedMotion();
   const uid = useId().replace(/:/g, "");
   const lineRef = useRef<SVGPathElement>(null);

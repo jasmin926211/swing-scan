@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { MARKETS } from "@/lib/format";
 import { useMarket } from "@/lib/market";
 import { Logo } from "./Logo";
+import { ThemeToggle } from "./ThemeToggle";
 
 const PUBLIC_PAGES = [
   { href: "/", label: "Home" },
@@ -22,7 +23,7 @@ export function Header() {
   const inApp = ["/markets", "/stock", "/fno"].some((p) => pathname.startsWith(p));
 
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-white/90 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-line bg-paper/90 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 md:px-6">
         <div className="flex items-center gap-3 sm:gap-6">
           <Logo href={user ? "/markets" : "/"} compact={!!user} />
@@ -48,6 +49,7 @@ export function Header() {
 
         <div className="flex items-center gap-2 sm:gap-3">
           {inApp && user && <CountrySwitch />}
+          <ThemeToggle />
           {ready && (user ? <UserMenu /> : <SignedOutActions />)}
         </div>
       </div>
@@ -72,7 +74,7 @@ function SignedOutActions() {
       <Link href="/signin" className="rounded-md px-3 py-1.5 text-ink-2 hover:text-ink">
         Sign in
       </Link>
-      <Link href="/signup" className="rounded-lg bg-ink px-3.5 py-1.5 font-medium text-white hover:opacity-90">
+      <Link href="/signup" className="rounded-lg bg-ink px-3.5 py-1.5 font-medium text-paper hover:opacity-90">
         Get started
       </Link>
     </div>
@@ -100,7 +102,7 @@ function CountrySwitch() {
           role="radio"
           aria-checked={market === m}
           onClick={() => choose(m)}
-          className={clsx("rounded-md px-2 py-1 transition-colors sm:px-3", market === m ? "bg-ink text-white" : "text-ink-2 hover:text-ink")}
+          className={clsx("rounded-md px-2 py-1 transition-colors sm:px-3", market === m ? "bg-ink text-paper" : "text-ink-2 hover:text-ink")}
         >
           <span className="mr-1.5 hidden sm:inline">{MARKETS[m].flag}</span>
           {MARKETS[m].name}
@@ -136,7 +138,7 @@ function UserMenu() {
         {initials}
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 w-56 rounded-xl border border-line bg-white p-1 shadow-sm">
+        <div className="absolute right-0 mt-2 w-56 rounded-xl border border-line bg-paper p-1 shadow-sm">
           <div className="px-3 py-2">
             <p className="truncate text-sm font-medium">{user.name}</p>
             <p className="truncate text-xs text-ink-3">{user.email}</p>

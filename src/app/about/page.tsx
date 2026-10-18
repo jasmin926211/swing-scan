@@ -59,7 +59,7 @@ export default function About() {
         <div className="grid gap-4 md:grid-cols-3">
           {HOW_IT_WORKS.map((s, i) => (
             <div key={s.title} className="rounded-xl border border-line p-6">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-xs font-semibold text-white">{i + 1}</span>
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-xs font-semibold text-paper">{i + 1}</span>
               <h3 className="mt-4 font-semibold">{s.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-ink-2">{s.body}</p>
             </div>
@@ -157,7 +157,7 @@ export default function About() {
         <div className="grid gap-4 sm:grid-cols-2">
           {PRINCIPLES.map(({ icon: Icon, title, body }) => (
             <div key={title} className="flex gap-4 rounded-xl border border-line p-6">
-              <Icon className="mt-0.5 h-5 w-5 shrink-0 text-[#2a78d6]" />
+              <Icon className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
               <div>
                 <h3 className="font-semibold">{title}</h3>
                 <p className="mt-1.5 text-sm leading-relaxed text-ink-2">{body}</p>
@@ -173,7 +173,7 @@ export default function About() {
             <h2 className="text-2xl font-semibold tracking-tight">Questions, ideas or a bug to report?</h2>
             <p className="mt-2 text-sm text-ink-2">We read every message.</p>
           </div>
-          <Link href="/contact" className="inline-flex items-center gap-2 rounded-lg bg-ink px-5 py-3 text-sm font-medium text-white hover:opacity-90">
+          <Link href="/contact" className="inline-flex items-center gap-2 rounded-lg bg-ink px-5 py-3 text-sm font-medium text-paper hover:opacity-90">
             Contact us <ArrowRight className="h-4 w-4" />
           </Link>
         </div>

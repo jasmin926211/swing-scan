@@ -4,7 +4,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 import clsx from "clsx";
 import type { Candle, Forecast, Interval, PatternSignal } from "@/lib/api";
-import { COLORS, FONT } from "@/lib/charts/theme";
+import { useChartColors, FONT } from "@/lib/charts/theme";
 import { duration, useReducedMotion } from "@/lib/charts/motion";
 import { useWidth } from "@/lib/charts/useWidth";
 
@@ -54,6 +54,7 @@ export function PriceChart({
   selected?: number | null;
   onSelect?: (i: number) => void;
 }) {
+  const COLORS = useChartColors();
   const [box, width] = useWidth<HTMLDivElement>();
   const reduced = useReducedMotion();
   const clipId = useId().replace(/:/g, "");
@@ -255,7 +256,7 @@ export function PriceChart({
                 setRange(r.label);
                 applyDomain(domainFor(r.label));
               }}
-              className={clsx("rounded-md px-2 py-1 font-medium transition-colors", range === r.label ? "bg-ink text-white" : "text-ink-2 hover:bg-wash")}
+              className={clsx("rounded-md px-2 py-1 font-medium transition-colors", range === r.label ? "bg-ink text-paper" : "text-ink-2 hover:bg-wash")}
             >
               {r.label}
             </button>
@@ -357,10 +358,10 @@ export function PriceChart({
               {/* crosshair */}
               {hover && (
                 <g pointerEvents="none">
-                  <line x1={x(hover.i)} x2={x(hover.i)} y1={0} y2={plotH} stroke="#c9c9c4" strokeDasharray="3 3" />
+                  <line x1={x(hover.i)} x2={x(hover.i)} y1={0} y2={plotH} stroke={COLORS.crosshair} strokeDasharray="3 3" />
                   {hover.y <= priceH && (
                     <>
-                      <line x2={innerW} y1={hover.y} y2={hover.y} stroke="#c9c9c4" strokeDasharray="3 3" />
+                      <line x2={innerW} y1={hover.y} y2={hover.y} stroke={COLORS.crosshair} strokeDasharray="3 3" />
                       <rect x={innerW + 2} y={hover.y - 9} width={M.right - 4} height={18} rx={4} fill={COLORS.ink} />
                       <text x={innerW + 8} y={hover.y} dy="0.32em" fontSize={11} fill="#fff" className="tabular">
                         {fmt(y.invert(hover.y))}
@@ -393,7 +394,7 @@ export function PriceChart({
                         ([label, v, color]) => (
                           <g key={label}>
                             <line x1={x0} x2={x1} y1={y(v)} y2={y(v)} stroke={color} strokeWidth={1.5} strokeDasharray={label === "entry" ? "4 3" : undefined} />
-                            <text x={x1 - 4} y={y(v) - 4} textAnchor="end" fontSize={10} fill={COLORS.ink2} paintOrder="stroke" stroke="#ffffff" strokeWidth={3}>
+                            <text x={x1 - 4} y={y(v) - 4} textAnchor="end" fontSize={10} fill={COLORS.ink2} paintOrder="stroke" stroke={COLORS.paper} strokeWidth={3}>
                               {label} {fmt(v)}
                             </text>
                           </g>
@@ -415,7 +416,7 @@ export function PriceChart({
                       d={path}
                       transform={`translate(${x(i)},${cy})`}
                       fill={up ? COLORS.up : COLORS.down}
-                      stroke="#ffffff"
+                      stroke={COLORS.paper}
                       strokeWidth={1.5}
                       style={{ cursor: onSelect ? "pointer" : undefined }}
                       onClick={() => onSelect?.(k)}
@@ -431,7 +432,7 @@ export function PriceChart({
 
         {hovered && hover && (
           <div
-            className="pointer-events-none absolute top-3 z-10 rounded-lg border border-line bg-white px-3 py-2 text-xs shadow-sm"
+            className="pointer-events-none absolute top-3 z-10 rounded-lg border border-line bg-paper px-3 py-2 text-xs shadow-sm"
             style={tipLeft > width / 2 ? { right: width - tipLeft + 14 } : { left: tipLeft + 14 }}
           >
             <p className="text-ink-3">
@@ -461,6 +462,7 @@ export function PriceChart({
 }
 
 function LegendSwatch({ kind, opacity = 1, label }: { kind: "line" | "band"; opacity?: number; label: string }) {
+  const COLORS = useChartColors();
   return (
     <span className="flex items-center gap-1.5">
       <svg width="18" height="10" aria-hidden="true">

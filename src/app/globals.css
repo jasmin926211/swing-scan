@@ -1,10 +1,14 @@
 @import "tailwindcss";
 
-/* Light only, white surface. Up/down/forecast colors come from a CVD-validated palette. */
+/* `dark:` follows the site's own theme switch (data-theme on <html>), not only the OS setting. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Light theme tokens. Up/down/forecast colors come from a CVD-validated palette; dark overrides are below. */
 @theme {
   --font-sans: var(--font-open-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 
+  --color-paper: #ffffff; /* page and card surface */
   --color-ink: #0b0b0b;
   --color-ink-2: #52514e;
   --color-ink-3: #8a8983;
@@ -13,18 +17,61 @@
   --color-up: #12805a;   /* text on white: darker step of the aqua mark color for 4.5:1 */
   --color-down: #c9302f; /* text on white: darker step of the red mark color */
   --color-accent: #2a78d6;
+  --color-warn: #8a5a00;
+
+  /* Tinted backgrounds behind status text */
+  --color-up-wash: #e8f6f0;
+  --color-down-wash: #fcebeb;
+  --color-accent-wash: #eaf2fb;
+  --color-warn-wash: #fdf4e3;
+  --color-select: #f3f7fc; /* selected row */
 }
 
 :root {
   color-scheme: light;
 }
 
+/* Dark theme: its own steps, checked against the dark surface (not an automatic inversion). */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-paper: #111110;
+  --color-ink: #ededea;
+  --color-ink-2: #b4b3ad;
+  --color-ink-3: #8a8983;
+  --color-line: #2a2a27;
+  --color-wash: #1b1b19;
+  --color-up: #3ecf96;
+  --color-down: #f2716f;
+  --color-accent: #5a9cf0;
+  --color-warn: #e8b04a;
+  --color-up-wash: #10291f;
+  --color-down-wash: #2e1514;
+  --color-accent-wash: #142338;
+  --color-warn-wash: #2c2210;
+  --color-select: #17212e;
+}
+
 body {
-  background: #ffffff;
+  background: var(--color-paper);
   color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
 }
 
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/* Theme switch: a circle grows out of the toggle button (View Transitions); see lib/theme.tsx. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* Fallback for browsers without View Transitions: cross-fade colors for the length of the switch. */
+html.theme-fade,
+html.theme-fade *,
+html.theme-fade *::before,
+html.theme-fade *::after {
+  transition: background-color 350ms ease, color 350ms ease, border-color 350ms ease, fill 350ms ease, stroke 350ms ease !important;
 }

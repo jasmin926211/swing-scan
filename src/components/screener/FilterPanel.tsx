@@ -111,7 +111,7 @@ export function FilterPanel({ market, filters, onChange, sectors, exchanges }: P
       <NumberField label="Minimum volume (shares)" value={filters.min_volume} onChange={(min_volume) => onChange({ min_volume })} />
       {market === "in" && (
         <label className="flex items-end gap-2 pb-2 text-sm text-ink-2">
-          <input type="checkbox" checked={!!filters.fo} onChange={(e) => onChange({ fo: e.target.checked })} className="mb-0.5 accent-[#0b0b0b]" />
+          <input type="checkbox" checked={!!filters.fo} onChange={(e) => onChange({ fo: e.target.checked })} className="mb-0.5 accent-ink" />
           Only F&amp;O stocks
         </label>
       )}
@@ -119,7 +119,7 @@ export function FilterPanel({ market, filters, onChange, sectors, exchanges }: P
   );
 }
 
-const INPUT = "w-full rounded-lg border border-line bg-white px-2.5 py-1.5 text-sm outline-none focus:border-ink-3";
+const INPUT = "w-full rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm outline-none focus:border-ink-3";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

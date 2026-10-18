@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import * as d3 from "d3";
 import { getHeatmap, type HeatmapStock, type MarketId } from "@/lib/api";
 import { compact, price, signedPct } from "@/lib/format";
-import { COLORS, DIVERGING, FONT } from "@/lib/charts/theme";
+import { type DivergingName, useChartColors, useDiverging, FONT } from "@/lib/charts/theme";
 import { duration, useReducedMotion } from "@/lib/charts/motion";
 import { useWidth } from "@/lib/charts/useWidth";
 
@@ -20,13 +20,15 @@ type Rect = d3.HierarchyRectangularNode<TreeNode>;
 /** Treemap of the market's largest stocks: area = market cap, colour = today's change, grouped by sector.
  *  Colours ease to new values on every refresh; tiles carry signed % labels so colour isn't the only cue. */
 export function MarketHeatmap({ market, open }: { market: MarketId; open: boolean }) {
+  const COLORS = useChartColors();
+  const DIVERGING = useDiverging();
   const [box, width] = useWidth<HTMLDivElement>();
   const reduced = useReducedMotion();
   const router = useRouter();
   const svgRef = useRef<SVGSVGElement>(null);
   const [stocks, setStocks] = useState<HeatmapStock[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [palette, setPalette] = useState<keyof typeof DIVERGING>("market");
+  const [palette, setPalette] = useState<DivergingName>("market");
   const [hover, setHover] = useState<{ stock: HeatmapStock; x: number; y: number } | null>(null);
 
   useEffect(() => {
@@ -62,7 +64,7 @@ export function MarketHeatmap({ market, open }: { market: MarketId; open: boolea
 
   const color = useMemo(
     () => d3.scaleLinear<string>().domain(d3.range(7).map((i) => -RANGE + i * RANGE / 3)).range(DIVERGING[palette]).interpolate(d3.interpolateLab).clamp(true),
-    [palette],
+    [palette, DIVERGING],
   );
 
   // Layout depends only on the set of stocks, their caps and the width; colour changes animate separately.
@@ -154,7 +156,7 @@ export function MarketHeatmap({ market, open }: { market: MarketId; open: boolea
           </svg>
         )}
         {hover && (
-          <div className="pointer-events-none absolute z-10 w-56 rounded-lg border border-line bg-white px-3 py-2 text-xs shadow-sm"
+          <div className="pointer-events-none absolute z-10 w-56 rounded-lg border border-line bg-paper px-3 py-2 text-xs shadow-sm"
             style={{ left: Math.min(hover.x + 14, width - 236), top: Math.min(hover.y + 14, HEIGHT - 96) }}>
             <p className="font-semibold">{hover.stock.symbol}</p>
             <p className="truncate text-ink-3">{hover.stock.name}</p>
