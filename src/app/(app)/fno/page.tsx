@@ -8,6 +8,7 @@ import { getFnoUnderlyings, type FnoUnderlying } from "@/lib/api";
 import { MARKETS, changeColor, compact, fmtDate, price, signedPct } from "@/lib/format";
 import { useMarket } from "@/lib/market";
 import { UpstoxConnect } from "@/components/UpstoxConnect";
+import { StockLogo } from "@/components/StockLogo";
 
 export default function FnoHome() {
   const { market } = useMarket();
@@ -93,11 +94,16 @@ export default function FnoHome() {
               {shown.map((r) => (
                 <tr key={r.symbol} onClick={() => open(r.symbol)} className="group cursor-pointer border-t border-line hover:bg-wash">
                   <td className="px-3 py-2.5">
-                    <p className="flex items-center gap-1.5 font-medium">
-                      {r.symbol}
-                      {r.kind === "INDEX" && <span className="rounded bg-wash px-1 text-[10px] font-normal text-ink-2">INDEX</span>}
-                    </p>
-                    <p className="max-w-[140px] truncate text-xs text-ink-3 sm:max-w-[260px]">{r.name}</p>
+                    <div className="flex items-center gap-2.5">
+                      {r.kind !== "INDEX" && <StockLogo market={market} symbol={r.symbol} size={30} className="hidden sm:inline-flex" />}
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-1.5 font-medium">
+                          {r.symbol}
+                          {r.kind === "INDEX" && <span className="rounded bg-wash px-1 text-[10px] font-normal text-ink-2">INDEX</span>}
+                        </p>
+                        <p className="max-w-[140px] truncate text-xs text-ink-3 sm:max-w-[260px]">{r.name}</p>
+                      </div>
+                    </div>
                   </td>
                   <td className="tabular px-3 py-2.5 text-right font-medium">{price(r.price, market)}</td>
                   <td className={clsx("tabular px-3 py-2.5 text-right", changeColor(r.change_pct))}>{signedPct(r.change_pct)}</td>

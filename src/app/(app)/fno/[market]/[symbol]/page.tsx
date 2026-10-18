@@ -11,6 +11,7 @@ import { useMarket } from "@/lib/market";
 import { UpstoxConnect } from "@/components/UpstoxConnect";
 import { OptionChain } from "@/components/OptionChain";
 import { FnoIdeas } from "@/components/FnoIdeas";
+import { StockLogo } from "@/components/StockLogo";
 
 export default function FnoPage() {
   const params = useParams<{ market: string; symbol: string }>();
@@ -87,17 +88,20 @@ export default function FnoPage() {
       {overview && (
         <>
           <section className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-                {overview.symbol}
-                <span className="rounded border border-line px-1.5 text-xs font-normal text-ink-3">{overview.kind === "INDEX" ? "INDEX" : "STOCK"}</span>
-              </h1>
-              <p className="mt-0.5 text-sm text-ink-2">{overview.name}</p>
-              {overview.kind === "EQUITY" && (
-                <Link href={`/stock/${market}/${encodeURIComponent(symbol)}`} className="mt-2 inline-flex text-sm font-medium text-accent hover:underline">
-                  Price chart &amp; forecast →
-                </Link>
-              )}
+            <div className="flex items-start gap-3">
+              {overview.kind === "EQUITY" && <StockLogo market={market} symbol={overview.symbol} size={48} className="mt-0.5" />}
+              <div>
+                <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
+                  {overview.symbol}
+                  <span className="rounded border border-line px-1.5 text-xs font-normal text-ink-3">{overview.kind === "INDEX" ? "INDEX" : "STOCK"}</span>
+                </h1>
+                <p className="mt-0.5 text-sm text-ink-2">{overview.name}</p>
+                {overview.kind === "EQUITY" && (
+                  <Link href={`/stock/${market}/${encodeURIComponent(symbol)}`} className="mt-2 inline-flex text-sm font-medium text-accent hover:underline">
+                    Price chart &amp; forecast →
+                  </Link>
+                )}
+              </div>
             </div>
             <div className="text-right">
               <p className="tabular text-3xl font-semibold tracking-tight">{price(overview.spot, market)}</p>

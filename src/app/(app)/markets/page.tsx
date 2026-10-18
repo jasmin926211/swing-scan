@@ -10,6 +10,7 @@ import { useMarket } from "@/lib/market";
 import { IndexStrip } from "@/components/charts/IndexStrip";
 import { MarketHeatmap } from "@/components/charts/MarketHeatmap";
 import { FilterPanel } from "@/components/screener/FilterPanel";
+import { StockLogo } from "@/components/StockLogo";
 
 type SortKey = NonNullable<StockQuery["sort"]>;
 type Sort = { key: SortKey; desc: boolean };
@@ -408,21 +409,26 @@ function Row({ s, market, onOpen }: { s: Stock; market: MarketId; onOpen: (symbo
   return (
     <tr onClick={() => onOpen(s.symbol)} className="group cursor-pointer border-t border-line hover:bg-wash">
       <td className="px-3 py-2.5">
-        <p className="flex items-center gap-1.5 font-medium">
-          {s.symbol}
-          <span className="rounded border border-line px-1 text-[10px] font-normal text-ink-3">{s.exchange}</span>
-          {s.cap && <span className="hidden rounded bg-wash px-1 text-[10px] font-normal text-ink-2 sm:inline">{CAP_LABEL[s.cap]}</span>}
-          {s.fo && <span className="rounded bg-wash px-1 text-[10px] font-normal text-ink-2">F&amp;O</span>}
-          {s.signal && (
-            <span
-              title={`Active validated pattern: ${s.signal.patterns.join(", ")}`}
-              className={clsx("rounded px-1 text-[10px] font-normal", s.signal.bullish ? "bg-up-wash text-up" : "bg-down-wash text-down")}
-            >
-              {s.signal.bullish ? "▲" : "▼"} pattern
-            </span>
-          )}
-        </p>
-        <p className="max-w-[140px] truncate text-xs text-ink-3 sm:max-w-[240px]">{s.name}</p>
+        <div className="flex items-center gap-2.5">
+          <StockLogo market={market} symbol={s.symbol} size={30} className="hidden sm:inline-flex" />
+          <div className="min-w-0">
+            <p className="flex items-center gap-1.5 font-medium">
+              {s.symbol}
+              <span className="rounded border border-line px-1 text-[10px] font-normal text-ink-3">{s.exchange}</span>
+              {s.cap && <span className="hidden rounded bg-wash px-1 text-[10px] font-normal text-ink-2 sm:inline">{CAP_LABEL[s.cap]}</span>}
+              {s.fo && <span className="rounded bg-wash px-1 text-[10px] font-normal text-ink-2">F&amp;O</span>}
+              {s.signal && (
+                <span
+                  title={`Active validated pattern: ${s.signal.patterns.join(", ")}`}
+                  className={clsx("rounded px-1 text-[10px] font-normal", s.signal.bullish ? "bg-up-wash text-up" : "bg-down-wash text-down")}
+                >
+                  {s.signal.bullish ? "▲" : "▼"} pattern
+                </span>
+              )}
+            </p>
+            <p className="max-w-[140px] truncate text-xs text-ink-3 sm:max-w-[240px]">{s.name}</p>
+          </div>
+        </div>
       </td>
       <td className="tabular px-3 py-2.5 text-right font-medium">{price(s.price, market)}</td>
       <td className={clsx("tabular px-3 py-2.5 text-right", changeColor(s.change_pct))}>{signedPct(s.change_pct)}</td>
