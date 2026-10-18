@@ -3,7 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 import clsx from "clsx";
-import type { Candle, Forecast, Interval } from "@/lib/api";
+import type { Candle, Forecast, Interval, PatternSignal } from "@/lib/api";
 import { COLORS, FONT } from "@/lib/charts/theme";
 import { duration, useReducedMotion } from "@/lib/charts/motion";
 import { useWidth } from "@/lib/charts/useWidth";
@@ -39,12 +39,20 @@ export function PriceChart({
   forecast,
   showPaths,
   decimals,
+  signals = [],
+  selected = null,
+  onSelect,
 }: {
   candles: Candle[];
   interval: Interval;
   forecast: Forecast | null;
   showPaths: boolean;
   decimals: number;
+  /** validated pattern signals to mark on the chart */
+  signals?: PatternSignal[];
+  /** index into `signals` of the one to highlight with its entry / stop / target */
+  selected?: number | null;
+  onSelect?: (i: number) => void;
 }) {
   const [box, width] = useWidth<HTMLDivElement>();
   const reduced = useReducedMotion();
@@ -140,6 +148,32 @@ export function PriceChart({
   const bodyW = Math.max(1, Math.min(14, band * 0.68));
   const fmt = d3.format(`,.${decimals}f`);
   const last = candles[n - 1];
+
+  // Each signal sits on the last candle of this chart that falls within the signal's own candle
+  // (a weekly or monthly pattern lands on the last daily candle of that week / month).
+  const marks = useMemo(() => {
+    const times = candles.map((c) => c[0]);
+    return signals
+      .map((sig, k) => {
+        const i = d3.bisectRight(times, sig.time_end + DAY - 1) - 1;
+        if (i < 0) return null;
+        const holdDays = sig.max_hold_bars * (sig.style === "swing" ? 1.45 : sig.style === "positional" ? 7 : 30.5);
+        const endIdx = Math.max(i, d3.bisectRight(times, sig.time_end + holdDays * DAY) - 1);
+        return { sig, k, i, endIdx };
+      })
+      .filter((m): m is NonNullable<typeof m> => m !== null);
+  }, [signals, candles]);
+  const chosen = marks.find((m) => m.k === selected);
+
+  // Bring a newly selected signal (and its holding period) into view.
+  useEffect(() => {
+    if (!chosen) return;
+    const [d0, d1] = domain ?? [0, total];
+    if (chosen.i < d0 || chosen.endIdx > d1) {
+      setRange("");
+      applyDomain([Math.max(-0.5, chosen.i - 60), Math.min(total - 0.5, chosen.endIdx + 10)]);
+    }
+  }, [selected]); // only when the selection changes, not on every zoom
 
   // Forecast geometry, anchored on the last real close.
   const anchor = last ? { i: n - 1, v: forecast?.summary.last_close ?? last[4] } : null;
@@ -343,6 +377,47 @@ export function PriceChart({
                 onMouseMove={onMove}
                 onMouseLeave={() => setHover(null)}
               />
+
+              {/* validated pattern markers (above the zoom / hover layer so they stay clickable): ▲ bullish, ▼ bearish */}
+              <g clipPath={`url(#plot-${clipId})`}>
+                {chosen && (
+                  <g pointerEvents="none">
+                    {([["entry", chosen.sig.entry, COLORS.ink], ["stop", chosen.sig.stop, COLORS.down], ["target", chosen.sig.target, COLORS.up]] as const).map(
+                      ([label, v, color]) => (
+                        <g key={label}>
+                          <line x1={x(chosen.i)} x2={x(chosen.endIdx + 0.5)} y1={y(v)} y2={y(v)} stroke={color} strokeWidth={1.5}
+                            strokeDasharray={label === "entry" ? "4 3" : undefined} />
+                          <text x={x(chosen.endIdx + 0.5) + 4} y={y(v)} dy="0.32em" fontSize={10} fill={COLORS.ink2}>
+                            {label} {fmt(v)}
+                          </text>
+                        </g>
+                      ),
+                    )}
+                  </g>
+                )}
+                {marks.map(({ sig, k, i }) => {
+                  if (i < lo - 1 || i > hi + 1) return null;
+                  const c = candles[i];
+                  const up = sig.direction > 0;
+                  const cy = up ? y(c[3]) + 12 : y(c[2]) - 12;
+                  const size = k === selected ? 8 : 6;
+                  const path = up ? `M0,${-size} L${size},${size} L${-size},${size} Z` : `M0,${size} L${size},${-size} L${-size},${-size} Z`;
+                  return (
+                    <path
+                      key={k}
+                      d={path}
+                      transform={`translate(${x(i)},${cy})`}
+                      fill={up ? COLORS.up : COLORS.down}
+                      stroke="#ffffff"
+                      strokeWidth={1.5}
+                      style={{ cursor: onSelect ? "pointer" : undefined }}
+                      onClick={() => onSelect?.(k)}
+                    >
+                      <title>{`${sig.pattern} (${sig.style.replace("_", "-")}) · ${up ? "bullish" : "bearish"}`}</title>
+                    </path>
+                  );
+                })}
+              </g>
             </g>
           </svg>
         )}

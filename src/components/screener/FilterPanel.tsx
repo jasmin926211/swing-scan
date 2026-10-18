@@ -100,6 +100,14 @@ export function FilterPanel({ market, filters, onChange, sectors, exchanges }: P
       </Field>
       <Range label="P/E ratio" min={filters.min_pe} max={filters.max_pe} onMin={(min_pe) => onChange({ min_pe })} onMax={(max_pe) => onChange({ max_pe })} />
 
+      <Field label="Validated pattern (active)">
+        <select value={filters.pattern ?? ""} onChange={(e) => onChange({ pattern: e.target.value as StockFilters["pattern"] })} className={INPUT}>
+          <option value="">Any or none</option>
+          <option value="any">Has a validated pattern</option>
+          <option value="bull">Bullish pattern</option>
+          <option value="bear">Bearish pattern</option>
+        </select>
+      </Field>
       <NumberField label="Minimum volume (shares)" value={filters.min_volume} onChange={(min_volume) => onChange({ min_volume })} />
       {market === "in" && (
         <label className="flex items-end gap-2 pb-2 text-sm text-ink-2">

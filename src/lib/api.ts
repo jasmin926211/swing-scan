@@ -40,6 +40,8 @@ export type Stock = Partial<Quote> & {
   /** % from the 52-week high (0 or negative) and low (0 or positive) */
   from_high?: number | null;
   from_low?: number | null;
+  /** active validated patterns from the nightly scan */
+  signal?: { bullish: number; bearish: number; patterns: string[] } | null;
 };
 export type CapCategory = "large" | "mid" | "small" | "micro";
 export type IndexQuote = Partial<Quote> & { ticker: string; name: string };
@@ -56,6 +58,8 @@ export type StockPage = {
   rows: Stock[];
   sectors: string[];
   exchanges: string[];
+  /** when the nightly validated-pattern scan last ran (epoch ms), or null if it hasn't yet */
+  patterns_scanned_at: number | null;
 };
 export type StockFilters = {
   q?: string;
@@ -75,6 +79,8 @@ export type StockFilters = {
   near_low?: number | null;
   min_pe?: number | null;
   max_pe?: number | null;
+  /** an active validated pattern (nightly scan) */
+  pattern?: "" | "any" | "bull" | "bear";
 };
 export type StockQuery = StockFilters & {
   sort?: "symbol" | "price" | "change_pct" | "volume" | "rel_volume" | "turnover" | "market_cap" | "from_high" | "pe";
@@ -326,3 +332,31 @@ export type HeatmapStock = { symbol: string; name: string; sector: string; price
 export const getSparklines = (m: MarketId) => request<Sparkline[]>(`/api/public/markets/${m}/sparklines`);
 /** The largest stocks with sector and today's change, for the market heatmap. */
 export const getHeatmap = (m: MarketId) => request<{ updated_at: number; market_open: boolean; stocks: HeatmapStock[] }>(`/api/markets/${m}/heatmap`);
+
+// --- validated patterns ---
+
+export type PatternStyle = "swing" | "positional" | "long_term";
+export type PatternStatus = "new" | "awaiting_confirmation" | "open" | "target_hit" | "stopped" | "expired";
+
+export type PatternSignal = {
+  style: PatternStyle;
+  pattern: string;
+  direction: 1 | -1;
+  /** start of the candle the pattern completed on, and the last day it covers (epoch ms) */
+  time: number;
+  time_end: number;
+  filters: string[];
+  reward_risk: number;
+  entry: number;
+  stop: number;
+  target: number;
+  status: PatternStatus;
+  outcome_r: number | null;
+  max_hold_bars: number;
+  /** the setup's measured track record across all stocks */
+  record: { trades: number; hit_rate: number; avg_r: number; edge_r: number; held_bars: number };
+};
+
+/** Validated pattern signals on completed candles for one stock, newest first. */
+export const getPatterns = (m: MarketId, symbol: string) =>
+  request<{ signals: PatternSignal[]; liquid: boolean }>(`${stockPath(m, symbol)}/patterns`);

@@ -39,12 +39,14 @@ const SCREENS = (m: MarketId): Screen[] => [
   { id: "unusual", label: "Unusual volume", filters: { min_rel_volume: 2, min_turnover: LIQUID[m] }, sort: { key: "rel_volume", desc: true } },
   { id: "near_high", label: "Near 52-week high", filters: { near_high: 5, min_turnover: LIQUID[m] }, sort: { key: "from_high", desc: true } },
   { id: "near_low", label: "Near 52-week low", filters: { near_low: 5, min_turnover: LIQUID[m] }, sort: { key: "from_high", desc: false } },
+  { id: "bull_patterns", label: "Bullish patterns", filters: { pattern: "bull" }, sort: { key: "market_cap", desc: true } },
+  { id: "bear_patterns", label: "Bearish patterns", filters: { pattern: "bear" }, sort: { key: "market_cap", desc: true } },
 ];
 
 // Filters that count as "active" in the Filters button badge (search and cap have their own controls).
 const PANEL_KEYS: (keyof StockFilters)[] = [
   "sector", "exchange", "fo", "min_price", "max_price", "min_change", "max_change", "min_volume",
-  "min_turnover", "min_rel_volume", "near_high", "near_low", "min_pe", "max_pe",
+  "min_turnover", "min_rel_volume", "near_high", "near_low", "min_pe", "max_pe", "pattern",
 ];
 const isSet = (v: unknown) => v !== undefined && v !== null && v !== "" && v !== false;
 
@@ -324,6 +326,18 @@ export default function Markets() {
             </table>
           </div>
 
+          {filters.pattern && page && !page.patterns_scanned_at && (
+            <p className="border-b border-line px-4 py-2.5 text-xs text-ink-2">
+              The validated-pattern scan runs nightly after the market closes and hasn&apos;t run yet, so no stock is marked.
+            </p>
+          )}
+          {filters.pattern && page?.patterns_scanned_at && (
+            <p className="border-b border-line px-4 py-2.5 text-xs text-ink-3">
+              Patterns from the scan of {new Date(page.patterns_scanned_at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })} (completed
+              candles only). Open a stock to see the trade plan and the setup&apos;s track record.
+            </p>
+          )}
+
           {page && page.total === 0 && (
             <div className="p-6 text-sm text-ink-2">
               No stock matches this screen.{" "}
@@ -399,6 +413,14 @@ function Row({ s, market, onOpen }: { s: Stock; market: MarketId; onOpen: (symbo
           <span className="rounded border border-line px-1 text-[10px] font-normal text-ink-3">{s.exchange}</span>
           {s.cap && <span className="hidden rounded bg-wash px-1 text-[10px] font-normal text-ink-2 sm:inline">{CAP_LABEL[s.cap]}</span>}
           {s.fo && <span className="rounded bg-wash px-1 text-[10px] font-normal text-ink-2">F&amp;O</span>}
+          {s.signal && (
+            <span
+              title={`Active validated pattern: ${s.signal.patterns.join(", ")}`}
+              className={clsx("rounded px-1 text-[10px] font-normal", s.signal.bullish ? "bg-[#e8f6f0] text-up" : "bg-[#fcebeb] text-down")}
+            >
+              {s.signal.bullish ? "▲" : "▼"} pattern
+            </span>
+          )}
         </p>
         <p className="max-w-[140px] truncate text-xs text-ink-3 sm:max-w-[240px]">{s.name}</p>
       </td>
