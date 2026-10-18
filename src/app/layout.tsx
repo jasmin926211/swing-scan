@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
+import { Open_Sans } from "next/font/google";
 import "./globals.css";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { AuthProvider } from "@/lib/auth";
 import { MarketProvider } from "@/lib/market";
+
+// Downloaded at build time and served from this site (no request to Google from visitors' browsers).
+const openSans = Open_Sans({ subsets: ["latin"], variable: "--font-open-sans", display: "swap" });
 
 export const metadata: Metadata = {
   title: "CandleTrade — Live markets & AI forecasts",
@@ -12,7 +16,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={openSans.variable}>
       <body className="flex min-h-screen flex-col font-sans">
         <AuthProvider>
           <MarketProvider>
