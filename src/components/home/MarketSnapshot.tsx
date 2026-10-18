@@ -8,6 +8,7 @@ import { getPublicOverview, type MarketId, type PublicOverview, type PublicStock
 import { useAuth } from "@/lib/auth";
 import { MARKETS, changeColor, compact, marketStateLabel, price, signedPct } from "@/lib/format";
 import { useMarket } from "@/lib/market";
+import { IndexStrip } from "@/components/charts/IndexStrip";
 
 /** Public market view on the home page: indices, the largest stocks and today's movers. */
 export function MarketSnapshot() {
@@ -67,23 +68,7 @@ export function MarketSnapshot() {
 
       {error && !data && <p className="text-sm text-down">Live prices are unavailable right now: {error}</p>}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {(data?.indices ?? Array.from({ length: 4 }, () => null)).map((ix, i) => (
-          <div key={ix?.ticker ?? i} className="rounded-xl border border-line p-4">
-            {ix ? (
-              <>
-                <p className="text-xs text-ink-2">{ix.name}</p>
-                <p className="tabular mt-1 text-lg font-semibold">{price(ix.price, market)}</p>
-                <p className={clsx("tabular text-xs", changeColor(ix.change))}>
-                  {ix.change != null && (ix.change > 0 ? "+" : "") + price(ix.change, market)} ({signedPct(ix.change_pct)})
-                </p>
-              </>
-            ) : (
-              <div className="h-[60px] animate-pulse rounded bg-wash" />
-            )}
-          </div>
-        ))}
-      </div>
+      <IndexStrip market={market} indices={data?.indices ?? null} open={data?.market_open ?? false} />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Panel title={`Largest ${MARKETS[market].name === "India" ? "Indian" : "US"} stocks`} className="lg:col-span-2">

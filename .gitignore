@@ -37,5 +37,3 @@ next-env.d.ts
 prisma/dev.db
 prisma/dev.db-journal
 
-# Local fonts (licensed copies kept out of git)
-/public/fonts/
