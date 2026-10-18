@@ -1,8 +1,8 @@
 import type { MarketId } from "./api";
 
 export const MARKETS: Record<MarketId, { name: string; flag: string; currency: string; locale: string; universe: string }> = {
-  in: { name: "India", flag: "🇮🇳", currency: "INR", locale: "en-IN", universe: "Nifty 500" },
-  us: { name: "USA", flag: "🇺🇸", currency: "USD", locale: "en-US", universe: "S&P 500" },
+  in: { name: "India", flag: "🇮🇳", currency: "INR", locale: "en-IN", universe: "NSE + BSE" },
+  us: { name: "USA", flag: "🇺🇸", currency: "USD", locale: "en-US", universe: "NYSE + Nasdaq" },
 };
 
 const DASH = "—";
@@ -62,3 +62,7 @@ export function barTime(ms: number, withTime: boolean) {
     ...(withTime ? { hour: "2-digit", minute: "2-digit" } : { year: "numeric" }),
   });
 }
+
+/** "2026-10-27" -> "27 Oct 26" */
+export const fmtDate = (iso: string) =>
+  new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", { timeZone: "UTC", day: "2-digit", month: "short", year: "2-digit" });

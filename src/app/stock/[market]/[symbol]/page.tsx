@@ -91,11 +91,19 @@ export default function StockPage() {
 
       <section className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{symbol}</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
+            {symbol}
+            {quote?.exchange && <span className="rounded border border-line px-1.5 text-xs font-normal text-ink-3">{quote.exchange}</span>}
+          </h1>
           <p className="mt-0.5 text-sm text-ink-2">
             {quote?.name ?? " "}
             {quote?.sector && <span className="text-ink-3"> · {quote.sector}</span>}
           </p>
+          {quote?.has_fno && (
+            <Link href={`/fno/${market}/${encodeURIComponent(symbol)}`} className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline">
+              Futures &amp; options analysis →
+            </Link>
+          )}
         </div>
         <div className="text-right">
           <p className="tabular text-3xl font-semibold tracking-tight">{quote ? price(quote.price, market) : "—"}</p>

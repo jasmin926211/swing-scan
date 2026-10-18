@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type * as HighchartsNS from "highcharts";
 import type { Candle, Forecast, Interval } from "@/lib/api";
-
-type Highcharts = typeof HighchartsNS;
+import { loadHighcharts, type Highcharts } from "@/lib/highcharts";
 
 // Validated reference palette (light surface): up = aqua, down = red, Kronos = blue.
 const UP = "#1baf7a";
@@ -38,20 +37,6 @@ const RANGES: Record<Interval, HighchartsNS.RangeSelectorButtonsOptions[]> = {
     { type: "all", text: "All" },
   ],
 };
-
-let loading: Promise<Highcharts> | null = null;
-
-/** Highstock + highcharts-more (arearange), loaded once and only in the browser.
- *  Modules attach to the instance Highstock registers globally, so order matters. */
-function loadHighcharts(): Promise<Highcharts> {
-  loading ??= (async () => {
-    const H = (await import("highcharts/highstock")).default as unknown as Highcharts;
-    await import("highcharts/highcharts-more");
-    await import("highcharts/modules/accessibility");
-    return H;
-  })();
-  return loading;
-}
 
 export function PriceChart({
   candles,

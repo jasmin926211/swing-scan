@@ -2,11 +2,15 @@
 
 Next.js 16 UI for the [Kronos backend](https://github.com/jasmin926211/kronos-backend):
 
-- `/` — live India (Nifty 500) or USA (S&P 500) prices and indices; country picked in the header.
-  Search, sector filter, sort, top gainers / losers / most active. Refreshes every 15 s while the market is open.
+- `/` — every Indian (NSE + BSE, ~5,000) or US (NYSE + Nasdaq + AMEX, ~6,000) stock with live prices and
+  indices; country picked in the header. Search, exchange / sector / F&O filters, sorting, top gainers / losers /
+  most active, paging. Refreshes every 15 s while the market is open.
 - `/stock/{in|us}/{SYMBOL}` — live quote, Highcharts candlestick + volume chart (hourly / daily / weekly),
   an on-demand Kronos forecast drawn on the chart (median, 50% and 80% bands, sampled paths), and a
   recent-accuracy check of Kronos on that stock.
+- `/fno` and `/fno/{in|us}/{SYMBOL}` — futures & options analysis (no orders): futures (India), option chain
+  with OI chart, IV, delta, PCR and max pain, and Kronos trade ideas valued on Kronos' paths and on the
+  market's implied volatility side by side. Indian F&O prices need a daily "Connect Upstox" (admin key).
 
 ```bash
 npm install
