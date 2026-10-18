@@ -9,7 +9,7 @@ export function Footer() {
         <div className="space-y-3 sm:col-span-3 md:col-span-2">
           <Logo />
           <p className="max-w-sm text-sm leading-relaxed text-ink-2">
-            Live Indian and US markets with Kronos forecasts and an honest track record next to every one.
+            Live Indian and US markets with AI forecasts and an honest track record next to every one.
           </p>
         </div>
         <FooterColumn
@@ -35,7 +35,7 @@ export function Footer() {
           links={[
             { href: "https://finance.yahoo.com", label: "Prices: Yahoo Finance" },
             { href: "https://upstox.com/developer/api-documentation/", label: "Indian F&O: Upstox" },
-            { href: "https://github.com/shiyu-coder/Kronos", label: "Forecasts: Kronos (MIT)" },
+            { href: "/about#model", label: "Forecasts: CandleTrade AI" },
             { href: "https://www.highcharts.com", label: "Charts: Highcharts" },
           ]}
         />

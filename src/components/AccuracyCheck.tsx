@@ -15,7 +15,7 @@ const CHECKS = 8;
 
 export type AccuracyState = ReturnType<typeof useAccuracyCheck>;
 
-/** Re-runs Kronos from recent past dates (seeing only data before each) and compares with what happened.
+/** Re-runs the AI from recent past dates (seeing only data before each) and compares with what happened.
  *  Lives in the page so a forecast can start it and the forecast panel can show its verdict. */
 export function useAccuracyCheck(market: MarketId, symbol: string, interval: Interval) {
   const [result, setResult] = useState<Backtest | null>(null);
@@ -66,7 +66,7 @@ export function AccuracyCheck({ symbol, market, interval, check }: { symbol: str
     <section className="rounded-xl border border-line">
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
         <div>
-          <h2 className="text-sm font-semibold">How has Kronos done on {symbol}?</h2>
+          <h2 className="text-sm font-semibold">How has the AI done on {symbol}?</h2>
           <p className="mt-0.5 text-xs text-ink-3">
             Forecasts {bars} {unit} ahead from the last {CHECKS} past points, each using only data before it, then compares with
             what actually happened. Default model, 8 paths each.
@@ -106,7 +106,7 @@ export function AccuracyCheck({ symbol, market, interval, check }: { symbol: str
                   <th className="px-4 py-2 font-normal">From</th>
                   <th className="px-4 py-2 font-normal">To</th>
                   <th className="px-4 py-2 text-right font-normal">Close then</th>
-                  <th className="px-4 py-2 text-right font-normal">Kronos said</th>
+                  <th className="px-4 py-2 text-right font-normal">AI said</th>
                   <th className="hidden px-4 py-2 text-right font-normal md:table-cell">80% range</th>
                   <th className="px-4 py-2 text-right font-normal">Actual</th>
                   <th className="px-4 py-2 text-center font-normal">Direction</th>

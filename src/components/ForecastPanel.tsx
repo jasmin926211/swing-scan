@@ -8,9 +8,9 @@ import { barTime, pct, price } from "@/lib/format";
 import type { AccuracyState } from "./AccuracyCheck";
 
 const MODELS: { id: ModelName; label: string; note: string }[] = [
-  { id: "kronos-mini", label: "Mini", note: "fastest" },
-  { id: "kronos-small", label: "Small", note: "balanced" },
-  { id: "kronos-base", label: "Base", note: "largest, ~3× slower" },
+  { id: "fast", label: "Fast", note: "quickest" },
+  { id: "balanced", label: "Balanced", note: "default" },
+  { id: "accurate", label: "Thorough", note: "largest model, ~3× slower" },
 ];
 
 const HORIZON: Record<Interval, { value: number; unit: string; options: number[] }> = {
@@ -25,7 +25,7 @@ const OUTLOOK = {
   neutral: { label: "Neutral", Icon: Minus, cls: "bg-wash text-ink-2" },
 };
 
-export function KronosPanel({
+export function ForecastPanel({
   market,
   symbol,
   interval,
@@ -40,7 +40,7 @@ export function KronosPanel({
   onForecast: (f: Forecast) => void;
   accuracy: AccuracyState;
 }) {
-  const [model, setModel] = useState<ModelName>("kronos-small");
+  const [model, setModel] = useState<ModelName>("balanced");
   const [horizon, setHorizon] = useState(HORIZON[interval].value);
   const [samples, setSamples] = useState(20);
   const [running, setRunning] = useState(false);
@@ -76,7 +76,7 @@ export function KronosPanel({
   return (
     <section className="flex flex-col rounded-xl border border-line">
       <div className="border-b border-line px-4 py-3">
-        <h2 className="text-sm font-semibold">Kronos forecast</h2>
+        <h2 className="text-sm font-semibold">AI forecast</h2>
         <p className="mt-0.5 text-xs text-ink-3">Samples many possible futures from the latest completed bars.</p>
       </div>
 
@@ -163,18 +163,18 @@ export function KronosPanel({
   );
 }
 
-/** How much to trust this forecast, from Kronos' recent record on the same stock. */
+/** How much to trust this forecast, from the AI's recent record on the same stock. */
 function TrustNote({ symbol, accuracy }: { symbol: string; accuracy: AccuracyState }) {
   const r = accuracy.result;
   if (accuracy.running && !r)
-    return <p className="rounded-lg bg-wash px-3 py-2 text-xs text-ink-2">Checking Kronos&apos; recent record on {symbol}… {accuracy.elapsed}s</p>;
+    return <p className="rounded-lg bg-wash px-3 py-2 text-xs text-ink-2">Checking the AI&apos;s recent record on {symbol}… {accuracy.elapsed}s</p>;
   if (!r) return null;
   const hits = `${Math.round(r.direction_accuracy * r.checks.length)}/${r.checks.length}`;
   const errors = `price error ${pct(r.mean_error_pct)} vs ${pct(r.naive_error_pct)} for “no change”`;
   if (r.verdict === "none")
     return (
       <p className="rounded-lg bg-[#fcebeb] px-3 py-2 text-xs leading-relaxed text-down">
-        <b>Low trust.</b> Kronos has had no skill on {symbol} recently: direction right {hits}, {errors}. Treat this
+        <b>Low trust.</b> The AI has had no skill on {symbol} recently: direction right {hits}, {errors}. Treat this
         forecast as noise.
       </p>
     );

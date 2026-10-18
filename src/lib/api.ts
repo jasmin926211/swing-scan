@@ -2,7 +2,8 @@
 
 export type MarketId = "in" | "us";
 export type Interval = "1h" | "1d" | "1wk";
-export type ModelName = "kronos-mini" | "kronos-small" | "kronos-base";
+/** Public model choices; the backend maps them to the model it runs. */
+export type ModelName = "fast" | "balanced" | "accurate";
 
 export type Quote = {
   ticker: string;
@@ -64,7 +65,7 @@ export type StockQuote = Quote & { symbol: string; sector?: string; exchange?: s
 /** [time ms, open, high, low, close, volume] */
 export type Candle = [number, number, number, number, number, number];
 
-// lookback (bars of history fed to Kronos) is left to the backend default.
+// lookback (bars of history fed to the model) is left to the backend default.
 export type ForecastParams = { interval: Interval; model?: ModelName; horizon: number; n_samples: number };
 
 export type ForecastSummary = {

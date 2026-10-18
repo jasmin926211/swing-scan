@@ -5,10 +5,10 @@ import type * as HighchartsNS from "highcharts";
 import type { Candle, Forecast, Interval } from "@/lib/api";
 import { loadHighcharts, type Highcharts } from "@/lib/highcharts";
 
-// Validated reference palette (light surface): up = aqua, down = red, Kronos = blue.
+// Validated reference palette (light surface): up = aqua, down = red, forecast = blue.
 const UP = "#1baf7a";
 const DOWN = "#e34948";
-const KRONOS = "#2a78d6";
+const FORECAST = "#2a78d6";
 const INK_2 = "#52514e";
 const INK_3 = "#8a8983";
 const LINE = "#ebebe8";
@@ -97,7 +97,7 @@ export function PriceChart({
             type: "line",
             name: `Path ${i + 1}`,
             data: [[anchor, last], ...path.map((c, j) => [pts[j].time, c])],
-            color: KRONOS,
+            color: FORECAST,
             opacity: 0.18,
             lineWidth: 1,
             enableMouseTracking: false,
@@ -109,9 +109,9 @@ export function PriceChart({
       series.push(
         {
           type: "arearange",
-          name: "Kronos 80% range",
+          name: "Forecast 80% range",
           data: [[anchor, last, last], ...pts.map((p) => [p.time, p.p10, p.p90])],
-          color: KRONOS,
+          color: FORECAST,
           fillOpacity: 0.12,
           lineWidth: 0,
           marker: { enabled: false },
@@ -119,9 +119,9 @@ export function PriceChart({
         },
         {
           type: "arearange",
-          name: "Kronos 50% range",
+          name: "Forecast 50% range",
           data: [[anchor, last, last], ...pts.map((p) => [p.time, p.p25, p.p75])],
-          color: KRONOS,
+          color: FORECAST,
           fillOpacity: 0.2,
           lineWidth: 0,
           marker: { enabled: false },
@@ -129,9 +129,9 @@ export function PriceChart({
         },
         {
           type: "line",
-          name: "Kronos median",
+          name: "Forecast median",
           data: [[anchor, last], ...pts.map((p) => [p.time, p.close])],
-          color: KRONOS,
+          color: FORECAST,
           lineWidth: 2,
           dashStyle: "ShortDash",
           marker: { enabled: false, radius: 4 },
@@ -147,7 +147,7 @@ export function PriceChart({
       chart: { backgroundColor: "#ffffff", style: { fontFamily: "inherit" }, spacing: [8, 4, 8, 4] },
       credits: { enabled: false },
       time: { timezone: "UTC" }, // backend sends exchange-local wall time as UTC
-      accessibility: { description: "Candlestick price chart with volume and Kronos forecast" },
+      accessibility: { description: "Candlestick price chart with volume and AI forecast" },
       rangeSelector: {
         buttons: RANGES[interval],
         inputEnabled: false,
@@ -180,7 +180,7 @@ export function PriceChart({
         labels: { style: { color: INK_3 } },
         crosshair: { color: "#c9c9c4", dashStyle: "Dash" },
         plotLines: forecast
-          ? [{ value: forecast.as_of, color: KRONOS, width: 1, dashStyle: "Dot", label: { text: "Forecast →", style: { color: KRONOS }, y: 14, x: 4, rotation: 0 } }]
+          ? [{ value: forecast.as_of, color: FORECAST, width: 1, dashStyle: "Dot", label: { text: "Forecast →", style: { color: FORECAST }, y: 14, x: 4, rotation: 0 } }]
           : [],
       },
       yAxis: [

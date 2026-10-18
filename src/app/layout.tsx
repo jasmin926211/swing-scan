@@ -6,8 +6,8 @@ import { AuthProvider } from "@/lib/auth";
 import { MarketProvider } from "@/lib/market";
 
 export const metadata: Metadata = {
-  title: "CandleTrade — Live markets & Kronos forecasts",
-  description: "Live Indian and US stock markets with Kronos AI forecasts and an honest track record next to every one.",
+  title: "CandleTrade — Live markets & AI forecasts",
+  description: "Live Indian and US stock markets with AI forecasts and an honest track record next to every one.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

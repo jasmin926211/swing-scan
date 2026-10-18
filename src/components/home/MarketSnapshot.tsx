@@ -103,7 +103,7 @@ export function MarketSnapshot() {
         <span className="text-ink-2">
           {user
             ? "You’re signed in: open the full market with every stock, charts and forecasts."
-            : `Showing a preview. Sign in to browse all ${data ? data.listed.toLocaleString() : ""} ${MARKETS[market].name === "India" ? "Indian" : "US"} stocks, open charts and run Kronos.`}
+            : `Showing a preview. Sign in to browse all ${data ? data.listed.toLocaleString() : ""} ${MARKETS[market].name === "India" ? "Indian" : "US"} stocks, open charts and run AI forecasts.`}
         </span>
         <Link href={user ? "/markets" : "/signup"} className="inline-flex items-center gap-1.5 font-medium text-ink hover:underline">
           {user ? "Open markets" : "Create a free account"} <ArrowRight className="h-4 w-4" />

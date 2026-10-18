@@ -13,25 +13,25 @@ const FEATURES = [
   },
   {
     icon: Sparkles,
-    title: "Kronos forecasts in seconds",
-    body: "Pick a stock and Kronos samples dozens of possible futures from its recent candles: the median path, a likely range and the chance of closing higher, drawn right on the chart.",
+    title: "AI forecasts in seconds",
+    body: "Pick a stock and CandleTrade AI samples dozens of possible futures from its recent candles: the median path, a likely range and the chance of closing higher, drawn right on the chart.",
   },
   {
     icon: Target,
     title: "A track record for every stock",
-    body: "Before you trust a forecast, CandleTrade replays Kronos on that stock’s recent past and shows how often it was right. Low-trust forecasts are flagged in red.",
+    body: "Before you trust a forecast, CandleTrade replays its AI on that stock’s recent past and shows how often it was right. Low-trust forecasts are flagged in red.",
   },
   {
     icon: Layers,
     title: "F&O planning with defined risk",
-    body: "Option chains with OI, IV and max pain for NSE indices, F&O stocks and US options. Trade ideas are scored on Kronos’ paths and on the market’s own implied volatility.",
+    body: "Option chains with OI, IV and max pain for NSE indices, F&O stocks and US options. Trade ideas are scored on the AI’s paths and on the market’s own implied volatility.",
   },
 ];
 
 const STEPS = [
   { title: "Find a stock", body: "Browse the live market or search any of 11,000+ Indian and US stocks." },
-  { title: "Run Kronos", body: "Get a forecast from daily, hourly or weekly candles in about 10 seconds." },
-  { title: "Check the record", body: "See how Kronos did on that same stock before acting on it." },
+  { title: "Run the AI forecast", body: "Get a forecast from daily, hourly or weekly candles in about 10 seconds." },
+  { title: "Check the record", body: "See how the AI did on that same stock before acting on it." },
   { title: "Decide with your plan", body: "Use the range and the odds to size the trade and place your stop." },
 ];
 
@@ -46,7 +46,7 @@ const IDEAS = [
   },
   {
     title: "Trust the record, not the headline",
-    body: "If Kronos hasn’t beaten “price stays flat” on a stock lately, treat its forecast as noise, however confident it looks.",
+    body: "If the AI hasn’t beaten “price stays flat” on a stock lately, treat its forecast as noise, however confident it looks.",
   },
   {
     title: "Stick to liquid stocks",
@@ -54,7 +54,7 @@ const IDEAS = [
   },
   {
     title: "Let the market check your view",
-    body: "When Kronos and the option market’s implied volatility disagree sharply, the market is usually the better calibrated of the two.",
+    body: "When the AI and the option market’s implied volatility disagree sharply, the market is usually the better calibrated of the two.",
   },
   {
     title: "Prefer defined risk",
@@ -64,28 +64,28 @@ const IDEAS = [
 
 const FAQ = [
   {
-    q: "Should I buy just because Kronos says “Bullish”?",
-    a: "No. “Bullish” means at least 60% of Kronos’ sampled paths end higher and the average path is up; it is a probability, not a signal to act on alone. Check the trust note under the forecast first, then decide entry, stop-loss and position size from your own plan. If Kronos hasn’t beaten “price stays flat” on that stock recently, the forecast is flagged as low trust.",
+    q: "Should I buy just because the AI says “Bullish”?",
+    a: "No. “Bullish” means at least 60% of the AI’s sampled paths end higher and the average path is up; it is a probability, not a signal to act on alone. Check the trust note under the forecast first, then decide entry, stop-loss and position size from your own plan. If the AI hasn’t beaten “price stays flat” on that stock recently, the forecast is flagged as low trust.",
   },
   {
     q: "Which timeframe should I use for swing or intraday trading?",
-    a: "Use daily candles for swing trades of a few days to a few weeks; that is where Kronos has been tested most (1 to 10 trading days ahead). Hourly candles suit short-term views over the next one or two sessions, and weekly candles suit positional trades. Hourly and weekly forecasts haven’t been tested as thoroughly, so lean harder on the per-stock track record there.",
+    a: "Use daily candles for swing trades of a few days to a few weeks; that is where the AI has been tested most (1 to 10 trading days ahead). Hourly candles suit short-term views over the next one or two sessions, and weekly candles suit positional trades. Hourly and weekly forecasts haven’t been tested as thoroughly, so lean harder on the per-stock track record there.",
   },
   {
     q: "Are prices real-time? Can I scalp with them?",
     a: "Close to real-time, not tick-by-tick. During market hours stock prices refresh about every 20 seconds and the page updates every 30, so a price can be up to about a minute old (Yahoo itself may add a few seconds). Indian option chains refresh every 30 seconds. That works for swing and positional decisions, not for scalping: always check the live price in your broker before placing an order.",
   },
   {
-    q: "Does Kronos know about results, news or RBI / Fed decisions?",
-    a: "No. Kronos only reads price and volume candles. It doesn’t know about upcoming earnings, dividends, splits, budget announcements, rate decisions or company news, so it can’t predict the gap those cause. Be most careful around result dates and big economic events, when a forecast built on recent candles matters least.",
+    q: "Does the AI know about results, news or RBI / Fed decisions?",
+    a: "No. The AI only reads price and volume candles. It doesn’t know about upcoming earnings, dividends, splits, budget announcements, rate decisions or company news, so it can’t predict the gap those cause. Be most careful around result dates and big economic events, when a forecast built on recent candles matters least.",
   },
   {
     q: "Which stocks does it work best on?",
-    a: "Large, liquid stocks and indices: in our tests Kronos did best on large caps and worst on small stocks in strong trends. Thinly traded stocks also gap more and trade with wide spreads, so both the forecast and your fill are worse. The Markets page shows the day’s value traded for every stock, and the top gainers and losers only include liquid names.",
+    a: "Large, liquid stocks and indices: in our tests the AI did best on large caps and worst on small stocks in strong trends. Thinly traded stocks also gap more and trade with wide spreads, so both the forecast and your fill are worse. The Markets page shows the day’s value traded for every stock, and the top gainers and losers only include liquid names.",
   },
   {
     q: "How should I use the F&O trade ideas?",
-    a: "As a starting point for defined-risk trades, valued at expiry and per lot. Each idea shows its chance of profit twice: on Kronos’ paths and on the option market’s implied volatility. Trust an idea more when both agree; Kronos tends to overrate selling options. Before trading, check the option’s volume, open interest and bid-ask spread, the lot size and your broker’s margin, and remember the values assume you hold until expiry.",
+    a: "As a starting point for defined-risk trades, valued at expiry and per lot. Each idea shows its chance of profit twice: on the AI’s paths and on the option market’s implied volatility. Trust an idea more when both agree; the AI tends to overrate selling options. Before trading, check the option’s volume, open interest and bid-ask spread, the lot size and your broker’s margin, and remember the values assume you hold until expiry.",
   },
   {
     q: "Can I place trades from CandleTrade?",
@@ -100,14 +100,14 @@ export default function Home() {
       <section className="mx-auto grid max-w-7xl items-center gap-12 px-4 pb-16 pt-14 md:px-6 lg:grid-cols-2 lg:pt-20">
         <div>
           <p className="inline-flex items-center gap-2 rounded-full border border-line px-3 py-1 text-xs text-ink-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#2a78d6]" /> Kronos AI forecasts · India &amp; USA
+            <span className="h-1.5 w-1.5 rounded-full bg-[#2a78d6]" /> AI forecasts · India &amp; USA
           </p>
           <h1 className="mt-5 text-4xl font-semibold leading-[1.1] tracking-tight md:text-5xl">
             Read the market candle by candle, and see how often the forecast was right.
           </h1>
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-ink-2">
-            CandleTrade puts live prices for 11,000+ Indian and US stocks next to Kronos, an open AI model trained on
-            candlestick data from 45 exchanges. Every forecast comes with its own track record, so you know when to trust it.
+            CandleTrade puts live prices for 11,000+ Indian and US stocks next to CandleTrade AI, a forecasting model trained on
+            years of candlestick data. Every forecast comes with its own track record, so you know when to trust it.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/signup" className="inline-flex items-center gap-2 rounded-lg bg-ink px-5 py-3 text-sm font-medium text-white hover:opacity-90">

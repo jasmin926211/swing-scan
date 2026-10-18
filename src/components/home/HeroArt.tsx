@@ -1,8 +1,8 @@
-// Illustrative candlestick chart with a Kronos-style forecast fan (decorative, not real data).
+// Illustrative candlestick chart with a forecast fan (decorative, not real data).
 
 const UP = "#1baf7a";
 const DOWN = "#e34948";
-const KRONOS = "#2a78d6";
+const FORECAST = "#2a78d6";
 
 // Deterministic walk so the art is the same on every render.
 const CANDLES = (() => {
@@ -58,20 +58,20 @@ export function HeroArt() {
             </g>
           );
         })}
-        <line x1={nowX + STEP / 2} x2={nowX + STEP / 2} y1={PAD - 6} y2={H - PAD} stroke={KRONOS} strokeDasharray="2 3" />
-        <text x={nowX + STEP / 2 + 6} y={PAD + 2} fontSize="11" fill={KRONOS}>Kronos forecast →</text>
-        <polygon points={band((f) => f.lo80, (f) => f.hi80)} fill={KRONOS} fillOpacity={0.1} />
-        <polygon points={band((f) => f.lo50, (f) => f.hi50)} fill={KRONOS} fillOpacity={0.18} />
+        <line x1={nowX + STEP / 2} x2={nowX + STEP / 2} y1={PAD - 6} y2={H - PAD} stroke={FORECAST} strokeDasharray="2 3" />
+        <text x={nowX + STEP / 2 + 6} y={PAD + 2} fontSize="11" fill={FORECAST}>AI forecast →</text>
+        <polygon points={band((f) => f.lo80, (f) => f.hi80)} fill={FORECAST} fillOpacity={0.1} />
+        <polygon points={band((f) => f.lo50, (f) => f.hi50)} fill={FORECAST} fillOpacity={0.18} />
         <polyline
           points={[`${nowX},${y(last)}`, ...fan.map((f, i) => `${x(CANDLES.length + i)},${y(f.mid)}`)].join(" ")}
           fill="none"
-          stroke={KRONOS}
+          stroke={FORECAST}
           strokeWidth={2}
           strokeDasharray="5 4"
         />
       </svg>
       <div className="absolute bottom-6 left-6 rounded-xl border border-line bg-white/95 px-3.5 py-2.5 text-xs shadow-sm">
-        <p className="text-ink-3">Kronos · next 10 days</p>
+        <p className="text-ink-3">CandleTrade AI · next 10 days</p>
         <p className="mt-0.5 font-semibold text-ink">
           64% chance higher <span className="font-normal text-ink-3">· 80% range shown</span>
         </p>

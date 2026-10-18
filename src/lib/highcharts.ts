@@ -20,7 +20,7 @@ export function loadHighcharts(): Promise<Highcharts> {
 export const COLORS = {
   up: "#1baf7a",
   down: "#e34948",
-  kronos: "#2a78d6", // categorical slot 1
+  forecast: "#2a78d6", // categorical slot 1
   second: "#eb6834", // categorical slot 2
   ink2: "#52514e",
   ink3: "#8a8983",

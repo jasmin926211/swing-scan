@@ -1,5 +1,5 @@
 // Published accuracy figures for the home page. Source: walk-forward test in the backend README
-// ("How accurate is it?"): kronos-small, 64-bar lookback, daily bars, 10 trading days ahead,
+// ("How accurate is it?"): balanced model, 64-bar lookback, daily bars, 10 trading days ahead,
 // 12 non-overlapping checks on each of 10 large US and Indian stocks (120 forecasts, Oct 2026).
 // Update these together with that README when a new test is run.
 export const ACCURACY = {

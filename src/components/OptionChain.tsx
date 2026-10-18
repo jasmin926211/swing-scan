@@ -35,7 +35,7 @@ export function OptionChain({ chain, market }: { chain: Chain; market: MarketId 
       tooltip: { shared: true, valueDecimals: 0 },
       plotOptions: { column: { borderWidth: 0, borderRadius: 2, groupPadding: 0.15, pointPadding: 0.05 } },
       series: [
-        { type: "column", name: "Call OI", color: COLORS.kronos, data: rows.map((r) => r.call?.oi ?? null) },
+        { type: "column", name: "Call OI", color: COLORS.forecast, data: rows.map((r) => r.call?.oi ?? null) },
         { type: "column", name: "Put OI", color: COLORS.second, data: rows.map((r) => r.put?.oi ?? null) },
       ],
       legend: { enabled: true },

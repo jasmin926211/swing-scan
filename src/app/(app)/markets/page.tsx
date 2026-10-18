@@ -130,7 +130,7 @@ export default function Dashboard() {
             {MARKETS[market].name} · {MARKETS[market].universe}
           </h1>
           <p className="mt-0.5 text-sm text-ink-2">
-            {page ? `${page.priced.toLocaleString()} stocks with live prices. ` : ""}Pick one to run a Kronos forecast on it.
+            {page ? `${page.priced.toLocaleString()} stocks with live prices. ` : ""}Pick one to run an AI forecast on it.
           </p>
         </div>
         {page && (

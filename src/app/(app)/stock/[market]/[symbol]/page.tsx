@@ -10,7 +10,7 @@ import { MARKETS, changeColor, compact, marketStateLabel, price, signedPct } fro
 import { useMarket } from "@/lib/market";
 import { PriceChart } from "@/components/PriceChart";
 import { RangeBar } from "@/components/RangeBar";
-import { KronosPanel } from "@/components/KronosPanel";
+import { ForecastPanel } from "@/components/ForecastPanel";
 import { AccuracyCheck, useAccuracyCheck } from "@/components/AccuracyCheck";
 
 const INTERVALS: { id: Interval; label: string }[] = [
@@ -34,7 +34,7 @@ export default function StockPage() {
   const [showPaths, setShowPaths] = useState(false);
   const accuracy = useAccuracyCheck(market, symbol, interval);
 
-  // Every forecast is followed by Kronos' recent track record on this stock (once per stock & interval),
+  // Every forecast is followed by the AI's recent track record on this stock (once per stock & interval),
   // so the panel can say when the forecast deserves little trust.
   function onForecast(f: Forecast) {
     setForecast(f);
@@ -175,7 +175,7 @@ export default function StockPage() {
           </div>
         </section>
 
-        <KronosPanel
+        <ForecastPanel
           key={`${market}/${symbol}/${interval}`}
           market={market}
           symbol={symbol}
