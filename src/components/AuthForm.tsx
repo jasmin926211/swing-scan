@@ -71,7 +71,7 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
           />
         </Field>
         {error && <p className="text-sm text-down">{error}</p>}
-        <button disabled={busy} className="w-full rounded-lg bg-ink py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60">
+        <button disabled={busy} className="w-full rounded-lg bg-ink py-2.5 text-sm font-medium text-paper hover:opacity-90 disabled:opacity-60">
           {busy ? "Please wait…" : isSignUp ? "Create account" : "Sign in"}
         </button>
       </form>

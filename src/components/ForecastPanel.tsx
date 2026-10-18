@@ -20,8 +20,8 @@ const HORIZON: Record<Interval, { value: number; unit: string; options: number[]
 };
 
 const OUTLOOK = {
-  bullish: { label: "Bullish", Icon: TrendingUp, cls: "bg-[#e8f6f0] text-up" },
-  bearish: { label: "Bearish", Icon: TrendingDown, cls: "bg-[#fcebeb] text-down" },
+  bullish: { label: "Bullish", Icon: TrendingUp, cls: "bg-up-wash text-up" },
+  bearish: { label: "Bearish", Icon: TrendingDown, cls: "bg-down-wash text-down" },
   neutral: { label: "Neutral", Icon: Minus, cls: "bg-wash text-ink-2" },
 };
 
@@ -98,7 +98,7 @@ export function ForecastPanel({
         <button
           onClick={run}
           disabled={running}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-paper transition-opacity hover:opacity-90 disabled:opacity-60"
         >
           {running ? (
             <>Running on CPU… {elapsed}s</>
@@ -140,7 +140,7 @@ export function ForecastPanel({
               <span className="tabular font-medium">{pct(s.prob_up, 0)}</span>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-line" role="meter" aria-valuenow={Math.round(s.prob_up * 100)} aria-valuemin={0} aria-valuemax={100}>
-              <div className="h-full rounded-full bg-[#2a78d6]" style={{ width: `${s.prob_up * 100}%` }} />
+              <div className="h-full rounded-full bg-accent" style={{ width: `${s.prob_up * 100}%` }} />
             </div>
           </div>
 
@@ -173,19 +173,19 @@ function TrustNote({ symbol, accuracy }: { symbol: string; accuracy: AccuracySta
   const errors = `price error ${pct(r.mean_error_pct)} vs ${pct(r.naive_error_pct)} for “no change”`;
   if (r.verdict === "none")
     return (
-      <p className="rounded-lg bg-[#fcebeb] px-3 py-2 text-xs leading-relaxed text-down">
+      <p className="rounded-lg bg-down-wash px-3 py-2 text-xs leading-relaxed text-down">
         <b>Low trust.</b> The AI has had no skill on {symbol} recently: direction right {hits}, {errors}. Treat this
         forecast as noise.
       </p>
     );
   if (r.verdict === "weak")
     return (
-      <p className="rounded-lg bg-[#fdf4e3] px-3 py-2 text-xs leading-relaxed text-[#8a5a00]">
+      <p className="rounded-lg bg-warn-wash px-3 py-2 text-xs leading-relaxed text-warn">
         <b>Mixed record.</b> On {symbol} recently: direction right {hits}, {errors}. Use with caution.
       </p>
     );
   return (
-    <p className="rounded-lg bg-[#e8f6f0] px-3 py-2 text-xs leading-relaxed text-up">
+    <p className="rounded-lg bg-up-wash px-3 py-2 text-xs leading-relaxed text-up">
       <b>Better than “no change” recently.</b> On {symbol}: direction right {hits}, {errors}. Still a small sample.
     </p>
   );

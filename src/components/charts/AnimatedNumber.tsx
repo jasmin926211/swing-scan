@@ -35,7 +35,7 @@ export function AnimatedNumber({ value, format, className }: { value: number | n
   }, [value, reduced]);
 
   return (
-    <span className={clsx("tabular rounded px-0.5 transition-colors duration-700", flash === "up" && "bg-[#e8f6f0]", flash === "down" && "bg-[#fcebeb]", className)}>
+    <span className={clsx("tabular rounded px-0.5 transition-colors duration-700", flash === "up" && "bg-up-wash", flash === "down" && "bg-down-wash", className)}>
       {shown == null ? "—" : format(shown)}
     </span>
   );

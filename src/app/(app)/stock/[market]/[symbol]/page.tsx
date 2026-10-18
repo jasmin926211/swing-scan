@@ -5,13 +5,14 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import clsx from "clsx";
 import { ArrowLeft } from "lucide-react";
-import { getHistory, getQuote, type Candle, type Forecast, type Interval, type MarketId, type StockQuote } from "@/lib/api";
+import { getHistory, getPatterns, getQuote, type Candle, type Forecast, type Interval, type MarketId, type PatternSignal, type StockQuote } from "@/lib/api";
 import { MARKETS, changeColor, compact, marketStateLabel, price, signedPct } from "@/lib/format";
 import { useMarket } from "@/lib/market";
 import { PriceChart } from "@/components/charts/PriceChart";
 import { RangeBar } from "@/components/RangeBar";
 import { ForecastPanel } from "@/components/ForecastPanel";
 import { AccuracyCheck, useAccuracyCheck } from "@/components/AccuracyCheck";
+import { ValidatedPatterns } from "@/components/ValidatedPatterns";
 
 const INTERVALS: { id: Interval; label: string }[] = [
   { id: "1h", label: "Hourly" },
@@ -32,6 +33,28 @@ export default function StockPage() {
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [forecast, setForecast] = useState<Forecast | null>(null);
   const [showPaths, setShowPaths] = useState(false);
+  const [signals, setSignals] = useState<PatternSignal[] | null>(null);
+  const [liquid, setLiquid] = useState(true);
+  const [patternError, setPatternError] = useState<string | null>(null);
+  const [selectedSignal, setSelectedSignal] = useState<number | null>(null);
+
+  // Validated patterns don't depend on the chart's interval (they come from daily / weekly / monthly candles).
+  useEffect(() => {
+    let alive = true;
+    setSignals(null);
+    setSelectedSignal(null);
+    setPatternError(null);
+    getPatterns(market, symbol)
+      .then((r) => {
+        if (!alive) return;
+        setSignals(r.signals);
+        setLiquid(r.liquid);
+      })
+      .catch((e) => alive && setPatternError((e as Error).message));
+    return () => {
+      alive = false;
+    };
+  }, [market, symbol]);
   const accuracy = useAccuracyCheck(market, symbol, interval);
 
   // Every forecast is followed by the AI's recent track record on this stock (once per stock & interval),
@@ -159,7 +182,7 @@ export default function StockPage() {
             </div>
             {forecast && (
               <label className="flex items-center gap-2 text-xs text-ink-2">
-                <input type="checkbox" checked={showPaths} onChange={(e) => setShowPaths(e.target.checked)} className="accent-[#2a78d6]" />
+                <input type="checkbox" checked={showPaths} onChange={(e) => setShowPaths(e.target.checked)} className="accent-accent" />
                 Show all {forecast.paths.length} sampled paths
               </label>
             )}
@@ -168,7 +191,16 @@ export default function StockPage() {
             {historyError ? (
               <p className="p-6 text-sm text-down">Could not load chart: {historyError}</p>
             ) : candles ? (
-              <PriceChart candles={candles} interval={interval} forecast={forecast} showPaths={showPaths} decimals={2} />
+              <PriceChart
+                candles={candles}
+                interval={interval}
+                forecast={forecast}
+                showPaths={showPaths}
+                decimals={2}
+                signals={signals ?? []}
+                selected={selectedSignal}
+                onSelect={setSelectedSignal}
+              />
             ) : (
               <div className="h-[520px] animate-pulse rounded-lg bg-wash" />
             )}
@@ -185,6 +217,16 @@ export default function StockPage() {
           accuracy={accuracy}
         />
       </div>
+
+      <ValidatedPatterns
+        signals={signals}
+        liquid={liquid}
+        loading={signals === null && !patternError}
+        error={patternError}
+        market={market}
+        selected={selectedSignal}
+        onSelect={setSelectedSignal}
+      />
 
       <AccuracyCheck market={market} symbol={symbol} interval={interval} check={accuracy} />
     </div>

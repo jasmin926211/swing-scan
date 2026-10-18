@@ -44,10 +44,10 @@ function band(lo: (f: (typeof fan)[number]) => number, hi: (f: (typeof fan)[numb
 
 export function HeroArt() {
   return (
-    <div className="relative rounded-2xl border border-line bg-white p-3 shadow-[0_1px_0_rgba(0,0,0,0.02)]">
+    <div className="relative rounded-2xl border border-line bg-paper p-3 shadow-[0_1px_0_rgba(0,0,0,0.02)]">
       <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label="Illustration: candlestick chart with a forecast range">
         {[0.25, 0.5, 0.75].map((f) => (
-          <line key={f} x1={PAD} x2={W - PAD} y1={PAD + f * (H - 2 * PAD)} y2={PAD + f * (H - 2 * PAD)} stroke="#ebebe8" />
+          <line key={f} x1={PAD} x2={W - PAD} y1={PAD + f * (H - 2 * PAD)} y2={PAD + f * (H - 2 * PAD)} className="stroke-line" />
         ))}
         {CANDLES.map((c, i) => {
           const color = c.c >= c.o ? UP : DOWN;
@@ -70,7 +70,7 @@ export function HeroArt() {
           strokeDasharray="5 4"
         />
       </svg>
-      <div className="absolute bottom-6 left-6 rounded-xl border border-line bg-white/95 px-3.5 py-2.5 text-xs shadow-sm">
+      <div className="absolute bottom-6 left-6 rounded-xl border border-line bg-paper/95 px-3.5 py-2.5 text-xs shadow-sm">
         <p className="text-ink-3">CandleTrade AI · next 10 days</p>
         <p className="mt-0.5 font-semibold text-ink">
           64% chance higher <span className="font-normal text-ink-3">· 80% range shown</span>

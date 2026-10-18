@@ -3,8 +3,8 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 import clsx from "clsx";
-import type { Candle, Forecast, Interval } from "@/lib/api";
-import { COLORS, FONT } from "@/lib/charts/theme";
+import type { Candle, Forecast, Interval, PatternSignal } from "@/lib/api";
+import { useChartColors, FONT } from "@/lib/charts/theme";
 import { duration, useReducedMotion } from "@/lib/charts/motion";
 import { useWidth } from "@/lib/charts/useWidth";
 
@@ -39,13 +39,22 @@ export function PriceChart({
   forecast,
   showPaths,
   decimals,
+  signals = [],
+  selected = null,
+  onSelect,
 }: {
   candles: Candle[];
   interval: Interval;
   forecast: Forecast | null;
   showPaths: boolean;
   decimals: number;
+  /** validated pattern signals to mark on the chart */
+  signals?: PatternSignal[];
+  /** index into `signals` of the one to highlight with its entry / stop / target */
+  selected?: number | null;
+  onSelect?: (i: number) => void;
 }) {
+  const COLORS = useChartColors();
   const [box, width] = useWidth<HTMLDivElement>();
   const reduced = useReducedMotion();
   const clipId = useId().replace(/:/g, "");
@@ -124,13 +133,15 @@ export function PriceChart({
   const visible = candles.slice(lo, Math.min(hi + 1, n));
   const visibleFc = fc.filter((_, j) => n + j >= lo && n + j <= hi);
 
+  const plan = selected != null ? signals[selected] : null; // keep its entry / stop / target in view
   const y = useMemo(() => {
-    const lows = [...visible.map((c) => c[3]), ...visibleFc.map((p) => p.p10)];
-    const highs = [...visible.map((c) => c[2]), ...visibleFc.map((p) => p.p90)];
+    const planLevels = plan ? [plan.entry, plan.stop, plan.target] : [];
+    const lows = [...visible.map((c) => c[3]), ...visibleFc.map((p) => p.p10), ...planLevels];
+    const highs = [...visible.map((c) => c[2]), ...visibleFc.map((p) => p.p90), ...planLevels];
     const [min, max] = [d3.min(lows) ?? 0, d3.max(highs) ?? 1];
     const pad = (max - min) * 0.06 || max * 0.01;
     return d3.scaleLinear().domain([min - pad, max + pad]).nice(6).range([priceH, 0]);
-  }, [visible, visibleFc, priceH]);
+  }, [visible, visibleFc, priceH, plan]);
   const yVol = useMemo(
     () => d3.scaleLinear().domain([0, d3.max(visible, (c) => c[5]) || 1]).range([volH, 0]),
     [visible, volH],
@@ -140,6 +151,32 @@ export function PriceChart({
   const bodyW = Math.max(1, Math.min(14, band * 0.68));
   const fmt = d3.format(`,.${decimals}f`);
   const last = candles[n - 1];
+
+  // Each signal sits on the last candle of this chart that falls within the signal's own candle
+  // (a weekly or monthly pattern lands on the last daily candle of that week / month).
+  const marks = useMemo(() => {
+    const times = candles.map((c) => c[0]);
+    return signals
+      .map((sig, k) => {
+        const i = d3.bisectRight(times, sig.time_end + DAY - 1) - 1;
+        if (i < 0) return null;
+        const holdDays = sig.max_hold_bars * (sig.style === "swing" ? 1.45 : sig.style === "positional" ? 7 : 30.5);
+        const endIdx = Math.max(i, d3.bisectRight(times, sig.time_end + holdDays * DAY) - 1);
+        return { sig, k, i, endIdx };
+      })
+      .filter((m): m is NonNullable<typeof m> => m !== null);
+  }, [signals, candles]);
+  const chosen = marks.find((m) => m.k === selected);
+
+  // Bring a newly selected signal (and its holding period) into view.
+  useEffect(() => {
+    if (!chosen) return;
+    const [d0, d1] = domain ?? [0, total];
+    if (chosen.i < d0 || chosen.endIdx > d1) {
+      setRange("");
+      applyDomain([Math.max(-0.5, chosen.i - 60), Math.min(total - 0.5, chosen.endIdx + 10)]);
+    }
+  }, [selected]); // only when the selection changes, not on every zoom
 
   // Forecast geometry, anchored on the last real close.
   const anchor = last ? { i: n - 1, v: forecast?.summary.last_close ?? last[4] } : null;
@@ -219,7 +256,7 @@ export function PriceChart({
                 setRange(r.label);
                 applyDomain(domainFor(r.label));
               }}
-              className={clsx("rounded-md px-2 py-1 font-medium transition-colors", range === r.label ? "bg-ink text-white" : "text-ink-2 hover:bg-wash")}
+              className={clsx("rounded-md px-2 py-1 font-medium transition-colors", range === r.label ? "bg-ink text-paper" : "text-ink-2 hover:bg-wash")}
             >
               {r.label}
             </button>
@@ -238,7 +275,7 @@ export function PriceChart({
         {width > 0 && (
           <svg
             ref={svgRef}
-            width={width}
+            className="block max-w-full" width={width}
             height={HEIGHT}
             role="img"
             aria-label={`Candlestick chart with volume${forecast ? " and an AI forecast for the next " + fc.length + " bars" : ""}`}
@@ -321,10 +358,10 @@ export function PriceChart({
               {/* crosshair */}
               {hover && (
                 <g pointerEvents="none">
-                  <line x1={x(hover.i)} x2={x(hover.i)} y1={0} y2={plotH} stroke="#c9c9c4" strokeDasharray="3 3" />
+                  <line x1={x(hover.i)} x2={x(hover.i)} y1={0} y2={plotH} stroke={COLORS.crosshair} strokeDasharray="3 3" />
                   {hover.y <= priceH && (
                     <>
-                      <line x2={innerW} y1={hover.y} y2={hover.y} stroke="#c9c9c4" strokeDasharray="3 3" />
+                      <line x2={innerW} y1={hover.y} y2={hover.y} stroke={COLORS.crosshair} strokeDasharray="3 3" />
                       <rect x={innerW + 2} y={hover.y - 9} width={M.right - 4} height={18} rx={4} fill={COLORS.ink} />
                       <text x={innerW + 8} y={hover.y} dy="0.32em" fontSize={11} fill="#fff" className="tabular">
                         {fmt(y.invert(hover.y))}
@@ -343,13 +380,59 @@ export function PriceChart({
                 onMouseMove={onMove}
                 onMouseLeave={() => setHover(null)}
               />
+
+              {/* validated pattern markers (above the zoom / hover layer so they stay clickable): ▲ bullish, ▼ bearish */}
+              <g clipPath={`url(#plot-${clipId})`}>
+                {chosen && (() => {
+                  // Past signals: lines over their holding period. Fresh ones (trade not taken yet): full-width levels.
+                  const fresh = chosen.sig.status === "new" || chosen.sig.status === "awaiting_confirmation";
+                  const x0 = fresh ? 0 : x(chosen.i);
+                  const x1 = Math.min(innerW, fresh || chosen.endIdx >= n - 1 ? innerW : x(chosen.endIdx + 0.5));
+                  return (
+                    <g pointerEvents="none">
+                      {([["entry", chosen.sig.entry, COLORS.ink], ["stop", chosen.sig.stop, COLORS.down], ["target", chosen.sig.target, COLORS.up]] as const).map(
+                        ([label, v, color]) => (
+                          <g key={label}>
+                            <line x1={x0} x2={x1} y1={y(v)} y2={y(v)} stroke={color} strokeWidth={1.5} strokeDasharray={label === "entry" ? "4 3" : undefined} />
+                            <text x={x1 - 4} y={y(v) - 4} textAnchor="end" fontSize={10} fill={COLORS.ink2} paintOrder="stroke" stroke={COLORS.paper} strokeWidth={3}>
+                              {label} {fmt(v)}
+                            </text>
+                          </g>
+                        ),
+                      )}
+                    </g>
+                  );
+                })()}
+                {marks.map(({ sig, k, i }) => {
+                  if (i < lo - 1 || i > hi + 1) return null;
+                  const c = candles[i];
+                  const up = sig.direction > 0;
+                  const cy = up ? y(c[3]) + 12 : y(c[2]) - 12;
+                  const size = k === selected ? 8 : 6;
+                  const path = up ? `M0,${-size} L${size},${size} L${-size},${size} Z` : `M0,${size} L${size},${-size} L${-size},${-size} Z`;
+                  return (
+                    <path
+                      key={k}
+                      d={path}
+                      transform={`translate(${x(i)},${cy})`}
+                      fill={up ? COLORS.up : COLORS.down}
+                      stroke={COLORS.paper}
+                      strokeWidth={1.5}
+                      style={{ cursor: onSelect ? "pointer" : undefined }}
+                      onClick={() => onSelect?.(k)}
+                    >
+                      <title>{`${sig.pattern} (${sig.style.replace("_", "-")}) · ${up ? "bullish" : "bearish"}`}</title>
+                    </path>
+                  );
+                })}
+              </g>
             </g>
           </svg>
         )}
 
         {hovered && hover && (
           <div
-            className="pointer-events-none absolute top-3 z-10 rounded-lg border border-line bg-white px-3 py-2 text-xs shadow-sm"
+            className="pointer-events-none absolute top-3 z-10 rounded-lg border border-line bg-paper px-3 py-2 text-xs shadow-sm"
             style={tipLeft > width / 2 ? { right: width - tipLeft + 14 } : { left: tipLeft + 14 }}
           >
             <p className="text-ink-3">
@@ -379,6 +462,7 @@ export function PriceChart({
 }
 
 function LegendSwatch({ kind, opacity = 1, label }: { kind: "line" | "band"; opacity?: number; label: string }) {
+  const COLORS = useChartColors();
   return (
     <span className="flex items-center gap-1.5">
       <svg width="18" height="10" aria-hidden="true">

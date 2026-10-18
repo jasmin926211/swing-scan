@@ -8,8 +8,8 @@ import { fmtDate, money, pct, price } from "@/lib/format";
 import { PayoffChart } from "./charts/PayoffChart";
 
 const OUTLOOK = {
-  bullish: { label: "Bullish", Icon: TrendingUp, cls: "bg-[#e8f6f0] text-up" },
-  bearish: { label: "Bearish", Icon: TrendingDown, cls: "bg-[#fcebeb] text-down" },
+  bullish: { label: "Bullish", Icon: TrendingUp, cls: "bg-up-wash text-up" },
+  bearish: { label: "Bearish", Icon: TrendingDown, cls: "bg-down-wash text-down" },
   neutral: { label: "Neutral", Icon: Minus, cls: "bg-wash text-ink-2" },
 };
 
@@ -56,12 +56,12 @@ export function FnoIdeas({ market, symbol, expiry }: { market: MarketId; symbol:
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm">
-          <select value={model} onChange={(e) => setModel(e.target.value as ModelName)} className="rounded-lg border border-line bg-white px-2 py-1.5 text-ink-2">
+          <select value={model} onChange={(e) => setModel(e.target.value as ModelName)} className="rounded-lg border border-line bg-paper px-2 py-1.5 text-ink-2">
             <option value="fast">Fast (recommended)</option>
             <option value="balanced">Balanced</option>
             <option value="accurate">Thorough (slowest)</option>
           </select>
-          <select value={samples} onChange={(e) => setSamples(Number(e.target.value))} className="rounded-lg border border-line bg-white px-2 py-1.5 text-ink-2">
+          <select value={samples} onChange={(e) => setSamples(Number(e.target.value))} className="rounded-lg border border-line bg-paper px-2 py-1.5 text-ink-2">
             {[20, 30, 50].map((n) => (
               <option key={n} value={n}>
                 {n} paths
@@ -71,7 +71,7 @@ export function FnoIdeas({ market, symbol, expiry }: { market: MarketId; symbol:
           <button
             onClick={run}
             disabled={running}
-            className="flex items-center gap-2 rounded-lg bg-ink px-4 py-1.5 font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+            className="flex items-center gap-2 rounded-lg bg-ink px-4 py-1.5 font-medium text-paper transition-opacity hover:opacity-90 disabled:opacity-60"
           >
             {running ? `Running on CPU… ${elapsed}s` : (
               <>
@@ -157,12 +157,12 @@ function IdeaRow({ idea, market, selected, onSelect }: { idea: Idea; market: Mar
     <tr
       onClick={onSelect}
       aria-selected={selected}
-      className={clsx("tabular cursor-pointer border-t border-line align-top transition-colors", selected ? "bg-[#f3f7fc]" : "hover:bg-wash")}
+      className={clsx("tabular cursor-pointer border-t border-line align-top transition-colors", selected ? "bg-select" : "hover:bg-wash")}
     >
       <td className="px-2 py-2.5">
         <p className="flex items-center gap-1.5 font-medium">
           {idea.name}
-          {idea.matches_outlook && <span className="rounded bg-[#eaf2fb] px-1 text-[10px] font-normal text-accent">matches AI view</span>}
+          {idea.matches_outlook && <span className="rounded bg-accent-wash px-1 text-[10px] font-normal text-accent">matches AI view</span>}
         </p>
         <p className="mt-0.5 text-xs leading-relaxed text-ink-3">{legs.join(" · ")}</p>
       </td>

@@ -153,7 +153,7 @@ export default function FnoPage() {
                     onClick={() => setExpiry(e)}
                     className={clsx(
                       "whitespace-nowrap rounded-md px-2.5 py-1 transition-colors",
-                      expiry === e ? "bg-ink text-white" : "text-ink-2 hover:bg-wash",
+                      expiry === e ? "bg-ink text-paper" : "text-ink-2 hover:bg-wash",
                     )}
                   >
                     {fmtDate(e)}
