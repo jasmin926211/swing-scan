@@ -36,7 +36,7 @@ export function Footer() {
             { href: "https://finance.yahoo.com", label: "Prices: Yahoo Finance" },
             { href: "https://upstox.com/developer/api-documentation/", label: "Indian F&O: Upstox" },
             { href: "/about#model", label: "Forecasts: CandleTrade AI" },
-            { href: "https://www.highcharts.com", label: "Charts: Highcharts" },
+            { href: "https://d3js.org", label: "Charts: D3" },
           ]}
         />
       </div>

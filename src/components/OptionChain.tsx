@@ -1,12 +1,10 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import clsx from "clsx";
-import type * as HighchartsNS from "highcharts";
 import type { MarketId, OptionChain as Chain, OptionSide } from "@/lib/api";
 import { compact, price } from "@/lib/format";
-import { COLORS } from "@/lib/highcharts";
-import { Chart } from "./Chart";
+import { OIButterfly } from "./charts/OIButterfly";
 
 const AROUND_ATM = 12; // strikes shown each side of the money by default
 
@@ -19,30 +17,6 @@ export function OptionChain({ chain, market }: { chain: Chain; market: MarketId 
   );
   const spot = chain.spot ?? 0;
 
-  const oiChart = useCallback(
-    (): HighchartsNS.Options => ({
-      chart: { type: "column" },
-      xAxis: {
-        categories: rows.map((r) => String(r.strike)),
-        labels: { style: { color: COLORS.ink3 } },
-        lineColor: COLORS.line,
-        plotLines: chain.atm_strike != null
-          ? [{ value: rows.findIndex((r) => r.strike === chain.atm_strike), color: COLORS.ink3, dashStyle: "Dash", width: 1,
-               label: { text: "ATM", style: { color: COLORS.ink3 }, rotation: 0, y: 12 } }]
-          : [],
-      },
-      yAxis: { title: { text: undefined }, gridLineColor: COLORS.line, labels: { style: { color: COLORS.ink3 } } },
-      tooltip: { shared: true, valueDecimals: 0 },
-      plotOptions: { column: { borderWidth: 0, borderRadius: 2, groupPadding: 0.15, pointPadding: 0.05 } },
-      series: [
-        { type: "column", name: "Call OI", color: COLORS.forecast, data: rows.map((r) => r.call?.oi ?? null) },
-        { type: "column", name: "Put OI", color: COLORS.second, data: rows.map((r) => r.put?.oi ?? null) },
-      ],
-      legend: { enabled: true },
-    }),
-    [rows, chain.atm_strike],
-  );
-
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-5">
@@ -53,7 +27,7 @@ export function OptionChain({ chain, market }: { chain: Chain; market: MarketId 
         <Stat label="Lot size" value={String(chain.lot_size)} />
       </div>
 
-      <Chart options={oiChart} height={240} label="Open interest by strike for calls and puts" />
+      <OIButterfly rows={rows} chain={chain} market={market} />
 
       <div className="overflow-x-auto rounded-lg border border-line">
         <table className="tabular w-full text-xs">

@@ -293,3 +293,13 @@ export const getPublicOverview = (m: MarketId) => request<PublicOverview>(`/api/
 export const CONTACT_TOPICS = ["General question", "Bug report", "Feature request", "Account", "Partnership"] as const;
 export type ContactMessage = { name: string; email: string; topic: (typeof CONTACT_TOPICS)[number]; message: string; website: string };
 export const sendContact = (m: ContactMessage) => post<{ ok: boolean }>("/api/contact", m);
+
+// --- chart data ---
+
+export type Sparkline = { ticker: string; name: string; prev_close: number | null; points: [number, number][] };
+export type HeatmapStock = { symbol: string; name: string; sector: string; price: number; change_pct: number; market_cap: number };
+
+/** Today's 5-minute line for each headline index (public). */
+export const getSparklines = (m: MarketId) => request<Sparkline[]>(`/api/public/markets/${m}/sparklines`);
+/** The largest stocks with sector and today's change, for the market heatmap. */
+export const getHeatmap = (m: MarketId) => request<{ updated_at: number; market_open: boolean; stocks: HeatmapStock[] }>(`/api/markets/${m}/heatmap`);

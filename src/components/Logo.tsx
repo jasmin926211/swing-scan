@@ -1,7 +1,8 @@
 import Link from "next/link";
 
 /** CandleTrade mark: three candles, the last one stepping up. */
-export function Logo({ href = "/" }: { href?: string }) {
+/** `compact`: icon only on phones (the signed-in header is busier). */
+export function Logo({ href = "/", compact = false }: { href?: string; compact?: boolean }) {
   return (
     <Link href={href} className="flex items-center gap-2" aria-label="CandleTrade home">
       <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
@@ -13,7 +14,7 @@ export function Logo({ href = "/" }: { href?: string }) {
         <line x1="16" y1="3.5" x2="16" y2="13.5" stroke="#1baf7a" strokeWidth="1" />
         <rect x="14.5" y="5" width="3" height="6.5" rx="0.75" fill="#1baf7a" />
       </svg>
-      <span className="text-[15px] font-semibold tracking-tight">CandleTrade</span>
+      <span className={compact ? "hidden text-[15px] font-semibold tracking-tight sm:inline" : "text-[15px] font-semibold tracking-tight"}>CandleTrade</span>
     </Link>
   );
 }

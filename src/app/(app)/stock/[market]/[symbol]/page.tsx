@@ -8,7 +8,7 @@ import { ArrowLeft } from "lucide-react";
 import { getHistory, getQuote, type Candle, type Forecast, type Interval, type MarketId, type StockQuote } from "@/lib/api";
 import { MARKETS, changeColor, compact, marketStateLabel, price, signedPct } from "@/lib/format";
 import { useMarket } from "@/lib/market";
-import { PriceChart } from "@/components/PriceChart";
+import { PriceChart } from "@/components/charts/PriceChart";
 import { RangeBar } from "@/components/RangeBar";
 import { ForecastPanel } from "@/components/ForecastPanel";
 import { AccuracyCheck, useAccuracyCheck } from "@/components/AccuracyCheck";

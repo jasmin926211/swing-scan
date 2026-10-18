@@ -1,13 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import clsx from "clsx";
-import type * as HighchartsNS from "highcharts";
 import { Minus, Play, TrendingDown, TrendingUp } from "lucide-react";
 import { needsUpstox, runIdeas, type Idea, type IdeasResult, type MarketId, type ModelName } from "@/lib/api";
 import { fmtDate, money, pct, price } from "@/lib/format";
-import { COLORS } from "@/lib/highcharts";
-import { Chart } from "./Chart";
+import { PayoffChart } from "./charts/PayoffChart";
 
 const OUTLOOK = {
   bullish: { label: "Bullish", Icon: TrendingUp, cls: "bg-[#e8f6f0] text-up" },
@@ -22,6 +20,7 @@ export function FnoIdeas({ market, symbol, expiry }: { market: MarketId; symbol:
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState(0); // idea shown in the payoff chart
 
   useEffect(() => {
     if (!running) return;
@@ -36,6 +35,7 @@ export function FnoIdeas({ market, symbol, expiry }: { market: MarketId; symbol:
     setError(null);
     try {
       setResult(await runIdeas(market, symbol, { expiry, model, n_samples: samples }));
+      setSelected(0);
     } catch (e) {
       setError(needsUpstox(e) ? "Connect Upstox above to load Indian option prices first." : (e as Error).message);
     } finally {
@@ -95,7 +95,16 @@ export function FnoIdeas({ market, symbol, expiry }: { market: MarketId; symbol:
               {result.market_iv != null && <Stat label="Market implied volatility (ATM)" value={pct(result.market_iv)} />}
             </div>
             <div className="lg:col-span-2">
-              <Distribution result={result} market={market} />
+              {result.ideas[selected] ? (
+                <>
+                  <p className="mb-2 text-xs text-ink-2">
+                    Payoff of <span className="font-medium text-ink">{result.ideas[selected].name}</span> at expiry · pick another idea in the table
+                  </p>
+                  <PayoffChart idea={result.ideas[selected]} finalPrices={result.final_prices} spot={result.spot} lotSize={result.lot_size} market={market} />
+                </>
+              ) : (
+                <p className="text-sm text-ink-2">No option prices to chart.</p>
+              )}
             </div>
           </div>
 
@@ -121,8 +130,8 @@ export function FnoIdeas({ market, symbol, expiry }: { market: MarketId; symbol:
                 </tr>
               </thead>
               <tbody>
-                {result.ideas.map((i) => (
-                  <IdeaRow key={i.name} idea={i} market={market} />
+                {result.ideas.map((i, k) => (
+                  <IdeaRow key={i.name} idea={i} market={market} selected={k === selected} onSelect={() => setSelected(k)} />
                 ))}
               </tbody>
             </table>
@@ -139,44 +148,16 @@ export function FnoIdeas({ market, symbol, expiry }: { market: MarketId; symbol:
   );
 }
 
-function Distribution({ result, market }: { result: IdeasResult; market: MarketId }) {
-  const options = useCallback((): HighchartsNS.Options => {
-    const prices = result.final_prices;
-    const lo = Math.min(...prices, result.spot);
-    const hi = Math.max(...prices, result.spot);
-    const bins = 20;
-    const width = (hi - lo) / bins || 1;
-    const counts = Array.from({ length: bins }, () => 0);
-    for (const p of prices) counts[Math.min(bins - 1, Math.floor((p - lo) / width))]++;
-    return {
-      chart: { type: "column" },
-      legend: { enabled: false },
-      xAxis: {
-        labels: { style: { color: COLORS.ink3 } },
-        lineColor: COLORS.line,
-        plotLines: [{ value: result.spot, color: "#0b0b0b", width: 1, dashStyle: "Dash", zIndex: 5,
-                      label: { text: "Spot", rotation: 0, y: 12, style: { color: COLORS.ink2 } } }],
-      },
-      yAxis: { title: { text: "Paths" }, allowDecimals: false, gridLineColor: COLORS.line, labels: { style: { color: COLORS.ink3 } } },
-      tooltip: {
-        formatter: function () {
-          const x = (this as unknown as { x: number; y: number });
-          return `${price(x.x - width / 2, market)} – ${price(x.x + width / 2, market)}: <b>${x.y}</b> paths`;
-        },
-      },
-      plotOptions: { column: { pointPadding: 0, groupPadding: 0, borderWidth: 1, borderColor: "#ffffff", borderRadius: 2 } },
-      series: [{ type: "column", name: "Forecast paths", color: COLORS.forecast, data: counts.map((c, i) => [lo + width * (i + 0.5), c]) }],
-    };
-  }, [result, market]);
-  return <Chart options={options} height={220} label="Distribution of AI sampled prices at expiry" />;
-}
-
-function IdeaRow({ idea, market }: { idea: Idea; market: MarketId }) {
+function IdeaRow({ idea, market, selected, onSelect }: { idea: Idea; market: MarketId; selected: boolean; onSelect: () => void }) {
   const legs = idea.legs.map((l) =>
     l.kind === "FUT" ? `${l.side} future @ ${price(l.strike, market)}` : `${l.side} ${price(l.strike, market)} ${l.kind} @ ${price(l.price, market)}`,
   );
   return (
-    <tr className="tabular border-t border-line align-top">
+    <tr
+      onClick={onSelect}
+      aria-selected={selected}
+      className={clsx("tabular cursor-pointer border-t border-line align-top transition-colors", selected ? "bg-[#f3f7fc]" : "hover:bg-wash")}
+    >
       <td className="px-2 py-2.5">
         <p className="flex items-center gap-1.5 font-medium">
           {idea.name}

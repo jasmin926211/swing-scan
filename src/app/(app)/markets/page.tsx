@@ -8,6 +8,8 @@ import { getStocks, type MarketId, type Stock, type StockPage, type StockQuery }
 import { MARKETS, changeColor, compact, marketStateLabel, price, signedPct } from "@/lib/format";
 import { useMarket } from "@/lib/market";
 import { RangeBar } from "@/components/RangeBar";
+import { IndexStrip } from "@/components/charts/IndexStrip";
+import { MarketHeatmap } from "@/components/charts/MarketHeatmap";
 
 type SortKey = NonNullable<StockQuery["sort"]>;
 type View = "all" | "gainers" | "losers" | "active";
@@ -47,6 +49,7 @@ export default function Dashboard() {
   const [view, setView] = useState<View>("all");
   const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: "market_cap", desc: true });
   const [offset, setOffset] = useState(0);
+  const [display, setDisplay] = useState<"list" | "heatmap">("list");
 
   const liquid = VIEWS.find((v) => v.id === view)?.liquid;
   const query: StockQuery = {
@@ -142,24 +145,25 @@ export default function Dashboard() {
         )}
       </div>
 
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {(page?.indices ?? Array.from({ length: 4 }, () => null)).map((ix, i) => (
-          <div key={ix?.ticker ?? i} className="rounded-xl border border-line p-4">
-            {ix ? (
-              <>
-                <p className="text-xs text-ink-2">{ix.name}</p>
-                <p className="tabular mt-1 text-lg font-semibold">{price(ix.price, market)}</p>
-                <p className={clsx("tabular text-xs", changeColor(ix.change))}>
-                  {ix.change != null && (ix.change > 0 ? "+" : "") + price(ix.change, market)} ({signedPct(ix.change_pct)})
-                </p>
-              </>
-            ) : (
-              <div className="h-[60px] animate-pulse rounded bg-wash" />
-            )}
-          </div>
-        ))}
-      </section>
+      <IndexStrip market={market} indices={page?.indices ?? null} open={marketOpen} />
 
+      <div role="tablist" aria-label="Market view" className="flex w-fit rounded-lg border border-line p-0.5 text-sm">
+        {(["list", "heatmap"] as const).map((d) => (
+          <button
+            key={d}
+            role="tab"
+            aria-selected={display === d}
+            onClick={() => setDisplay(d)}
+            className={clsx("rounded-md px-3.5 py-1 transition-colors", display === d ? "bg-ink text-white" : "text-ink-2 hover:text-ink")}
+          >
+            {d === "list" ? "List" : "Heatmap"}
+          </button>
+        ))}
+      </div>
+
+      {display === "heatmap" && <MarketHeatmap market={market} open={marketOpen} />}
+
+      {display === "list" && (
       <section className="rounded-xl border border-line">
         <div className="flex flex-wrap items-center gap-3 border-b border-line p-3">
           <label className="relative min-w-[200px] flex-1">
@@ -253,6 +257,7 @@ export default function Dashboard() {
           </div>
         )}
       </section>
+      )}
     </div>
   );
 }
