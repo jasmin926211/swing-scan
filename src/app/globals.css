@@ -1,68 +1,40 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@layer base {
-  :root {
-    /* Palette from Figma "Crypto Dashboard - RecehTok Dark" (exact hex in comments) */
-    --background: 244 50% 13%; /* #121030 */
-    --foreground: 240 40% 86%; /* #CECEEA */
-    --card: 243 42% 17%; /* #1B193D */
-    --card-foreground: 240 40% 86%; /* #CECEEA */
-    --primary: 199 78% 62%; /* #53B9EA */
-    --primary-foreground: 244 50% 13%; /* #121030 */
-    --secondary: 242 37% 28%; /* #2F2D61 */
-    --secondary-foreground: 240 40% 86%; /* #CECEEA */
-    --muted: 243 39% 21%; /* #23214C */
-    --muted-foreground: 244 18% 51%; /* #6F6C99 */
-    --accent: 209 100% 59%; /* #309AFF */
-    --accent-foreground: 0 0% 100%; /* #FFFFFF */
-    --destructive: 343 72% 60%; /* #E3507A */
-    --destructive-foreground: 0 0% 100%; /* #FFFFFF */
-    --border: 242 35% 28%; /* #312F62 */
-    --radius: 0.75rem;
-  }
+/* Open Sans from public/fonts (git-ignored, kept locally); falls back to the system font if absent. */
+@font-face {
+  font-family: "Open Sans";
+  src: url("/fonts/OpenSans-Variable.ttf") format("truetype");
+  font-weight: 300 800;
+  font-stretch: 75% 100%;
+  font-style: normal;
+  font-display: swap;
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-  /* Align numbers in columns (prices, volume, % change) */
-  table,
-  .tabular-nums {
-    font-feature-settings: "tnum";
-    font-variant-numeric: tabular-nums;
-  }
+/* Light only, white surface. Up/down/forecast colors come from a CVD-validated palette. */
+@theme {
+  --font-sans: "Open Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-ink: #0b0b0b;
+  --color-ink-2: #52514e;
+  --color-ink-3: #8a8983;
+  --color-line: #ebebe8;
+  --color-wash: #f7f7f5;
+  --color-up: #12805a;   /* text on white: darker step of the aqua mark color for 4.5:1 */
+  --color-down: #c9302f; /* text on white: darker step of the red mark color */
+  --color-accent: #2a78d6;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #1b193d;
-}
-::-webkit-scrollbar-thumb {
-  background: #3d3c7d;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #59588d;
+:root {
+  color-scheme: light;
 }
 
-/* Signal strength colors */
-.signal-high {
-  color: #4cfa9d;
+body {
+  background: #ffffff;
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
 }
-.signal-medium {
-  color: #f5a623;
-}
-.signal-low {
-  color: #e3507a;
+
+.tabular {
+  font-variant-numeric: tabular-nums;
 }

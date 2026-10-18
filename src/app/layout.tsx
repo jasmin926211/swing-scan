@@ -1,35 +1,26 @@
-import type { Metadata } from 'next';
-import { JetBrains_Mono } from 'next/font/google';
-import './globals.css';
-import { Sidebar } from '@/components/layout/sidebar';
-import { Header } from '@/components/layout/header';
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-jetbrains-mono',
-  display: 'swap',
-});
+import type { Metadata } from "next";
+import "./globals.css";
+import { Footer } from "@/components/Footer";
+import { Header } from "@/components/Header";
+import { AuthProvider } from "@/lib/auth";
+import { MarketProvider } from "@/lib/market";
 
 export const metadata: Metadata = {
-  title: 'SwingScan - Stock Pattern Scanner',
-  description: 'Scan Nifty 500 stocks for 25 chart patterns - 5-7 day swing trading signals',
+  title: "CandleTrade — Live markets & AI forecasts",
+  description: "Live Indian and US stock markets with AI forecasts and an honest track record next to every one.",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`dark ${jetbrainsMono.variable}`}>
-      <body className="font-sans">
-        <div className="flex min-h-screen">
-          <Sidebar />
-          <main className="ml-64 flex-1">
+    <html lang="en">
+      <body className="flex min-h-screen flex-col font-sans">
+        <AuthProvider>
+          <MarketProvider>
             <Header />
-            <div className="p-6">{children}</div>
-          </main>
-        </div>
+            <div className="flex-1">{children}</div>
+            <Footer />
+          </MarketProvider>
+        </AuthProvider>
       </body>
     </html>
   );
