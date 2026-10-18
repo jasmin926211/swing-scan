@@ -8,6 +8,7 @@ import { compact, price, signedPct } from "@/lib/format";
 import { type DivergingName, useChartColors, useDiverging, FONT } from "@/lib/charts/theme";
 import { duration, useReducedMotion } from "@/lib/charts/motion";
 import { useWidth } from "@/lib/charts/useWidth";
+import { StockLogo } from "@/components/StockLogo";
 
 const HEIGHT = 560;
 const RANGE = 3; // ±3% and beyond take the strongest colour
@@ -158,8 +159,13 @@ export function MarketHeatmap({ market, open }: { market: MarketId; open: boolea
         {hover && (
           <div className="pointer-events-none absolute z-10 w-56 rounded-lg border border-line bg-paper px-3 py-2 text-xs shadow-sm"
             style={{ left: Math.min(hover.x + 14, width - 236), top: Math.min(hover.y + 14, HEIGHT - 96) }}>
-            <p className="font-semibold">{hover.stock.symbol}</p>
-            <p className="truncate text-ink-3">{hover.stock.name}</p>
+            <div className="flex items-center gap-2">
+              <StockLogo market={market} symbol={hover.stock.symbol} size={28} />
+              <div className="min-w-0">
+                <p className="font-semibold">{hover.stock.symbol}</p>
+                <p className="truncate text-ink-3">{hover.stock.name}</p>
+              </div>
+            </div>
             <p className="tabular mt-1">
               {price(hover.stock.price, market)}{" "}
               <span className={hover.stock.change_pct >= 0 ? "text-up" : "text-down"}>{signedPct(hover.stock.change_pct)}</span>

@@ -13,6 +13,7 @@ import { RangeBar } from "@/components/RangeBar";
 import { ForecastPanel } from "@/components/ForecastPanel";
 import { AccuracyCheck, useAccuracyCheck } from "@/components/AccuracyCheck";
 import { ValidatedPatterns } from "@/components/ValidatedPatterns";
+import { StockLogo } from "@/components/StockLogo";
 
 const INTERVALS: { id: Interval; label: string }[] = [
   { id: "1h", label: "Hourly" },
@@ -121,20 +122,23 @@ export default function StockPage() {
       <BackLink market={market} />
 
       <section className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-            {symbol}
-            {quote?.exchange && <span className="rounded border border-line px-1.5 text-xs font-normal text-ink-3">{quote.exchange}</span>}
-          </h1>
-          <p className="mt-0.5 text-sm text-ink-2">
-            {quote?.name ?? " "}
-            {quote?.sector && <span className="text-ink-3"> · {quote.sector}</span>}
-          </p>
-          {quote?.has_fno && (
-            <Link href={`/fno/${market}/${encodeURIComponent(symbol)}`} className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline">
-              Futures &amp; options analysis →
-            </Link>
-          )}
+        <div className="flex items-start gap-3">
+          <StockLogo market={market} symbol={symbol} size={48} className="mt-0.5" />
+          <div>
+            <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
+              {symbol}
+              {quote?.exchange && <span className="rounded border border-line px-1.5 text-xs font-normal text-ink-3">{quote.exchange}</span>}
+            </h1>
+            <p className="mt-0.5 text-sm text-ink-2">
+              {quote?.name ?? " "}
+              {quote?.sector && <span className="text-ink-3"> · {quote.sector}</span>}
+            </p>
+            {quote?.has_fno && (
+              <Link href={`/fno/${market}/${encodeURIComponent(symbol)}`} className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline">
+                Futures &amp; options analysis →
+              </Link>
+            )}
+          </div>
         </div>
         <div className="text-right">
           <p className="tabular text-3xl font-semibold tracking-tight">{quote ? price(quote.price, market) : "—"}</p>

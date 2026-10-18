@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { MARKETS, changeColor, compact, marketStateLabel, price, signedPct } from "@/lib/format";
 import { useMarket } from "@/lib/market";
 import { IndexStrip } from "@/components/charts/IndexStrip";
+import { StockLogo } from "@/components/StockLogo";
 
 /** Public market view on the home page: indices, the largest stocks and today's movers. */
 export function MarketSnapshot() {
@@ -124,11 +125,16 @@ function StockRows({ rows, market, showCap }: { rows?: PublicStock[]; market: Ma
         {rows.map((s) => (
           <tr key={s.symbol} className="border-t border-line first:border-t-0">
             <td className="px-4 py-2">
-              {/* Members-only page: signed-out visitors are sent to sign in and brought back here. */}
-              <Link href={`/stock/${market}/${encodeURIComponent(s.symbol)}`} className="font-medium hover:underline">
-                {s.symbol}
-              </Link>
-              <p className="max-w-[180px] truncate text-xs text-ink-3 sm:max-w-[260px]">{s.name}</p>
+              <div className="flex items-center gap-2.5">
+                <StockLogo market={market} symbol={s.symbol} size={28} />
+                <div className="min-w-0">
+                  {/* Members-only page: signed-out visitors are sent to sign in and brought back here. */}
+                  <Link href={`/stock/${market}/${encodeURIComponent(s.symbol)}`} className="font-medium hover:underline">
+                    {s.symbol}
+                  </Link>
+                  <p className="max-w-[150px] truncate text-xs text-ink-3 sm:max-w-[240px]">{s.name}</p>
+                </div>
+              </div>
             </td>
             <td className="tabular px-4 py-2 text-right font-medium">{price(s.price, market)}</td>
             <td className={clsx("tabular px-4 py-2 text-right", changeColor(s.change_pct))}>{signedPct(s.change_pct)}</td>
