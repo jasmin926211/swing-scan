@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import clsx from "clsx";
 import { TrendingDown, TrendingUp } from "lucide-react";
 import type { MarketId, PatternSignal, PatternStatus, PatternStyle } from "@/lib/api";
@@ -36,6 +37,9 @@ export function ValidatedPatterns({ signals, liquid, loading, error, market, sel
   selected: number | null;
   onSelect: (i: number | null) => void;
 }) {
+  const [all, setAll] = useState(false);
+  const SHOWN = 6;
+  const visible = signals && !all ? signals.slice(0, SHOWN) : signals;
   return (
     <section className="rounded-xl border border-line">
       <div className="border-b border-line px-4 py-3">
@@ -56,7 +60,7 @@ export function ValidatedPatterns({ signals, liquid, loading, error, market, sel
       )}
       {signals && signals.length > 0 && (
         <ul className="divide-y divide-line">
-          {signals.map((s, i) => {
+          {visible!.map((s, i) => {
             const up = s.direction > 0;
             const Icon = up ? TrendingUp : TrendingDown;
             const st = STATUS[s.status];
@@ -97,6 +101,11 @@ export function ValidatedPatterns({ signals, liquid, loading, error, market, sel
             );
           })}
         </ul>
+      )}
+      {signals && signals.length > SHOWN && (
+        <button onClick={() => setAll(!all)} className="w-full border-t border-line px-4 py-2.5 text-left text-xs font-medium text-accent hover:bg-wash">
+          {all ? "Show the latest 6" : `Show all ${signals.length} signals from the last five years`}
+        </button>
       )}
       <p className="border-t border-line px-4 py-2.5 text-[11px] leading-relaxed text-ink-3">
         R = the trade&apos;s risk (entry to stop). Patterns are read from completed candles only. Not advice: past results don&apos;t

@@ -116,7 +116,7 @@ export function MarketHeatmap({ market, open }: { market: MarketId; open: boolea
         {error && !stocks && <p className="p-6 text-sm text-down">Could not load the heatmap: {error}</p>}
         {!stocks && !error && <div className="m-4 h-[528px] animate-pulse rounded-lg bg-wash" />}
         {stocks && width > 0 && (
-          <svg ref={svgRef} width={width} height={HEIGHT} style={{ fontFamily: FONT }} role="img"
+          <svg ref={svgRef} className="block max-w-full" width={width} height={HEIGHT} style={{ fontFamily: FONT }} role="img"
             aria-label="Treemap of the largest stocks: tile area is market cap, colour is today's change">
             {sectors.map((s) => (
               <g key={(s.data as SectorNode).sector}>

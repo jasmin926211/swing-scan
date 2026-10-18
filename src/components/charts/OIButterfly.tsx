@@ -60,7 +60,7 @@ export function OIButterfly({ rows, chain, market }: { rows: OptionChain["rows"]
   return (
     <div ref={box} className="relative w-full">
       {width > 0 && (
-        <svg ref={svgRef} width={width} height={height} style={{ fontFamily: FONT }} role="img"
+        <svg ref={svgRef} className="block max-w-full" width={width} height={height} style={{ fontFamily: FONT }} role="img"
           aria-label="Open interest by strike: calls on the left, puts on the right">
           <text x={centre - 6} y={14} textAnchor="end" fontSize={11} fill={COLORS.ink2}>
             ← Call OI

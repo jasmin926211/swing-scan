@@ -87,7 +87,7 @@ export function PayoffChart({ idea, finalPrices, spot, lotSize, market }: {
   return (
     <div ref={box} className="relative w-full">
       {width > 0 && (
-        <svg width={width} height={HEIGHT} style={{ fontFamily: FONT }} role="img"
+        <svg className="block max-w-full" width={width} height={HEIGHT} style={{ fontFamily: FONT }} role="img"
           aria-label={`Profit and loss at expiry per lot for ${idea.name}, above the AI's distribution of prices at expiry`}>
           <defs>
             <clipPath id={`clip-${uid}`}><rect width={innerW} height={PAYOFF_H} /></clipPath>

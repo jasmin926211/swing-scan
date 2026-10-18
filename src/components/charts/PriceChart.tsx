@@ -132,13 +132,15 @@ export function PriceChart({
   const visible = candles.slice(lo, Math.min(hi + 1, n));
   const visibleFc = fc.filter((_, j) => n + j >= lo && n + j <= hi);
 
+  const plan = selected != null ? signals[selected] : null; // keep its entry / stop / target in view
   const y = useMemo(() => {
-    const lows = [...visible.map((c) => c[3]), ...visibleFc.map((p) => p.p10)];
-    const highs = [...visible.map((c) => c[2]), ...visibleFc.map((p) => p.p90)];
+    const planLevels = plan ? [plan.entry, plan.stop, plan.target] : [];
+    const lows = [...visible.map((c) => c[3]), ...visibleFc.map((p) => p.p10), ...planLevels];
+    const highs = [...visible.map((c) => c[2]), ...visibleFc.map((p) => p.p90), ...planLevels];
     const [min, max] = [d3.min(lows) ?? 0, d3.max(highs) ?? 1];
     const pad = (max - min) * 0.06 || max * 0.01;
     return d3.scaleLinear().domain([min - pad, max + pad]).nice(6).range([priceH, 0]);
-  }, [visible, visibleFc, priceH]);
+  }, [visible, visibleFc, priceH, plan]);
   const yVol = useMemo(
     () => d3.scaleLinear().domain([0, d3.max(visible, (c) => c[5]) || 1]).range([volH, 0]),
     [visible, volH],
@@ -272,7 +274,7 @@ export function PriceChart({
         {width > 0 && (
           <svg
             ref={svgRef}
-            width={width}
+            className="block max-w-full" width={width}
             height={HEIGHT}
             role="img"
             aria-label={`Candlestick chart with volume${forecast ? " and an AI forecast for the next " + fc.length + " bars" : ""}`}
@@ -380,21 +382,26 @@ export function PriceChart({
 
               {/* validated pattern markers (above the zoom / hover layer so they stay clickable): ▲ bullish, ▼ bearish */}
               <g clipPath={`url(#plot-${clipId})`}>
-                {chosen && (
-                  <g pointerEvents="none">
-                    {([["entry", chosen.sig.entry, COLORS.ink], ["stop", chosen.sig.stop, COLORS.down], ["target", chosen.sig.target, COLORS.up]] as const).map(
-                      ([label, v, color]) => (
-                        <g key={label}>
-                          <line x1={x(chosen.i)} x2={x(chosen.endIdx + 0.5)} y1={y(v)} y2={y(v)} stroke={color} strokeWidth={1.5}
-                            strokeDasharray={label === "entry" ? "4 3" : undefined} />
-                          <text x={x(chosen.endIdx + 0.5) + 4} y={y(v)} dy="0.32em" fontSize={10} fill={COLORS.ink2}>
-                            {label} {fmt(v)}
-                          </text>
-                        </g>
-                      ),
-                    )}
-                  </g>
-                )}
+                {chosen && (() => {
+                  // Past signals: lines over their holding period. Fresh ones (trade not taken yet): full-width levels.
+                  const fresh = chosen.sig.status === "new" || chosen.sig.status === "awaiting_confirmation";
+                  const x0 = fresh ? 0 : x(chosen.i);
+                  const x1 = Math.min(innerW, fresh || chosen.endIdx >= n - 1 ? innerW : x(chosen.endIdx + 0.5));
+                  return (
+                    <g pointerEvents="none">
+                      {([["entry", chosen.sig.entry, COLORS.ink], ["stop", chosen.sig.stop, COLORS.down], ["target", chosen.sig.target, COLORS.up]] as const).map(
+                        ([label, v, color]) => (
+                          <g key={label}>
+                            <line x1={x0} x2={x1} y1={y(v)} y2={y(v)} stroke={color} strokeWidth={1.5} strokeDasharray={label === "entry" ? "4 3" : undefined} />
+                            <text x={x1 - 4} y={y(v) - 4} textAnchor="end" fontSize={10} fill={COLORS.ink2} paintOrder="stroke" stroke="#ffffff" strokeWidth={3}>
+                              {label} {fmt(v)}
+                            </text>
+                          </g>
+                        ),
+                      )}
+                    </g>
+                  );
+                })()}
                 {marks.map(({ sig, k, i }) => {
                   if (i < lo - 1 || i > hi + 1) return null;
                   const c = candles[i];
