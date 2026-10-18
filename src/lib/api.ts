@@ -65,7 +65,7 @@ export type StockQuote = Quote & { symbol: string; sector?: string; exchange?: s
 export type Candle = [number, number, number, number, number, number];
 
 // lookback (bars of history fed to Kronos) is left to the backend default.
-export type ForecastParams = { interval: Interval; model: ModelName; horizon: number; n_samples: number };
+export type ForecastParams = { interval: Interval; model?: ModelName; horizon: number; n_samples: number };
 
 export type ForecastSummary = {
   last_close: number;
@@ -119,6 +119,9 @@ export type Backtest = {
   mean_error_pct: number;
   naive_error_pct: number;
   band_coverage: number;
+  /** 1 - error / no-change error: > 0 means closer than "price stays flat" */
+  skill: number;
+  verdict: "good" | "weak" | "none";
   seconds: number;
 };
 
@@ -130,6 +133,10 @@ export class ApiError extends Error {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, { cache: "no-store", ...init });
+  // Signed out (or session expired) on a members-only call: go to sign-in and come back afterwards.
+  if (res.status === 401 && !path.startsWith("/api/account/") && typeof window !== "undefined") {
+    window.location.href = `/signin?expired=1&next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     const detail = typeof err.detail === "string" ? err.detail : null;
@@ -138,8 +145,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
-/** 401 from the backend means Indian F&O prices need the daily Upstox login. */
-export const needsUpstox = (e: unknown) => e instanceof ApiError && e.status === 401;
+/** 428 from the backend means Indian F&O prices need the daily Upstox login. */
+export const needsUpstox = (e: unknown) => e instanceof ApiError && e.status === 428;
 
 const post = <T>(path: string, body: unknown) =>
   request<T>(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -257,3 +264,27 @@ export const runIdeas = (m: MarketId, symbol: string, body: { expiry: string; mo
 export const getUpstoxStatus = () => request<UpstoxStatus>("/api/fno/status");
 // The admin key travels in the POST body so it never lands in URLs or logs.
 export const upstoxLoginUrl = (key: string) => post<{ url: string }>("/api/auth/login", { key });
+
+// --- accounts & public data ---
+
+export type User = { id: number; email: string; name: string };
+
+export const getMe = () => request<User>("/api/account/me");
+export const signIn = (email: string, password: string) => post<User>("/api/account/signin", { email, password });
+export const signUp = (name: string, email: string, password: string) => post<User>("/api/account/signup", { name, email, password });
+export const signOut = () => post<{ ok: boolean }>("/api/account/signout", {});
+
+export type PublicStock = Pick<Stock, "symbol" | "name" | "sector" | "exchange" | "price" | "change" | "change_pct" | "market_cap">;
+export type PublicOverview = {
+  market: MarketId;
+  updated_at: number;
+  market_open: boolean;
+  indices: IndexQuote[];
+  largest: PublicStock[];
+  gainers: PublicStock[];
+  losers: PublicStock[];
+  listed: number;
+};
+
+/** Signed-out view of a market: indices, the largest stocks and today's biggest movers. */
+export const getPublicOverview = (m: MarketId) => request<PublicOverview>(`/api/public/markets/${m}/overview`);

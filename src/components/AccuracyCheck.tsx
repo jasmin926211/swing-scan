@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import { Check, X } from "lucide-react";
 import { runBacktest, type Backtest, type Interval, type MarketId } from "@/lib/api";
@@ -13,13 +13,24 @@ const HORIZON: Record<Interval, { bars: number; unit: string }> = {
 };
 const CHECKS = 8;
 
-/** Re-runs Kronos from recent past dates (seeing only data before each) and compares with what happened. */
-export function AccuracyCheck({ market, symbol, interval }: { market: MarketId; symbol: string; interval: Interval }) {
+export type AccuracyState = ReturnType<typeof useAccuracyCheck>;
+
+/** Re-runs Kronos from recent past dates (seeing only data before each) and compares with what happened.
+ *  Lives in the page so a forecast can start it and the forecast panel can show its verdict. */
+export function useAccuracyCheck(market: MarketId, symbol: string, interval: Interval) {
   const [result, setResult] = useState<Backtest | null>(null);
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const { bars, unit } = HORIZON[interval];
+  const { bars } = HORIZON[interval];
+  const current = useRef("");
+  const key = `${market}/${symbol}/${interval}`;
+
+  useEffect(() => {
+    current.current = key;
+    setResult(null);
+    setError(null);
+  }, [key]);
 
   useEffect(() => {
     if (!running) return;
@@ -28,20 +39,26 @@ export function AccuracyCheck({ market, symbol, interval }: { market: MarketId; 
     return () => clearInterval(t);
   }, [running]);
 
-  async function run() {
+  const run = useCallback(async () => {
     setRunning(true);
     setElapsed(0);
     setError(null);
     try {
-      setResult(
-        await runBacktest(market, symbol, { interval, model: "kronos-small", horizon: bars, n_samples: 8, n_checks: CHECKS }),
-      );
+      const r = await runBacktest(market, symbol, { interval, horizon: bars, n_samples: 8, n_checks: CHECKS });
+      if (current.current === key) setResult(r); // ignore a reply for a stock the user has left
     } catch (e) {
-      setError((e as Error).message);
+      if (current.current === key) setError((e as Error).message);
     } finally {
       setRunning(false);
     }
-  }
+  }, [market, symbol, interval, bars, key]);
+
+  return { result, running, elapsed, error, run };
+}
+
+export function AccuracyCheck({ symbol, market, interval, check }: { symbol: string; market: MarketId; interval: Interval; check: AccuracyState }) {
+  const { result, running, elapsed, error, run } = check;
+  const { bars, unit } = HORIZON[interval];
 
   const beatsNaive = result && result.mean_error_pct < result.naive_error_pct;
 
@@ -52,7 +69,7 @@ export function AccuracyCheck({ market, symbol, interval }: { market: MarketId; 
           <h2 className="text-sm font-semibold">How has Kronos done on {symbol}?</h2>
           <p className="mt-0.5 text-xs text-ink-3">
             Forecasts {bars} {unit} ahead from the last {CHECKS} past points, each using only data before it, then compares with
-            what actually happened. Small model, 8 paths each.
+            what actually happened. Default model, 8 paths each.
           </p>
         </div>
         <button

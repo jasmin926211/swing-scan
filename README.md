@@ -1,8 +1,12 @@
-# Kronos dashboard
+# CandleTrade
 
-Next.js 16 UI for the [Kronos backend](https://github.com/jasmin926211/kronos-backend):
+Next.js 16 frontend for the [Kronos backend](https://github.com/jasmin926211/kronos-backend).
 
-- `/` — every Indian (NSE + BSE, ~5,000) or US (NYSE + Nasdaq + AMEX, ~6,000) stock with live prices and
+- `/` — public home page: hero, live market snapshot (indices, largest stocks, movers), features,
+  trading habits, accuracy & reliability, supported markets.
+- `/signin`, `/signup` — accounts. Everything below needs a signed-in user (`src/proxy.ts`).
+
+- `/markets` — every Indian (NSE + BSE, ~5,000) or US (NYSE + Nasdaq + AMEX, ~6,000) stock with live prices and
   indices; country picked in the header. Search, exchange / sector / F&O filters, sorting, top gainers / losers /
   most active, paging. Refreshes every 15 s while the market is open.
 - `/stock/{in|us}/{SYMBOL}` — live quote, Highcharts candlestick + volume chart (hourly / daily / weekly),

@@ -1,24 +1,26 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
+import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import { AuthProvider } from "@/lib/auth";
 import { MarketProvider } from "@/lib/market";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
-
 export const metadata: Metadata = {
-  title: "Kronos — Stock Forecasts",
-  description: "Live India and USA stock prices with on-demand Kronos forecasts",
+  title: "CandleTrade — Live markets & Kronos forecasts",
+  description: "Live Indian and US stock markets with Kronos AI forecasts and an honest track record next to every one.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="min-h-screen font-sans">
-        <MarketProvider>
-          <Header />
-          <main className="mx-auto max-w-7xl px-4 py-6 md:px-6">{children}</main>
-        </MarketProvider>
+    <html lang="en">
+      <body className="flex min-h-screen flex-col font-sans">
+        <AuthProvider>
+          <MarketProvider>
+            <Header />
+            <div className="flex-1">{children}</div>
+            <Footer />
+          </MarketProvider>
+        </AuthProvider>
       </body>
     </html>
   );

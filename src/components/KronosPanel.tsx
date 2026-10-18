@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { Minus, Play, TrendingDown, TrendingUp } from "lucide-react";
 import { runForecast, type Forecast, type ForecastParams, type Interval, type MarketId, type ModelName } from "@/lib/api";
 import { barTime, pct, price } from "@/lib/format";
+import type { AccuracyState } from "./AccuracyCheck";
 
 const MODELS: { id: ModelName; label: string; note: string }[] = [
   { id: "kronos-mini", label: "Mini", note: "fastest" },
@@ -30,12 +31,14 @@ export function KronosPanel({
   interval,
   forecast,
   onForecast,
+  accuracy,
 }: {
   market: MarketId;
   symbol: string;
   interval: Interval;
   forecast: Forecast | null;
   onForecast: (f: Forecast) => void;
+  accuracy: AccuracyState;
 }) {
   const [model, setModel] = useState<ModelName>("kronos-small");
   const [horizon, setHorizon] = useState(HORIZON[interval].value);
@@ -110,6 +113,8 @@ export function KronosPanel({
 
       {s && forecast && (
         <div className={clsx("space-y-4 border-t border-line p-4 transition-opacity", running && "opacity-50")}>
+          <TrustNote symbol={symbol} accuracy={accuracy} />
+
           <div className="flex items-center justify-between">
             <OutlookBadge outlook={s.outlook} />
             <span className="text-xs text-ink-3">
@@ -155,6 +160,34 @@ export function KronosPanel({
         </div>
       )}
     </section>
+  );
+}
+
+/** How much to trust this forecast, from Kronos' recent record on the same stock. */
+function TrustNote({ symbol, accuracy }: { symbol: string; accuracy: AccuracyState }) {
+  const r = accuracy.result;
+  if (accuracy.running && !r)
+    return <p className="rounded-lg bg-wash px-3 py-2 text-xs text-ink-2">Checking Kronos&apos; recent record on {symbol}… {accuracy.elapsed}s</p>;
+  if (!r) return null;
+  const hits = `${Math.round(r.direction_accuracy * r.checks.length)}/${r.checks.length}`;
+  const errors = `price error ${pct(r.mean_error_pct)} vs ${pct(r.naive_error_pct)} for “no change”`;
+  if (r.verdict === "none")
+    return (
+      <p className="rounded-lg bg-[#fcebeb] px-3 py-2 text-xs leading-relaxed text-down">
+        <b>Low trust.</b> Kronos has had no skill on {symbol} recently: direction right {hits}, {errors}. Treat this
+        forecast as noise.
+      </p>
+    );
+  if (r.verdict === "weak")
+    return (
+      <p className="rounded-lg bg-[#fdf4e3] px-3 py-2 text-xs leading-relaxed text-[#8a5a00]">
+        <b>Mixed record.</b> On {symbol} recently: direction right {hits}, {errors}. Use with caution.
+      </p>
+    );
+  return (
+    <p className="rounded-lg bg-[#e8f6f0] px-3 py-2 text-xs leading-relaxed text-up">
+      <b>Better than “no change” recently.</b> On {symbol}: direction right {hits}, {errors}. Still a small sample.
+    </p>
   );
 }
 

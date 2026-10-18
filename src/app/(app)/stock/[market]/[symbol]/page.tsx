@@ -11,7 +11,7 @@ import { useMarket } from "@/lib/market";
 import { PriceChart } from "@/components/PriceChart";
 import { RangeBar } from "@/components/RangeBar";
 import { KronosPanel } from "@/components/KronosPanel";
-import { AccuracyCheck } from "@/components/AccuracyCheck";
+import { AccuracyCheck, useAccuracyCheck } from "@/components/AccuracyCheck";
 
 const INTERVALS: { id: Interval; label: string }[] = [
   { id: "1h", label: "Hourly" },
@@ -32,6 +32,14 @@ export default function StockPage() {
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [forecast, setForecast] = useState<Forecast | null>(null);
   const [showPaths, setShowPaths] = useState(false);
+  const accuracy = useAccuracyCheck(market, symbol, interval);
+
+  // Every forecast is followed by Kronos' recent track record on this stock (once per stock & interval),
+  // so the panel can say when the forecast deserves little trust.
+  function onForecast(f: Forecast) {
+    setForecast(f);
+    if (!accuracy.result && !accuracy.running) accuracy.run();
+  }
 
   // Opening a stock link selects its country in the header. Only on route change, so the
   // header's own country switch (which navigates away) isn't undone.
@@ -173,18 +181,19 @@ export default function StockPage() {
           symbol={symbol}
           interval={interval}
           forecast={forecast}
-          onForecast={setForecast}
+          onForecast={onForecast}
+          accuracy={accuracy}
         />
       </div>
 
-      <AccuracyCheck key={`${market}/${symbol}/${interval}`} market={market} symbol={symbol} interval={interval} />
+      <AccuracyCheck market={market} symbol={symbol} interval={interval} check={accuracy} />
     </div>
   );
 }
 
 function BackLink({ market }: { market: MarketId }) {
   return (
-    <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-ink-2 hover:text-ink">
+    <Link href="/markets" className="inline-flex items-center gap-1.5 text-sm text-ink-2 hover:text-ink">
       <ArrowLeft className="h-4 w-4" /> {MARKETS[market].name} stocks
     </Link>
   );

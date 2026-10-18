@@ -1,67 +1,158 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import clsx from "clsx";
 import type { MarketId } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { MARKETS } from "@/lib/format";
 import { useMarket } from "@/lib/market";
+import { Logo } from "./Logo";
+
+const HOME_SECTIONS = [
+  { href: "/#market", label: "Live market" },
+  { href: "/#features", label: "Features" },
+  { href: "/#accuracy", label: "Accuracy" },
+  { href: "/#coverage", label: "Markets" },
+];
 
 export function Header() {
+  const { user, ready } = useAuth();
+  const pathname = usePathname();
+  const inApp = ["/markets", "/stock", "/fno"].some((p) => pathname.startsWith(p));
+
+  return (
+    <header className="sticky top-0 z-30 border-b border-line bg-white/90 backdrop-blur">
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 md:px-6">
+        <div className="flex items-center gap-6">
+          <Logo href={user ? "/markets" : "/"} />
+          {user ? (
+            <nav className="flex gap-1 text-sm">
+              <NavLink href="/markets" active={pathname.startsWith("/markets") || pathname.startsWith("/stock")}>
+                Markets
+              </NavLink>
+              <NavLink href="/fno" active={pathname.startsWith("/fno")}>
+                F&amp;O
+              </NavLink>
+            </nav>
+          ) : (
+            pathname === "/" && (
+              <nav className="hidden gap-1 text-sm md:flex">
+                {HOME_SECTIONS.map((s) => (
+                  <NavLink key={s.href} href={s.href} active={false}>
+                    {s.label}
+                  </NavLink>
+                ))}
+              </nav>
+            )
+          )}
+        </div>
+
+        <div className="flex items-center gap-3">
+          {inApp && user && <CountrySwitch />}
+          {ready && (user ? <UserMenu /> : <SignedOutActions />)}
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function NavLink({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className={clsx("rounded-md px-2.5 py-1 transition-colors", active ? "bg-wash font-medium text-ink" : "text-ink-2 hover:text-ink")}
+    >
+      {children}
+    </Link>
+  );
+}
+
+function SignedOutActions() {
+  return (
+    <div className="flex items-center gap-1 text-sm">
+      <Link href="/signin" className="rounded-md px-3 py-1.5 text-ink-2 hover:text-ink">
+        Sign in
+      </Link>
+      <Link href="/signup" className="rounded-lg bg-ink px-3.5 py-1.5 font-medium text-white hover:opacity-90">
+        Get started
+      </Link>
+    </div>
+  );
+}
+
+function CountrySwitch() {
   const { market, setMarket } = useMarket();
   const router = useRouter();
   const pathname = usePathname();
-
   const onFno = pathname.startsWith("/fno");
 
   function choose(m: MarketId) {
     setMarket(m);
     // A stock or contract page belongs to one market; switching country goes back to that country's list.
-    const home = onFno ? "/fno" : "/";
+    const home = onFno ? "/fno" : "/markets";
     if (pathname !== home) router.push(home);
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-white/90 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 md:px-6">
-        <div className="flex items-center gap-5">
-          <Link href="/" className="text-[15px] font-semibold tracking-tight">
-            Kronos
-          </Link>
-          <nav className="flex gap-1 text-sm">
-            {[
-              { href: "/", label: "Stocks", active: !onFno },
-              { href: "/fno", label: "F&O", active: onFno },
-            ].map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={clsx("rounded-md px-2.5 py-1 transition-colors", l.active ? "bg-wash font-medium text-ink" : "text-ink-2 hover:text-ink")}
-              >
-                {l.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
+    <div role="radiogroup" aria-label="Country" className="flex rounded-lg border border-line p-0.5 text-sm">
+      {(Object.keys(MARKETS) as MarketId[]).map((m) => (
+        <button
+          key={m}
+          role="radio"
+          aria-checked={market === m}
+          onClick={() => choose(m)}
+          className={clsx("rounded-md px-3 py-1 transition-colors", market === m ? "bg-ink text-white" : "text-ink-2 hover:text-ink")}
+        >
+          <span className="mr-1.5 hidden sm:inline">{MARKETS[m].flag}</span>
+          {MARKETS[m].name}
+        </button>
+      ))}
+    </div>
+  );
+}
 
-        <div role="radiogroup" aria-label="Country" className="flex rounded-lg border border-line p-0.5 text-sm">
-          {(Object.keys(MARKETS) as MarketId[]).map((m) => (
-            <button
-              key={m}
-              role="radio"
-              aria-checked={market === m}
-              onClick={() => choose(m)}
-              className={clsx(
-                "rounded-md px-3 py-1 transition-colors",
-                market === m ? "bg-ink text-white" : "text-ink-2 hover:text-ink",
-              )}
-            >
-              <span className="mr-1.5 hidden sm:inline">{MARKETS[m].flag}</span>
-              {MARKETS[m].name}
-            </button>
-          ))}
+function UserMenu() {
+  const { user, signOut } = useAuth();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+
+  if (!user) return null;
+  const initials = user.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        aria-label="Account menu"
+        aria-expanded={open}
+        className="flex h-8 w-8 items-center justify-center rounded-full bg-wash text-xs font-semibold text-ink hover:bg-line"
+      >
+        {initials}
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-2 w-56 rounded-xl border border-line bg-white p-1 shadow-sm">
+          <div className="px-3 py-2">
+            <p className="truncate text-sm font-medium">{user.name}</p>
+            <p className="truncate text-xs text-ink-3">{user.email}</p>
+          </div>
+          <div className="my-1 border-t border-line" />
+          <Link href="/" onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2 text-sm text-ink-2 hover:bg-wash">
+            CandleTrade home
+          </Link>
+          <button onClick={signOut} className="w-full rounded-lg px-3 py-2 text-left text-sm text-ink-2 hover:bg-wash">
+            Sign out
+          </button>
         </div>
-      </div>
-    </header>
+      )}
+    </div>
   );
 }
