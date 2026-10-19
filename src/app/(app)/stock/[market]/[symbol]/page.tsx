@@ -15,6 +15,7 @@ import { AccuracyCheck, useAccuracyCheck } from "@/components/AccuracyCheck";
 import { ValidatedPatterns } from "@/components/ValidatedPatterns";
 import { StockLogo } from "@/components/StockLogo";
 import { NewsButton } from "@/components/NewsDialog";
+import { ExpectedMove } from "@/components/ExpectedMove";
 
 const INTERVALS: { id: Interval; label: string }[] = [
   { id: "1h", label: "Hourly" },
@@ -170,6 +171,8 @@ export default function StockPage() {
           <RangeBar low={quote?.low_52w} high={quote?.high_52w} value={quote?.price} market={market} labels />
         </div>
       </section>
+
+      <ExpectedMove market={market} symbol={symbol} livePrice={quote?.price} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <section className="self-start rounded-xl border border-line lg:col-span-2">
