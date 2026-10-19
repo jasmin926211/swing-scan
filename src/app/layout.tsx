@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Open_Sans } from "next/font/google";
+import { cookies } from "next/headers";
 import "./globals.css";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
@@ -15,7 +16,10 @@ export const metadata: Metadata = {
   description: "Live Indian and US stock markets with AI forecasts and an honest track record next to every one.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // The session cookie (httpOnly, set by the backend) tells us before the first paint whether someone is signed in,
+  // so the header doesn't show the signed-out menu while /me is still loading.
+  const signedIn = (await cookies()).has("ct_session");
   return (
     // The inline script sets data-theme before first paint, so <html> differs from the server render on purpose.
     <html lang="en" className={openSans.variable} suppressHydrationWarning>
@@ -23,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body className="flex min-h-screen flex-col font-sans">
-        <AuthProvider>
+        <AuthProvider signedInHint={signedIn}>
           <MarketProvider>
             <Header />
             <div className="flex-1">{children}</div>

@@ -7,13 +7,15 @@ type AuthState = {
   user: User | null;
   /** false until the first /me answer, so pages don't flash the signed-out view */
   ready: boolean;
+  /** signed in or not, known from the first render: the session cookie until /me answers, then /me */
+  signedIn: boolean;
   setUser: (u: User | null) => void;
   signOut: () => Promise<void>;
 };
 
-const AuthContext = createContext<AuthState>({ user: null, ready: false, setUser: () => {}, signOut: async () => {} });
+const AuthContext = createContext<AuthState>({ user: null, ready: false, signedIn: false, setUser: () => {}, signOut: async () => {} });
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children, signedInHint = false }: { children: React.ReactNode; signedInHint?: boolean }) {
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
 
@@ -30,7 +32,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     window.location.href = "/";
   }, []);
 
-  return <AuthContext.Provider value={{ user, ready, setUser, signOut }}>{children}</AuthContext.Provider>;
+  const signedIn = ready ? !!user : signedInHint;
+  return <AuthContext.Provider value={{ user, ready, signedIn, setUser, signOut }}>{children}</AuthContext.Provider>;
 }
 
 export const useAuth = () => useContext(AuthContext);
