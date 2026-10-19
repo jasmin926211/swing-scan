@@ -360,3 +360,20 @@ export type PatternSignal = {
 /** Validated pattern signals on completed candles for one stock, newest first. */
 export const getPatterns = (m: MarketId, symbol: string) =>
   request<{ signals: PatternSignal[]; liquid: boolean }>(`${stockPath(m, symbol)}/patterns`);
+
+export type Sentiment = "positive" | "neutral" | "negative";
+export type NewsItem = {
+  title: string;
+  source: string;
+  url: string;
+  published: number; // epoch ms
+  also: string[]; // other outlets that ran the same story
+  sentiment: Sentiment;
+  score: number; // P(positive) - P(negative), -1..1
+  confidence: number;
+};
+export type NewsSummary = Record<Sentiment, number> & { total: number; net: number; verdict: string };
+export type NewsFeed = { summary: NewsSummary; items: NewsItem[] };
+export type StockNews = { symbol: string; days: number; model: string; company: NewsFeed & { query: string }; market: NewsFeed };
+
+export const getNews = (m: MarketId, symbol: string) => request<StockNews>(`${stockPath(m, symbol)}/news`);

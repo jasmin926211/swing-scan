@@ -14,6 +14,7 @@ import { ForecastPanel } from "@/components/ForecastPanel";
 import { AccuracyCheck, useAccuracyCheck } from "@/components/AccuracyCheck";
 import { ValidatedPatterns } from "@/components/ValidatedPatterns";
 import { StockLogo } from "@/components/StockLogo";
+import { NewsButton } from "@/components/NewsDialog";
 
 const INTERVALS: { id: Interval; label: string }[] = [
   { id: "1h", label: "Hourly" },
@@ -133,11 +134,14 @@ export default function StockPage() {
               {quote?.name ?? " "}
               {quote?.sector && <span className="text-ink-3"> · {quote.sector}</span>}
             </p>
-            {quote?.has_fno && (
-              <Link href={`/fno/${market}/${encodeURIComponent(symbol)}`} className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline">
-                Futures &amp; options analysis →
-              </Link>
-            )}
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <NewsButton market={market} symbol={symbol} name={quote?.name} />
+              {quote?.has_fno && (
+                <Link href={`/fno/${market}/${encodeURIComponent(symbol)}`} className="inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline">
+                  Futures &amp; options analysis →
+                </Link>
+              )}
+            </div>
           </div>
         </div>
         <div className="text-right">
