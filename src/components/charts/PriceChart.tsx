@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useId, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 import clsx from "clsx";
 import type { Candle, Forecast, Interval, PatternSignal } from "@/lib/api";
 import { useChartColors, FONT } from "@/lib/charts/theme";
 import { duration, useReducedMotion } from "@/lib/charts/motion";
 import { useWidth } from "@/lib/charts/useWidth";
+import { CROSS_PAIRS, EMA_PERIODS, crossovers, ema, type Cross, type EmaPeriod } from "@/lib/charts/ema";
 
 const HEIGHT = 520;
 const M = { top: 12, right: 64, bottom: 26, left: 8 };
@@ -30,6 +31,9 @@ const TIME_FORMAT: Record<Interval, (d: Date) => string> = {
 };
 
 type Domain = [number, number]; // visible bar indices (fractional while zooming)
+
+const EMA_DEFAULT: EmaPeriod[] = [21, 50, 200];
+const EMA_KEY = "chart-emas";
 
 /** Candlestick + volume chart with an animated forecast fan. Bars are spaced by index (trading sessions),
  *  so weekends and holidays leave no gaps; forecast bars continue the index after the last candle. */
@@ -66,6 +70,26 @@ export function PriceChart({
   const [domain, setDomain] = useState<Domain | null>(null);
   const [range, setRange] = useState(DEFAULT_RANGE[interval]);
   const [hover, setHover] = useState<{ i: number; y: number } | null>(null);
+  const [emaOn, setEmaOn] = useState<EmaPeriod[]>(EMA_DEFAULT);
+  const [showCrosses, setShowCrosses] = useState(true);
+
+  // The EMA choice is remembered per browser.
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(EMA_KEY) ?? "null");
+      if (saved && Array.isArray(saved.on)) {
+        setEmaOn(EMA_PERIODS.filter((p) => saved.on.includes(p)));
+        setShowCrosses(saved.crosses !== false);
+      }
+    } catch {}
+  }, []);
+  function saveEma(on: EmaPeriod[], crosses: boolean) {
+    setEmaOn(on);
+    setShowCrosses(crosses);
+    try {
+      localStorage.setItem(EMA_KEY, JSON.stringify({ on, crosses }));
+    } catch {}
+  }
 
   const n = candles.length;
   const fc = forecast?.points ?? [];
@@ -133,15 +157,32 @@ export function PriceChart({
   const visible = candles.slice(lo, Math.min(hi + 1, n));
   const visibleFc = fc.filter((_, j) => n + j >= lo && n + j <= hi);
 
+  // EMAs over the whole history (so the visible part is fully warmed up), and crossovers of the enabled pairs.
+  const emas = useMemo(() => {
+    const closes = candles.map((c) => c[4]);
+    return Object.fromEntries(EMA_PERIODS.map((p) => [p, ema(closes, p)])) as Record<EmaPeriod, (number | null)[]>;
+  }, [candles]);
+  const crosses = useMemo(
+    () =>
+      CROSS_PAIRS.filter((pr) => emaOn.includes(pr.fast) && emaOn.includes(pr.slow))
+        .flatMap((pr) => crossovers(emas[pr.fast], emas[pr.slow], pr))
+        .sort((a, b) => a.i - b.i),
+    [emas, emaOn],
+  );
+  const emaVisible = useMemo(
+    () => emaOn.flatMap((p) => emas[p].slice(lo, Math.min(hi + 1, n))).filter((v): v is number => v != null),
+    [emas, emaOn, lo, hi, n],
+  );
+
   const plan = selected != null ? signals[selected] : null; // keep its entry / stop / target in view
   const y = useMemo(() => {
     const planLevels = plan ? [plan.entry, plan.stop, plan.target] : [];
-    const lows = [...visible.map((c) => c[3]), ...visibleFc.map((p) => p.p10), ...planLevels];
-    const highs = [...visible.map((c) => c[2]), ...visibleFc.map((p) => p.p90), ...planLevels];
+    const lows = [...visible.map((c) => c[3]), ...visibleFc.map((p) => p.p10), ...planLevels, ...emaVisible];
+    const highs = [...visible.map((c) => c[2]), ...visibleFc.map((p) => p.p90), ...planLevels, ...emaVisible];
     const [min, max] = [d3.min(lows) ?? 0, d3.max(highs) ?? 1];
     const pad = (max - min) * 0.06 || max * 0.01;
     return d3.scaleLinear().domain([min - pad, max + pad]).nice(6).range([priceH, 0]);
-  }, [visible, visibleFc, priceH, plan]);
+  }, [visible, visibleFc, priceH, plan, emaVisible]);
   const yVol = useMemo(
     () => d3.scaleLinear().domain([0, d3.max(visible, (c) => c[5]) || 1]).range([volH, 0]),
     [visible, volH],
@@ -262,6 +303,28 @@ export function PriceChart({
             </button>
           ))}
         </div>
+        <div className="flex flex-wrap items-center gap-1 text-xs">
+          <span className="mr-0.5 text-ink-3">EMA</span>
+          {EMA_PERIODS.map((p) => {
+            const on = emaOn.includes(p);
+            return (
+              <button
+                key={p}
+                aria-pressed={on}
+                onClick={() => saveEma(on ? emaOn.filter((q) => q !== p) : EMA_PERIODS.filter((q) => q === p || emaOn.includes(q)), showCrosses)}
+                className={clsx("flex items-center gap-1.5 rounded-md border px-2 py-1 font-medium transition-colors",
+                  on ? "border-ink-3 text-ink" : "border-line text-ink-3 hover:text-ink-2")}
+              >
+                <span className="h-0.5 w-3 rounded-full" style={{ background: on ? COLORS[`ema${p}`] : COLORS.line }} />
+                {p}
+              </button>
+            );
+          })}
+          <label className="ml-1.5 flex cursor-pointer items-center gap-1.5 text-ink-2">
+            <input type="checkbox" checked={showCrosses} onChange={(e) => saveEma(emaOn, e.target.checked)} className="accent-ink" />
+            Crossovers
+          </label>
+        </div>
         {forecast && (
           <div className="flex flex-wrap items-center gap-3 text-xs text-ink-2">
             <LegendSwatch kind="line" label="Forecast median" />
@@ -334,6 +397,26 @@ export function PriceChart({
                   );
                 })}
 
+                {/* EMA lines (drawn over the visible bars plus one either side, so they run to the edges) */}
+                {emaOn.map((p) => {
+                  const from = Math.max(0, lo - 1);
+                  const pts: [number, number][] = [];
+                  for (let i = from; i <= Math.min(n - 1, hi + 1); i++) {
+                    const v = emas[p][i];
+                    if (v != null) pts.push([x(i), y(v)]);
+                  }
+                  return (
+                    <path key={`ema${p}`} d={d3.line()(pts) ?? ""} fill="none" stroke={COLORS[`ema${p}`]} strokeWidth={p === 200 ? 2 : 1.5}
+                      strokeLinejoin="round" pointerEvents="none" />
+                  );
+                })}
+                {emaLabels(emaOn, emas, Math.min(hi, n - 1), y).map(({ p, ly }) => (
+                  <text key={`emal${p}`} x={innerW - 4} y={ly} dy="0.32em" textAnchor="end" fontSize={10} fontWeight={600}
+                    fill={COLORS.ink2} paintOrder="stroke" stroke={COLORS.paper} strokeWidth={3} pointerEvents="none">
+                    EMA {p}
+                  </text>
+                ))}
+
                 {/* forecast */}
                 {forecast && anchor && (
                   <>
@@ -403,6 +486,15 @@ export function PriceChart({
                     </g>
                   );
                 })()}
+                {showCrosses &&
+                  crosses.map((c) =>
+                    c.i < lo - 1 || c.i > hi + 1 ? null : (
+                      <circle key={`x${c.fast}-${c.i}`} cx={x(c.i)} cy={y(c.value)} r={c.slow === 200 ? 6 : 4.5}
+                        fill={c.up ? COLORS.up : COLORS.down} stroke={COLORS.paper} strokeWidth={1.5}>
+                        <title>{`${c.label} · ${d3.utcFormat("%d %b %Y")(new Date(candles[c.i][0]))}`}</title>
+                      </circle>
+                    ),
+                  )}
                 {marks.map(({ sig, k, i }) => {
                   if (i < lo - 1 || i > hi + 1) return null;
                   const c = candles[i];
@@ -445,6 +537,18 @@ export function PriceChart({
                 <span className="text-ink-3">Low</span><span>{fmt(hovered.c[3])}</span>
                 <span className="text-ink-3">Close</span><span className="font-semibold">{fmt(hovered.c[4])}</span>
                 <span className="text-ink-3">Volume</span><span>{d3.format(",.0f")(hovered.c[5])}</span>
+                {emaOn.map((p) => {
+                  const v = emas[p][hover.i];
+                  return v == null ? null : (
+                    <Fragment key={p}>
+                      <span className="flex items-center gap-1 text-ink-3">
+                        <span className="h-0.5 w-2.5 rounded-full" style={{ background: COLORS[`ema${p}`] }} />
+                        EMA {p}
+                      </span>
+                      <span>{fmt(v)}</span>
+                    </Fragment>
+                  );
+                })}
               </div>
             ) : (
               <div className="tabular mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5">
@@ -456,6 +560,7 @@ export function PriceChart({
           </div>
         )}
       </div>
+      <EmaSummary candles={candles} emas={emas} emaOn={emaOn} crosses={crosses} interval={interval} />
       <p className="px-1 pt-1 text-[11px] text-ink-3">Scroll to zoom · drag to pan</p>
     </div>
   );
@@ -474,5 +579,57 @@ function LegendSwatch({ kind, opacity = 1, label }: { kind: "line" | "band"; opa
       </svg>
       {label}
     </span>
+  );
+}
+
+/** Right-edge labels for the EMA lines, nudged apart so they don't overlap (at least 12px). */
+function emaLabels(on: EmaPeriod[], emas: Record<EmaPeriod, (number | null)[]>, i: number, y: d3.ScaleLinear<number, number>) {
+  const items = on
+    .map((p) => ({ p, v: emas[p][i] }))
+    .filter((d): d is { p: EmaPeriod; v: number } => d.v != null)
+    .map((d) => ({ p: d.p, ly: y(d.v) - 8 }))
+    .sort((a, b) => a.ly - b.ly);
+  for (let k = 1; k < items.length; k++) items[k].ly = Math.max(items[k].ly, items[k - 1].ly + 12);
+  return items;
+}
+
+const BAR_WORD: Record<Interval, string> = { "1h": "hourly", "1d": "daily", "1wk": "weekly" };
+const BARS_AGO: Record<Interval, string> = { "1h": "hourly bars", "1d": "trading days", "1wk": "weeks" };
+
+/** Plain-language read of the EMAs on the latest bar, and the latest crossover of each enabled pair. */
+function EmaSummary({ candles, emas, emaOn, crosses, interval }: {
+  candles: Candle[];
+  emas: Record<EmaPeriod, (number | null)[]>;
+  emaOn: EmaPeriod[];
+  crosses: Cross[];
+  interval: Interval;
+}) {
+  const last = candles.length - 1;
+  if (last < 0 || emaOn.length === 0) return null;
+  const close = candles[last][4];
+  const facts: { text: string; up: boolean }[] = [];
+  for (const p of emaOn) {
+    const v = emas[p][last];
+    if (v != null) facts.push({ text: `Price ${close >= v ? "above" : "below"} EMA ${p}`, up: close >= v });
+  }
+  const latest = CROSS_PAIRS.map((pr) => [...crosses].reverse().find((c) => c.fast === pr.fast && c.slow === pr.slow)).filter(
+    (c): c is Cross => c != null,
+  );
+  const when = (i: number) => d3.utcFormat(interval === "1h" ? "%d %b %Y %H:%M" : "%d %b %Y")(new Date(candles[i][0]));
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1 pt-2 text-xs">
+      {facts.map((f) => (
+        <span key={f.text} className={f.up ? "text-up" : "text-down"}>
+          {f.up ? "▲" : "▼"} {f.text}
+        </span>
+      ))}
+      {latest.map((c) => (
+        <span key={`${c.fast}-${c.slow}`} className="text-ink-2">
+          Last {c.label.split(" (")[0].toLowerCase()} ({c.fast}/{c.slow}): {when(c.i)}
+          {last > c.i ? `, ${last - c.i} ${BARS_AGO[interval]} ago` : ", on the latest bar"}
+        </span>
+      ))}
+      <span className="text-ink-3">EMAs use {BAR_WORD[interval]} closes.</span>
+    </div>
   );
 }
