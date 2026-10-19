@@ -95,7 +95,11 @@ export default function FnoHome() {
                 <tr key={r.symbol} onClick={() => open(r.symbol)} className="group cursor-pointer border-t border-line hover:bg-wash">
                   <td className="px-3 py-2.5">
                     <div className="flex items-center gap-2.5">
-                      {r.kind !== "INDEX" && <StockLogo market={market} symbol={r.symbol} size={30} className="hidden sm:inline-flex" />}
+                      {r.kind !== "INDEX" && (
+                        <span className="hidden sm:block">
+                          <StockLogo market={market} symbol={r.symbol} size={30} />
+                        </span>
+                      )}
                       <div className="min-w-0">
                         <p className="flex items-center gap-1.5 font-medium">
                           {r.symbol}

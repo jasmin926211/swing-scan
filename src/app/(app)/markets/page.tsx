@@ -16,7 +16,9 @@ type SortKey = NonNullable<StockQuery["sort"]>;
 type Sort = { key: SortKey; desc: boolean };
 type Screen = { id: string; label: string; filters: StockFilters; sort: Sort };
 
-const PAGE = 50;
+const PAGE_SIZES = [25, 50, 100, 200] as const; // the API serves at most 200 rows per request
+const DEFAULT_PAGE_SIZE = 50;
+const PAGE_SIZE_KEY = "ct.screener.pageSize";
 const DEFAULT_SORT: Sort = { key: "market_cap", desc: true };
 const CAP_TABS: { id: CapCategory | ""; label: string }[] = [
   { id: "", label: "All" },
@@ -81,6 +83,7 @@ export default function Markets() {
   const [sort, setSort] = useState<Sort>(DEFAULT_SORT);
   const [screen, setScreen] = useState("");
   const [offset, setOffset] = useState(0);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [showFilters, setShowFilters] = useState(false);
   const [display, setDisplay] = useState<"list" | "heatmap">("list");
   const [restored, setRestored] = useState<MarketId | null>(null);
@@ -97,6 +100,25 @@ export default function Markets() {
     setRestored(market);
   }, [market]);
 
+  // Rows per page is remembered per browser, for both countries.
+  useEffect(() => {
+    try {
+      const saved = Number(localStorage.getItem(PAGE_SIZE_KEY));
+      if ((PAGE_SIZES as readonly number[]).includes(saved)) setPageSize(saved);
+    } catch {
+      // storage unavailable: keep the default
+    }
+  }, []);
+  function changePageSize(size: number) {
+    setOffset(Math.floor(offset / size) * size); // stay on the page that holds the current first row
+    setPageSize(size);
+    try {
+      localStorage.setItem(PAGE_SIZE_KEY, String(size));
+    } catch {
+      // ignore
+    }
+  }
+
   const active: StockFilters = useMemo(() => ({ ...filters, q }), [filters, q]);
   useEffect(() => {
     if (restored !== market) return;
@@ -107,7 +129,7 @@ export default function Markets() {
     }
   }, [active, sort, screen, market, restored]);
 
-  const query: StockQuery = { ...active, sort: sort.key, desc: sort.desc, offset, limit: PAGE };
+  const query: StockQuery = { ...active, sort: sort.key, desc: sort.desc, offset, limit: pageSize };
   const queryKey = `${market}|${JSON.stringify(query)}`;
   const marketOpen = page?.market_open ?? false;
 
@@ -353,18 +375,37 @@ export default function Markets() {
             </div>
           )}
           {page && page.total > 0 && (
-            <div className="flex items-center justify-between gap-3 border-t border-line px-3 py-2.5 text-xs text-ink-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-3 py-2.5 text-xs text-ink-3">
               <span>
-                {(page.offset + 1).toLocaleString()}–{Math.min(page.offset + PAGE, page.total).toLocaleString()} of {page.total.toLocaleString()} stocks
+                {(page.offset + 1).toLocaleString()}–{Math.min(page.offset + pageSize, page.total).toLocaleString()} of {page.total.toLocaleString()} stocks
                 · prices from Yahoo Finance
               </span>
-              <span className="flex gap-1">
-                <PageButton disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE))} label="Previous page">
-                  <ChevronLeft className="h-4 w-4" />
-                </PageButton>
-                <PageButton disabled={offset + PAGE >= page.total} onClick={() => setOffset(offset + PAGE)} label="Next page">
-                  <ChevronRight className="h-4 w-4" />
-                </PageButton>
+              <span className="flex items-center gap-3">
+                <label className="flex items-center gap-1.5">
+                  Rows per page
+                  <select
+                    value={pageSize}
+                    onChange={(e) => changePageSize(Number(e.target.value))}
+                    className="rounded-md border border-line bg-paper px-1.5 py-1 text-ink-2 outline-none focus:border-ink-3"
+                  >
+                    {PAGE_SIZES.map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <span className="tabular">
+                  Page {Math.floor(offset / pageSize) + 1} of {Math.max(1, Math.ceil(page.total / pageSize)).toLocaleString()}
+                </span>
+                <span className="flex gap-1">
+                  <PageButton disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - pageSize))} label="Previous page">
+                    <ChevronLeft className="h-4 w-4" />
+                  </PageButton>
+                  <PageButton disabled={offset + pageSize >= page.total} onClick={() => setOffset(offset + pageSize)} label="Next page">
+                    <ChevronRight className="h-4 w-4" />
+                  </PageButton>
+                </span>
               </span>
             </div>
           )}
@@ -410,7 +451,9 @@ function Row({ s, market, onOpen }: { s: Stock; market: MarketId; onOpen: (symbo
     <tr onClick={() => onOpen(s.symbol)} className="group cursor-pointer border-t border-line hover:bg-wash">
       <td className="px-3 py-2.5">
         <div className="flex items-center gap-2.5">
-          <StockLogo market={market} symbol={s.symbol} size={30} className="hidden sm:inline-flex" />
+          <span className="hidden sm:block">
+            <StockLogo market={market} symbol={s.symbol} size={30} />
+          </span>
           <div className="min-w-0">
             <p className="flex items-center gap-1.5 font-medium">
               {s.symbol}
