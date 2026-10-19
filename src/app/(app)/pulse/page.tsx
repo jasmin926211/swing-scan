@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
-import { Check, X } from "lucide-react";
-import { getPulse, type MarketId, type Pulse, type PulseCheck } from "@/lib/api";
+import { Check, ChevronDown, X } from "lucide-react";
+import { getPulse, type MarketId, type Pulse, type PulseCheck, type PulseStock } from "@/lib/api";
 import { MARKETS, price } from "@/lib/format";
 import { useMarket } from "@/lib/market";
 import { MoodGauge, moodLabel } from "@/components/pulse/MoodGauge";
@@ -87,7 +87,7 @@ export default function PulsePage() {
 
       {error && <p className="rounded-xl border border-line p-4 text-sm text-ink-2">{error}</p>}
       {!data && !error && (
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {[0, 1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="h-56 animate-pulse rounded-xl bg-wash" />
           ))}
@@ -96,7 +96,7 @@ export default function PulsePage() {
 
       {data && ad && hl && (
         <>
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <Card title="Market mood" note="Breadth, advances vs declines and new highs vs lows, combined (0–100).">
               <div className="flex flex-col items-center">
                 <MoodGauge value={data.mood} />
@@ -129,14 +129,11 @@ export default function PulsePage() {
                 <Big label={data.index.name} value={price(data.index.price, market)} change={data.index.change_pct} />
                 <Big label={data.vix.name} value={data.vix.value != null ? data.vix.value.toFixed(2) : "—"} change={data.vix.change_pct} invert />
               </div>
-              <div className="mt-4 space-y-3 text-xs">
-                <Split label="Advances / declines" a={ad.advances} b={ad.declines} mid={ad.unchanged} aLabel="up" bLabel="down" />
-                <Split label="New 52-week highs / lows" a={hl.highs} b={hl.lows} aLabel="highs" bLabel="lows" />
-              </div>
+              <BreadthLists ad={ad} hl={hl} market={market} />
             </Card>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <Card title="Breadth through the day" note="% of stocks above their 20 EMA. Rising from below 30–40% towards 60%+ often marks a fresh upswing." className="lg:col-span-2">
               <BreadthLine points={data.history} tz={TZ[market]} />
             </Card>
@@ -365,12 +362,86 @@ function Big({ label, value, change, invert }: { label: string; value: string; c
   );
 }
 
-function Split({ label, a, b, mid = 0, aLabel, bLabel }: { label: string; a: number; b: number; mid?: number; aLabel: string; bLabel: string }) {
+/** Advances / declines and new highs / lows; tap either to see the stocks behind the numbers. */
+function BreadthLists({ ad, hl, market }: { ad: Pulse["advance_decline"]; hl: Pulse["highs_lows"]; market: MarketId }) {
+  const [open, setOpen] = useState<"ad" | "hl" | null>(null);
+  const rows = [
+    { id: "ad" as const, label: "Advances / declines", a: ad.advances, b: ad.declines, mid: ad.unchanged, aLabel: "up", bLabel: "down",
+      lists: [[`Biggest gainers · top ${ad.top_up?.length ?? 0} of ${ad.advances}`, ad.top_up], [`Biggest losers · top ${ad.top_down?.length ?? 0} of ${ad.declines}`, ad.top_down]] as const },
+    { id: "hl" as const, label: "New 52-week highs / lows", a: hl.highs, b: hl.lows, mid: 0, aLabel: "highs", bLabel: "lows",
+      lists: [[listTitle("At a 52-week high", hl.high_list, hl.highs), hl.high_list], [listTitle("At a 52-week low", hl.low_list, hl.lows), hl.low_list]] as const },
+  ];
+  return (
+    <div className="mt-4 space-y-1 text-xs">
+      {rows.map((r) => {
+        const expanded = open === r.id;
+        const has = r.lists.some(([, l]) => l != null);
+        return (
+          <div key={r.id}>
+            <button type="button" disabled={!has} aria-expanded={expanded} aria-controls={`breadth-${r.id}`}
+              onClick={() => setOpen(expanded ? null : r.id)}
+              className="-mx-2 block w-[calc(100%+1rem)] rounded-lg px-2 py-1.5 text-left transition-colors enabled:hover:bg-wash">
+              <Split label={r.label} a={r.a} b={r.b} mid={r.mid} aLabel={r.aLabel} bLabel={r.bLabel} expanded={has ? expanded : undefined} />
+            </button>
+            {expanded && (
+              <div id={`breadth-${r.id}`} className="mb-2 mt-1 space-y-3 rounded-lg border border-line p-2.5">
+                {r.lists.map(([title, list], k) => (
+                  <StockList key={title} title={title} list={list ?? []} market={market} up={k === 0} />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function listTitle(what: string, list: unknown[] | undefined, total: number) {
+  return list && total > list.length ? `${what} · ${list.length} most traded of ${total}` : `${what} · ${total}`;
+}
+
+function StockList({ title, list, market, up }: { title: string; list: PulseStock[]; market: MarketId; up: boolean }) {
+  return (
+    <div className="min-w-0">
+      <p className={clsx("mb-1 text-[11px] font-medium", up ? "text-up" : "text-down")}>{title}</p>
+      {list.length === 0 ? (
+        <p className="py-1 text-ink-3">None right now.</p>
+      ) : (
+        <ul className="max-h-48 divide-y divide-line overflow-y-auto">
+          {list.map((x) => (
+            <li key={x.symbol}>
+              <Link href={`/stock/${market}/${encodeURIComponent(x.symbol)}`}
+                className="flex items-center gap-2 py-1.5 hover:bg-wash">
+                <StockLogo market={market} symbol={x.symbol} size={18} />
+                <span className="min-w-0 flex-1 truncate">
+                  <span className="font-medium text-ink">{x.symbol}</span>
+                  {x.sector && <span className="text-ink-3"> · {x.sector}</span>}
+                </span>
+                <span className="tabular text-ink-2">{price(x.price, market)}</span>
+                <span className={clsx("tabular w-14 text-right", (x.change_pct ?? 0) >= 0 ? "text-up" : "text-down")}>
+                  {x.change_pct == null ? "—" : `${x.change_pct >= 0 ? "+" : ""}${x.change_pct.toFixed(2)}%`}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function Split({ label, a, b, mid = 0, aLabel, bLabel, expanded }: {
+  label: string; a: number; b: number; mid?: number; aLabel: string; bLabel: string; expanded?: boolean;
+}) {
   const total = a + b + mid || 1;
   return (
     <div>
-      <div className="mb-1 flex justify-between">
-        <span className="text-ink-2">{label}</span>
+      <div className="mb-1 flex justify-between gap-2">
+        <span className="flex items-center gap-1 text-ink-2">
+          {label}
+          {expanded != null && <ChevronDown className={clsx("h-3.5 w-3.5 text-ink-3 transition-transform", expanded && "rotate-180")} aria-hidden />}
+        </span>
         <span className="tabular text-ink-3">
           <span className="text-up">{a} {aLabel}</span> · <span className="text-down">{b} {bLabel}</span>
         </span>

@@ -482,6 +482,9 @@ export type PulseLeader = {
   turnover: number;
   change_pct: number | null;
 };
+/** A stock behind one of Pulse's breadth counts (advances / declines, new highs / lows). */
+export type PulseStock = { symbol: string; name: string | null; sector: string | null; price: number; change_pct: number | null };
+
 export type Pulse = {
   market: MarketId;
   updated_at: number;
@@ -490,8 +493,8 @@ export type Pulse = {
   stocks: number;
   mood: number | null; // 0..1
   breadth: { above_ema20: number | null; above_50dma: number | null; above_200dma: number | null };
-  advance_decline: { advances: number; declines: number; unchanged: number };
-  highs_lows: { highs: number; lows: number };
+  advance_decline: { advances: number; declines: number; unchanged: number; top_up?: PulseStock[]; top_down?: PulseStock[] };
+  highs_lows: { highs: number; lows: number; high_list?: PulseStock[]; low_list?: PulseStock[] };
   history: { t: number; above_ema20: number | null; ad: number | null }[];
   index: { name: string; price: number | null; change_pct: number | null };
   vix: { name: string; value: number | null; change_pct: number | null };
