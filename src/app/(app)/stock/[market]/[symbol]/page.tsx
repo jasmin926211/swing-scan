@@ -173,8 +173,6 @@ export default function StockPage() {
         </div>
       </section>
 
-      <TradeChecklist market={market} symbol={symbol} />
-
       <ExpectedMove market={market} symbol={symbol} livePrice={quote?.price} />
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -243,6 +241,8 @@ export default function StockPage() {
       />
 
       <AccuracyCheck market={market} symbol={symbol} interval={interval} check={accuracy} />
+
+      <TradeChecklist market={market} symbol={symbol} />
     </div>
   );
 }
