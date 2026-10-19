@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import clsx from "clsx";
+import { ListChecks } from "lucide-react";
 import type { MarketId } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { MARKETS } from "@/lib/format";
@@ -36,7 +37,9 @@ export function Header() {
                 F&amp;O
               </NavLink>
               <NavLink href="/checklist" active={pathname.startsWith("/checklist")}>
-                Checklist
+                {/* An icon on phones: the header has no room for a third word there. */}
+                <ListChecks className="h-4 w-4 sm:hidden" aria-label="Checklist" />
+                <span className="hidden sm:inline">Checklist</span>
               </NavLink>
             </nav>
           ) : (
@@ -50,7 +53,7 @@ export function Header() {
           )}
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1 sm:gap-3">
           {inApp && user && <CountrySwitch />}
           <ThemeToggle />
           {ready && (user ? <UserMenu /> : <SignedOutActions />)}
@@ -64,7 +67,7 @@ function NavLink({ href, active, children }: { href: string; active: boolean; ch
   return (
     <Link
       href={href}
-      className={clsx("rounded-md px-2.5 py-1 transition-colors", active ? "bg-wash font-medium text-ink" : "text-ink-2 hover:text-ink")}
+      className={clsx("flex items-center rounded-md px-2 py-1 transition-colors sm:px-2.5", active ? "bg-wash font-medium text-ink" : "text-ink-2 hover:text-ink")}
     >
       {children}
     </Link>
@@ -106,7 +109,7 @@ function CountrySwitch() {
           role="radio"
           aria-checked={market === m}
           onClick={() => choose(m)}
-          className={clsx("rounded-md px-2 py-1 transition-colors sm:px-3", market === m ? "bg-ink text-paper" : "text-ink-2 hover:text-ink")}
+          className={clsx("rounded-md px-1.5 py-1 transition-colors sm:px-3", market === m ? "bg-ink text-paper" : "text-ink-2 hover:text-ink")}
         >
           <span className="mr-1.5 hidden sm:inline">{MARKETS[m].flag}</span>
           {MARKETS[m].name}

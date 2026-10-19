@@ -49,7 +49,7 @@ export function TradeChecklist({ market, symbol }: { market: MarketId; symbol: s
   const [data, setData] = useState<Checklist | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState<number | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"copied" | "saved" | null>(null);
   const [risk, setRisk] = useState(DEFAULT_RISK[market]);
 
   useEffect(() => setRisk(savedRisk(market)), [market, data]);
@@ -69,13 +69,19 @@ export function TradeChecklist({ market, symbol }: { market: MarketId; symbol: s
 
   async function copy() {
     if (!data) return;
+    const text = planText(data, market, shares);
     try {
-      await navigator.clipboard.writeText(planText(data, market, shares));
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(text);
+      setCopied("copied");
     } catch {
-      setError("Couldn't copy: your browser blocked clipboard access");
+      // Clipboard blocked (permissions, insecure page): save the plan as a text file instead.
+      const url = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
+      const a = Object.assign(document.createElement("a"), { href: url, download: `${data.symbol}-trade-plan.txt` });
+      a.click();
+      URL.revokeObjectURL(url);
+      setCopied("saved");
     }
+    window.setTimeout(() => setCopied(null), 2500);
   }
 
   return (
@@ -171,7 +177,7 @@ export function TradeChecklist({ market, symbol }: { market: MarketId; symbol: s
               className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-line px-3 py-2 text-sm font-medium text-ink-2 transition-colors hover:border-ink-3 hover:text-ink"
             >
               <ClipboardCopy className="h-4 w-4" />
-              {copied ? "Copied: paste it into your journal" : "Copy trade plan"}
+              {copied === "copied" ? "Copied: paste it into your journal" : copied === "saved" ? "Saved as a text file" : "Copy trade plan"}
             </button>
             <p className="mt-3 text-[11px] leading-relaxed text-ink-3">
               Thresholds are common trading rules, applied automatically. They keep you disciplined; they don&apos;t predict the
