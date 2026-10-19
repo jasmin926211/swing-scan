@@ -16,6 +16,7 @@ import { ValidatedPatterns } from "@/components/ValidatedPatterns";
 import { StockLogo } from "@/components/StockLogo";
 import { NewsButton } from "@/components/NewsDialog";
 import { ExpectedMove } from "@/components/ExpectedMove";
+import { TradeChecklist } from "@/components/TradeChecklist";
 
 const INTERVALS: { id: Interval; label: string }[] = [
   { id: "1h", label: "Hourly" },
@@ -171,6 +172,8 @@ export default function StockPage() {
           <RangeBar low={quote?.low_52w} high={quote?.high_52w} value={quote?.price} market={market} labels />
         </div>
       </section>
+
+      <TradeChecklist market={market} symbol={symbol} />
 
       <ExpectedMove market={market} symbol={symbol} livePrice={quote?.price} />
 
