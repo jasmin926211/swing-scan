@@ -13,7 +13,7 @@ const STATUS: Record<CheckStatus, { Icon: typeof Check; cls: string; label: stri
   info: { Icon: Info, cls: "bg-wash text-ink-3", label: "Info" },
 };
 const VERDICT: Record<Checklist["verdict"], { cls: string; text: string }> = {
-  Passes: { cls: "border-up/30 bg-up-wash text-up", text: "Passes the checklist" },
+  Passes: { cls: "border-line bg-wash text-ink", text: "No red flags in the checklist" },
   Caution: { cls: "border-warn/30 bg-warn-wash text-warn", text: "Caution: several warnings" },
   Skip: { cls: "border-down/30 bg-down-wash text-down", text: "Skip this trade" },
 };
@@ -154,6 +154,12 @@ export function TradeChecklist({ market, symbol }: { market: MarketId; symbol: s
                 {data.counts.pass} pass · {data.counts.warn} warning{data.counts.warn === 1 ? "" : "s"} · {data.counts.fail} fail
               </p>
               {data.fails.length > 0 && <p className="mt-1.5 text-xs">Failed: {data.fails.join(", ")}</p>}
+              {data.verdict !== "Skip" && (
+                <p className="mt-1.5 text-xs text-ink-3">
+                  These are common trading rules, not a tested buy signal: breakouts that met most of them hit a 2:1 target only about
+                  1 time in 4, and lost a little on average.
+                </p>
+              )}
             </div>
 
             <dl className="tabular mt-4 grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">

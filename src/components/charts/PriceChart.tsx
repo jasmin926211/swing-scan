@@ -221,11 +221,10 @@ export function PriceChart({
 
   // Forecast geometry, anchored on the last real close.
   const anchor = last ? { i: n - 1, v: forecast?.summary.last_close ?? last[4] } : null;
-  const fcSeries = anchor ? [{ i: anchor.i, med: anchor.v, p10: anchor.v, p25: anchor.v, p75: anchor.v, p90: anchor.v },
-    ...fc.map((p, j) => ({ i: n + j, med: p.close, p10: p.p10, p25: p.p25, p75: p.p75, p90: p.p90 }))] : [];
+  const fcSeries = anchor ? [{ i: anchor.i, p10: anchor.v, p25: anchor.v, p75: anchor.v, p90: anchor.v },
+    ...fc.map((p, j) => ({ i: n + j, p10: p.p10, p25: p.p25, p75: p.p75, p90: p.p90 }))] : [];
   const area = (k0: "p10" | "p25", k1: "p75" | "p90") =>
     d3.area<(typeof fcSeries)[number]>().x((p) => x(p.i)).y0((p) => y(p[k0])).y1((p) => y(p[k1])).curve(d3.curveMonotoneX)(fcSeries) ?? "";
-  const medianLine = d3.line<(typeof fcSeries)[number]>().x((p) => x(p.i)).y((p) => y(p.med)).curve(d3.curveMonotoneX)(fcSeries) ?? "";
   const pathLines = forecast && anchor
     ? forecast.paths.map((path) =>
         d3.line<[number, number]>().x((p) => x(p[0])).y((p) => y(p[1])).curve(d3.curveMonotoneX)(
@@ -233,7 +232,7 @@ export function PriceChart({
         ) ?? "")
     : [];
 
-  // Animation: sampled paths draw in one by one, then fade back while the bands and median sweep in.
+  // Animation: sampled paths draw in one by one, then fade back while the bands sweep in.
   useEffect(() => {
     if (!forecast || !pathsRef.current || !revealRef.current) return;
     const draw = duration(700, reduced);
@@ -327,7 +326,6 @@ export function PriceChart({
         </div>
         {forecast && (
           <div className="flex flex-wrap items-center gap-3 text-xs text-ink-2">
-            <LegendSwatch kind="line" label="Forecast median" />
             <LegendSwatch kind="band" opacity={0.28} label="50% range" />
             <LegendSwatch kind="band" opacity={0.12} label="80% range" />
           </div>
@@ -432,7 +430,6 @@ export function PriceChart({
                     <g clipPath={`url(#reveal-${clipId})`}>
                       <path d={area("p10", "p90")} fill={COLORS.forecast} fillOpacity={0.12} />
                       <path d={area("p25", "p75")} fill={COLORS.forecast} fillOpacity={0.16} />
-                      <path d={medianLine} fill="none" stroke={COLORS.forecast} strokeWidth={2} strokeDasharray="6 4" />
                     </g>
                   </>
                 )}
@@ -552,7 +549,6 @@ export function PriceChart({
               </div>
             ) : (
               <div className="tabular mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5">
-                <span className="text-ink-3">Median</span><span className="font-semibold">{fmt(hovered.p.close)}</span>
                 <span className="text-ink-3">50% range</span><span>{fmt(hovered.p.p25)} – {fmt(hovered.p.p75)}</span>
                 <span className="text-ink-3">80% range</span><span>{fmt(hovered.p.p10)} – {fmt(hovered.p.p90)}</span>
               </div>
@@ -629,7 +625,7 @@ function EmaSummary({ candles, emas, emaOn, crosses, interval }: {
           {last > c.i ? `, ${last - c.i} ${BARS_AGO[interval]} ago` : ", on the latest bar"}
         </span>
       ))}
-      <span className="text-ink-3">EMAs use {BAR_WORD[interval]} closes.</span>
+      <span className="text-ink-3">EMAs use {BAR_WORD[interval]} closes. Crossovers mark where averages cross; they weren&apos;t tested as buy or sell signals here.</span>
     </div>
   );
 }

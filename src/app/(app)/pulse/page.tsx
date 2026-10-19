@@ -30,7 +30,7 @@ const CHECK_LABEL: Record<PulseCheck, string> = {
 const pct = (v: number | null | undefined, d = 0) => (v == null ? "—" : `${(v * 100).toFixed(d)}%`);
 const signedPct = (v: number) => `${v >= 0 ? "+" : ""}${(v * 100).toFixed(2)}%`;
 
-/** Market Pulse: is the market strong enough to be aggressive, which sectors lead, and which stocks are breaking out. */
+/** Market Pulse: how broad the market's strength is, which sectors lead, and which stocks are breaking out. */
 export default function PulsePage() {
   const { market } = useMarket();
   const [data, setData] = useState<Pulse | null>(null);
@@ -78,7 +78,7 @@ export default function PulsePage() {
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Market Pulse · {MARKETS[market].name}</h1>
           <p className="mt-0.5 text-sm text-ink-2">
-            Should you be aggressive or careful today, which sectors lead, and which stocks are breaking out
+            How broad the market’s strength is today, which sectors lead, and which stocks are breaking out
             {data ? ` · ${data.stocks.toLocaleString()} liquid stocks` : ""}.
           </p>
         </div>
@@ -108,10 +108,10 @@ export default function PulsePage() {
                   {data.mood == null
                     ? ""
                     : data.mood >= 0.65
-                      ? "Broad strength: breakouts tend to follow through more often."
+                      ? "Broad strength. In testing, breakouts did best on days like this, but still only about broke even."
                       : data.mood < 0.45
-                        ? "Weak breadth: breakouts fail more often. Smaller size, or patience."
-                        : "Mixed: be selective and favour the strongest sectors."}
+                        ? "Weak breadth. In testing, breakouts lost the most on days like this."
+                        : "Mixed. In testing, breakouts lost money on average on days like this."}
                 </p>
               </div>
             </Card>
@@ -145,7 +145,7 @@ export default function PulsePage() {
             </Card>
           </div>
 
-          <Card title="Volume vs move" note="Today's most traded stocks. Above the dashed line = at least 1.5× usual volume: moves with conviction. Click a bubble to open the stock.">
+          <Card title="Volume vs move" note="Today's most traded stocks. Above the dashed line = at least 1.5× usual volume (in testing, heavy volume on up moves didn’t lead to better returns). Click a bubble to open the stock.">
             <Bubbles data={data.bubbles} market={market} />
           </Card>
 
@@ -206,7 +206,6 @@ export default function PulsePage() {
                       RVOL {c.rvol?.toFixed(1) ?? "—"}× · RSI {c.rsi.toFixed(0)} · ADX {c.adx.toFixed(0)}
                       {c.squeeze_before && " · tight range or low volume before the break"}
                     </p>
-                    {c.plan && <PlanStrip plan={c.plan} market={market} />}
                     <div className="mt-3 flex items-center gap-3 border-t border-line pt-2.5 text-xs">
                       <button
                         onClick={() => setOpen(c.symbol)}
@@ -256,8 +255,9 @@ function PlanRecord({ r, market }: { r: Pulse["records"]["plan"]; market: Market
   return (
     <div className="mb-3 rounded-lg bg-warn-wash px-3 py-2.5 text-xs leading-relaxed text-warn">
       <p>
-        <b>How far did similar breakouts go?</b> The plan on each card (entry now, stop under the breakout level, target at twice
-        the risk, out after 10 trading days) was tested on {r.trades.toLocaleString()} past breakouts{market === "in" ? " (upper-circuit days excluded)" : ""}:
+        <b>Why there&apos;s no entry, stop or target here.</b> Buying breakouts like these at the close, with a stop under the
+        breakout level, a target at twice the risk and out after 10 trading days, was tested on {r.trades.toLocaleString()} past
+        breakouts{market === "in" ? " (upper-circuit days excluded)" : ""}:
       </p>
       <div className="my-2 flex h-2.5 overflow-hidden rounded-full" aria-hidden>
         <div className="bg-up" style={{ width: `${r.target_hit * 100}%` }} />
@@ -266,28 +266,10 @@ function PlanRecord({ r, market }: { r: Pulse["records"]["plan"]; market: Market
       </div>
       <p>
         <b>{pct(r.target_hit)} reached the target</b> (usually within {r.median_days_to_target} days), {pct(r.timed_out)} ran out of time and{" "}
-        <b>{pct(r.stopped)} hit the stop first</b>. The typical best gain within 10 days was {signedPct(r.median_best_gain)}. On average the plan
-        about broke even before costs and lost a little after ({r.avg_r.toFixed(2)}R); stocks with a momentum rating of 80+ did a bit better
-        ({r.high_momentum.avg_r.toFixed(2)}R). So the levels are a disciplined plan, not a forecast: size every trade for the stop, and
-        expect most to fail.
+        <b>{pct(r.stopped)} hit the stop first</b>. The typical best gain within 10 days was {signedPct(r.median_best_gain)}. On average that
+        lost a little after costs ({r.avg_r.toFixed(2)}R; momentum rating 80+: {r.high_momentum.avg_r.toFixed(2)}R), and no other
+        target or time limit made money either. So this list shows what is breaking out, to study on the chart; it is not a buy signal.
       </p>
-    </div>
-  );
-}
-
-function PlanStrip({ plan, market }: { plan: NonNullable<Pulse["candidates"][number]["plan"]>; market: MarketId }) {
-  const cell = (label: string, value: number, note: string, cls: string) => (
-    <div className="min-w-0">
-      <p className="text-ink-3">{label}</p>
-      <p className={clsx("tabular truncate font-medium", cls)}>{price(value, market)}</p>
-      <p className="tabular text-ink-3">{note}</p>
-    </div>
-  );
-  return (
-    <div className="mt-2.5 grid grid-cols-3 gap-2 rounded-lg bg-wash px-2.5 py-2 text-[11px]">
-      {cell("Entry (now)", plan.entry, `max ${plan.max_days} days`, "text-ink")}
-      {cell("Stop-loss", plan.stop, `−${(plan.risk_pct * 100).toFixed(1)}%`, "text-down")}
-      {cell("Target (2:1)", plan.target, `+${(plan.reward_pct * 100).toFixed(1)}%`, "text-up")}
     </div>
   );
 }

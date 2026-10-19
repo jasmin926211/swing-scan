@@ -5,7 +5,7 @@ export type EmaPeriod = (typeof EMA_PERIODS)[number];
 
 /** The pairs traders watch: 9 / 21 for short-term turns, 50 / 200 for the golden and death cross. */
 export const CROSS_PAIRS: { fast: EmaPeriod; slow: EmaPeriod; up: string; down: string }[] = [
-  { fast: 9, slow: 21, up: "Bullish crossover (EMA 9 above 21)", down: "Bearish crossover (EMA 9 below 21)" },
+  { fast: 9, slow: 21, up: "Cross up (EMA 9 above 21)", down: "Cross down (EMA 9 below 21)" },
   { fast: 50, slow: 200, up: "Golden cross (EMA 50 above 200)", down: "Death cross (EMA 50 below 200)" },
 ];
 

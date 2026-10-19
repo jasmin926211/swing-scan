@@ -26,8 +26,8 @@ const FORECAST_STEPS = 8;
 const last = CANDLES[CANDLES.length - 1].c;
 const fan = Array.from({ length: FORECAST_STEPS }, (_, i) => {
   const t = i + 1;
-  const mid = last + 1.6 * t;
-  return { mid, lo80: mid - 2.6 * Math.sqrt(t) * 1.6, hi80: mid + 2.6 * Math.sqrt(t) * 1.6, lo50: mid - 1.3 * Math.sqrt(t) * 1.6, hi50: mid + 1.3 * Math.sqrt(t) * 1.6 };
+  const mid = last; // centred on the price: the range is shown, not a direction
+  return { lo80: mid - 2.6 * Math.sqrt(t) * 1.6, hi80: mid + 2.6 * Math.sqrt(t) * 1.6, lo50: mid - 1.3 * Math.sqrt(t) * 1.6, hi50: mid + 1.3 * Math.sqrt(t) * 1.6 };
 });
 const all = [...CANDLES.flatMap((c) => [c.h, c.l]), ...fan.flatMap((f) => [f.lo80, f.hi80])];
 const MIN = Math.min(...all) - 4;
@@ -62,18 +62,11 @@ export function HeroArt() {
         <text x={nowX + STEP / 2 + 6} y={PAD + 2} fontSize="11" fill={FORECAST}>AI forecast →</text>
         <polygon points={band((f) => f.lo80, (f) => f.hi80)} fill={FORECAST} fillOpacity={0.1} />
         <polygon points={band((f) => f.lo50, (f) => f.hi50)} fill={FORECAST} fillOpacity={0.18} />
-        <polyline
-          points={[`${nowX},${y(last)}`, ...fan.map((f, i) => `${x(CANDLES.length + i)},${y(f.mid)}`)].join(" ")}
-          fill="none"
-          stroke={FORECAST}
-          strokeWidth={2}
-          strokeDasharray="5 4"
-        />
       </svg>
       <div className="absolute bottom-6 left-6 rounded-xl border border-line bg-paper/95 px-3.5 py-2.5 text-xs shadow-sm">
         <p className="text-ink-3">CandleTrade AI · next 10 days</p>
         <p className="mt-0.5 font-semibold text-ink">
-          Likely range shown <span className="font-normal text-ink-3">· held 85% of outcomes in testing</span>
+          Likely range shown <span className="font-normal text-ink-3">· held 84% of outcomes in testing</span>
         </p>
         <p className="mt-1 flex items-center gap-1.5 text-[11px] text-ink-3">
           <span className="h-1.5 w-1.5 rounded-full bg-ink-3" /> No up / down call unless it has proved reliable
