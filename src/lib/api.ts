@@ -454,3 +454,40 @@ export type StockOi = {
 };
 export const getOiBuildup = (m: MarketId) => request<{ date: string; rows: BuildupRow[] }>(`/api/markets/${m}/oi/buildup`);
 export const getStockOi = (m: MarketId, symbol: string) => request<StockOi>(`${stockPath(m, symbol)}/oi`);
+
+export type PulseCheck = "above_ema20" | "breakout" | "volume" | "rsi" | "adx" | "relative_strength";
+export type PulseCandidate = {
+  symbol: string;
+  name: string | null;
+  sector: string | null;
+  price: number;
+  change_pct: number | null;
+  rvol: number | null;
+  rsi: number;
+  adx: number;
+  squeeze_before: boolean;
+  checks: Record<PulseCheck, boolean>;
+  score: number;
+  ema20: number;
+  breakout_level: number;
+};
+export type Pulse = {
+  market: MarketId;
+  updated_at: number;
+  market_open: boolean;
+  indicators_at: number | null;
+  stocks: number;
+  mood: number | null; // 0..1
+  breadth: { above_ema20: number | null; above_50dma: number | null; above_200dma: number | null };
+  advance_decline: { advances: number; declines: number; unchanged: number };
+  highs_lows: { highs: number; lows: number };
+  history: { t: number; above_ema20: number | null; ad: number | null }[];
+  index: { name: string; price: number | null; change_pct: number | null };
+  vix: { name: string; value: number | null; change_pct: number | null };
+  sectors: { sector: string; stocks: number; change_pct: number; above_ema20: number | null }[];
+  candidates: PulseCandidate[];
+  candidates_total: number;
+  bubbles: { symbol: string; sector: string | null; change_pct: number; rvol: number; turnover: number }[];
+  buildup: { date: string; counts: Partial<Record<Buildup, number>> } | null;
+};
+export const getPulse = (m: MarketId) => request<Pulse>(`/api/markets/${m}/pulse`);

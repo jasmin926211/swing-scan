@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import clsx from "clsx";
+import { Activity } from "lucide-react";
 import type { MarketId } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { MARKETS } from "@/lib/format";
@@ -20,7 +21,7 @@ const PUBLIC_PAGES = [
 export function Header() {
   const { user, ready } = useAuth();
   const pathname = usePathname();
-  const inApp = ["/markets", "/stock", "/fno"].some((p) => pathname.startsWith(p));
+  const inApp = ["/markets", "/stock", "/fno", "/pulse"].some((p) => pathname.startsWith(p));
 
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-paper/90 backdrop-blur">
@@ -34,6 +35,11 @@ export function Header() {
               </NavLink>
               <NavLink href="/fno" active={pathname.startsWith("/fno")}>
                 F&amp;O
+              </NavLink>
+              <NavLink href="/pulse" active={pathname.startsWith("/pulse")}>
+                {/* An icon on phones: the header has no room for a third word there. */}
+                <Activity className="h-4 w-4 sm:hidden" aria-label="Pulse" />
+                <span className="hidden sm:inline">Pulse</span>
               </NavLink>
             </nav>
           ) : (
@@ -86,11 +92,12 @@ function CountrySwitch() {
   const router = useRouter();
   const pathname = usePathname();
   const onFno = pathname.startsWith("/fno");
+  const onPulse = pathname.startsWith("/pulse");
 
   function choose(m: MarketId) {
     setMarket(m);
     // A stock or contract page belongs to one market; switching country goes back to that country's list.
-    const home = onFno ? "/fno" : "/markets";
+    const home = onFno ? "/fno" : onPulse ? "/pulse" : "/markets";
     if (pathname !== home) router.push(home);
   }
 
