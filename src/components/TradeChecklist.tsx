@@ -6,13 +6,13 @@ import { Check, ChevronDown, ClipboardCopy, Info, TriangleAlert, X } from "lucid
 import { getChecklist, type CheckStatus, type Checklist, type MarketId, type TradeSide } from "@/lib/api";
 import { money, price } from "@/lib/format";
 
-export const STATUS: Record<CheckStatus, { Icon: typeof Check; cls: string; label: string }> = {
+const STATUS: Record<CheckStatus, { Icon: typeof Check; cls: string; label: string }> = {
   pass: { Icon: Check, cls: "bg-up-wash text-up", label: "Pass" },
   warn: { Icon: TriangleAlert, cls: "bg-warn-wash text-warn", label: "Warning" },
   fail: { Icon: X, cls: "bg-down-wash text-down", label: "Fail" },
   info: { Icon: Info, cls: "bg-wash text-ink-3", label: "Info" },
 };
-export const VERDICT: Record<Checklist["verdict"], { cls: string; text: string }> = {
+const VERDICT: Record<Checklist["verdict"], { cls: string; text: string }> = {
   Passes: { cls: "border-up/30 bg-up-wash text-up", text: "Passes the checklist" },
   Caution: { cls: "border-warn/30 bg-warn-wash text-warn", text: "Caution: several warnings" },
   Skip: { cls: "border-down/30 bg-down-wash text-down", text: "Skip this trade" },
@@ -20,7 +20,7 @@ export const VERDICT: Record<Checklist["verdict"], { cls: string; text: string }
 const DEFAULT_RISK: Record<MarketId, number> = { in: 10000, us: 500 };
 
 /** The risk amount saved by the position-size calculator (Expected move card), or a default. */
-export function savedRisk(market: MarketId): number {
+function savedRisk(market: MarketId): number {
   try {
     const v = Number(localStorage.getItem(`ct.risk.${market}`));
     if (v > 0) return v;
@@ -28,7 +28,7 @@ export function savedRisk(market: MarketId): number {
   return DEFAULT_RISK[market];
 }
 
-export function planText(c: Checklist, market: MarketId, shares: number): string {
+function planText(c: Checklist, market: MarketId, shares: number): string {
   const lines = [
     `${c.symbol}${c.name ? ` (${c.name})` : ""}: ${c.side === "long" ? "BUY" : "SELL / SHORT"} plan, ${new Date().toLocaleDateString("en-GB")}`,
     `Verdict: ${VERDICT[c.verdict].text}${c.fails.length ? ` (failed: ${c.fails.join(", ")})` : ""}`,
