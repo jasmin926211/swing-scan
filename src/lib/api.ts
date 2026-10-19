@@ -105,7 +105,11 @@ export type ForecastSummary = {
   close_p90: number;
   predicted_high: number;
   predicted_low: number;
+  /** "bullish" / "bearish" only where direction calls were validated out of sample; otherwise "neutral". */
   outlook: "bullish" | "bearish" | "neutral";
+  /** How often stocks really closed higher after forecasts like this, in testing; null if this setting wasn't tested. */
+  tested_prob_up: number | null;
+  direction_validated: boolean;
 };
 
 export type ForecastPoint = {

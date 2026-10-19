@@ -73,10 +73,10 @@ export function HeroArt() {
       <div className="absolute bottom-6 left-6 rounded-xl border border-line bg-paper/95 px-3.5 py-2.5 text-xs shadow-sm">
         <p className="text-ink-3">CandleTrade AI · next 10 days</p>
         <p className="mt-0.5 font-semibold text-ink">
-          64% chance higher <span className="font-normal text-ink-3">· 80% range shown</span>
+          Likely range shown <span className="font-normal text-ink-3">· held 85% of outcomes in testing</span>
         </p>
-        <p className="mt-1 flex items-center gap-1.5 text-[11px] text-up">
-          <span className="h-1.5 w-1.5 rounded-full bg-up" /> Beat “no change” on this stock recently
+        <p className="mt-1 flex items-center gap-1.5 text-[11px] text-ink-3">
+          <span className="h-1.5 w-1.5 rounded-full bg-ink-3" /> No up / down call unless it has proved reliable
         </p>
       </div>
     </div>

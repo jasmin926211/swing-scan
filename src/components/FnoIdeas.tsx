@@ -8,9 +8,9 @@ import { fmtDate, money, pct, price } from "@/lib/format";
 import { PayoffChart } from "./charts/PayoffChart";
 
 const OUTLOOK = {
-  bullish: { label: "Bullish", Icon: TrendingUp, cls: "bg-up-wash text-up" },
-  bearish: { label: "Bearish", Icon: TrendingDown, cls: "bg-down-wash text-down" },
-  neutral: { label: "Neutral", Icon: Minus, cls: "bg-wash text-ink-2" },
+  bullish: { label: "Likely up (validated)", Icon: TrendingUp, cls: "bg-up-wash text-up" },
+  bearish: { label: "Likely down (validated)", Icon: TrendingDown, cls: "bg-down-wash text-down" },
+  neutral: { label: "No reliable direction", Icon: Minus, cls: "bg-wash text-ink-2" },
 };
 
 export function FnoIdeas({ market, symbol, expiry }: { market: MarketId; symbol: string; expiry: string }) {
@@ -91,7 +91,8 @@ export function FnoIdeas({ market, symbol, expiry }: { market: MarketId; symbol:
               <Stat label={`Median price at expiry (${result.horizon} trading days)`} value={price(s.predicted_close * scale, market)}
                 sub={`spot ${price(result.spot, market)}`} />
               <Stat label="AI 80% range" value={`${price(s.close_p10 * scale, market)} – ${price(s.close_p90 * scale, market)}`} />
-              <Stat label="Chance of finishing higher" value={pct(s.prob_up, 0)} />
+              <Stat label="Closed higher after views like this, in testing" value={s.tested_prob_up != null ? `≈ ${pct(s.tested_prob_up, 0)}` : "not tested"}
+                sub={`model's paths ending higher: ${pct(s.prob_up, 0)}`} />
               {result.market_iv != null && <Stat label="Market implied volatility (ATM)" value={pct(result.market_iv)} />}
             </div>
             <div className="lg:col-span-2">
