@@ -9,6 +9,7 @@ import { MARKETS, changeColor, compact, fmtDate, price, signedPct } from "@/lib/
 import { useMarket } from "@/lib/market";
 import { UpstoxConnect } from "@/components/UpstoxConnect";
 import { StockLogo } from "@/components/StockLogo";
+import { OiBuildup } from "@/components/OiBuildup";
 
 export default function FnoHome() {
   const { market } = useMarket();
@@ -47,6 +48,8 @@ export default function FnoHome() {
           Analysis only — place orders in your broker app.
         </p>
       </div>
+
+      {market === "in" && <OiBuildup />}
 
       {market === "in" && <UpstoxConnect />}
 

@@ -49,7 +49,7 @@ const SCREENS = (m: MarketId): Screen[] => [
 // Filters that count as "active" in the Filters button badge (search and cap have their own controls).
 const PANEL_KEYS: (keyof StockFilters)[] = [
   "sector", "exchange", "fo", "min_price", "max_price", "min_change", "max_change", "min_volume",
-  "min_turnover", "min_rel_volume", "near_high", "near_low", "min_pe", "max_pe", "pattern",
+  "min_turnover", "min_rel_volume", "near_high", "near_low", "min_pe", "max_pe", "pattern", "buildup",
 ];
 const isSet = (v: unknown) => v !== undefined && v !== null && v !== "" && v !== false;
 

@@ -10,6 +10,7 @@ import { MARKETS, compact, fmtDate, price } from "@/lib/format";
 import { useMarket } from "@/lib/market";
 import { UpstoxConnect } from "@/components/UpstoxConnect";
 import { OptionChain } from "@/components/OptionChain";
+import { OiLevels } from "@/components/OiLevels";
 import { FnoIdeas } from "@/components/FnoIdeas";
 import { StockLogo } from "@/components/StockLogo";
 
@@ -108,6 +109,8 @@ export default function FnoPage() {
               <p className="text-xs text-ink-3">Lot size {overview.lot_size}</p>
             </div>
           </section>
+
+          <OiLevels market={market} symbol={symbol} />
 
           {market === "in" && upstoxNeeded && <UpstoxConnect />}
 
