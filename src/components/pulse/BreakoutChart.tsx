@@ -76,7 +76,8 @@ export function BreakoutChart({ market, c, candles, index, indexName, indexLive,
   const vis = (arr: (number | null)[]) => arr.slice(s.from);
   const lows = candles.slice(s.from).map((k) => k[3]), highs = candles.slice(s.from).map((k) => k[2]);
   const yPrice = d3.scaleLinear()
-    .domain(d3.extent([...lows, ...highs, c.price, c.breakout_level, ...vis(s.e20).filter((v): v is number => v != null)]) as [number, number])
+    .domain(d3.extent([...lows, ...highs, c.price, c.breakout_level, ...(c.plan ? [c.plan.stop, c.plan.target] : []),
+      ...vis(s.e20).filter((v): v is number => v != null)]) as [number, number])
     .nice().range([PANES[0].h, 0]);
   const vmax = d3.max([...candles.slice(s.from).map((k) => k[5]), s.liveVol ?? 0, ...vis(s.avgVol).map((v) => (v ?? 0) * 1.5)]) || 1;
   const yVol = d3.scaleLinear().domain([0, vmax]).range([PANES[1].h, 0]);
@@ -119,7 +120,7 @@ export function BreakoutChart({ market, c, candles, index, indexName, indexLive,
 
   const head: Record<(typeof PANES)[number]["id"], { title: string; checks: PulseCheck[]; note: string }> = {
     price: { title: "Price, 20 EMA and the 20-day high", checks: ["above_ema20", "breakout"],
-      note: `Live ${fmt(c.price)} vs 20 EMA ${fmt(c.ema20)} and 20-day high ${fmt(c.breakout_level)}` },
+      note: `Live ${fmt(c.price)} vs 20 EMA ${fmt(c.ema20)} and 20-day high ${fmt(c.breakout_level)}${c.plan ? ` · plan: stop ${fmt(c.plan.stop)}, target ${fmt(c.plan.target)}` : ""}` },
     volume: { title: "Volume vs its 20-day average", checks: ["volume"],
       note: `Today so far ${c.rvol != null ? c.rvol.toFixed(1) : "—"}× the average (${compact(lastAvgVol, market)}); needs 1.5×` },
     rsi: { title: "RSI (14)", checks: ["rsi"], note: `Live ${c.rsi.toFixed(0)}; needs 60 or more` },
@@ -176,6 +177,13 @@ export function BreakoutChart({ market, c, candles, index, indexName, indexLive,
                             </g>
                           );
                         })}
+                        {c.plan && ([["target", c.plan.target, COLORS.up], ["stop", c.plan.stop, COLORS.down]] as const).map(([label, v, col]) => (
+                          <g key={label}>
+                            <line x1={cx(Math.max(0, n - 15))} x2={innerW} y1={yPrice(v)} y2={yPrice(v)} stroke={col} strokeWidth={1.25} strokeDasharray="6 3" />
+                            <text x={cx(Math.max(0, n - 15)) - 4} y={yPrice(v)} dy="0.32em" textAnchor="end" fontSize={10} fontWeight={600} fill={col}
+                              paintOrder="stroke" stroke={COLORS.paper} strokeWidth={3}>{label} {fmt(v)}</text>
+                          </g>
+                        ))}
                         <path className="draw" d={stepPath(vis(s.brk), yPrice, c.breakout_level)} fill="none" stroke={COLORS.ema9} strokeWidth={1.5} strokeDasharray="5 3" />
                         <path className="draw" d={path(vis(s.e20), yPrice, [live, c.ema20])} fill="none" stroke={COLORS.ema50} strokeWidth={2} />
                         <circle cx={cx(live)} cy={yPrice(c.price)} r={6} fill={c.checks.breakout ? COLORS.up : COLORS.down} stroke={COLORS.paper} strokeWidth={2}>

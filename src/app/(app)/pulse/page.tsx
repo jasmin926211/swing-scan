@@ -163,14 +163,7 @@ export default function PulsePage() {
             title={`Breakout candidates · ${data.candidates_total}`}
             note="Through the 20-day high and above the 20 EMA, with most of the swing checklist met. A watchlist to check, not a buy list."
           >
-            <p className="mb-3 rounded-lg bg-warn-wash px-3 py-2 text-xs leading-relaxed text-warn">
-              <b>Tested on 10 years:</b> buying every stock with this setup at the breakout day&apos;s close averaged{" "}
-              {signedPct(data.records.breakouts.days2)} after 2 days, {signedPct(data.records.breakouts.days5)} after 5 and{" "}
-              {signedPct(data.records.breakouts.days10)} after 10, after costs, with {pct(data.records.breakouts.win_rate)} of trades
-              winning{market === "in" ? " (upper-circuit days excluded: they can't be bought)" : ""}. Buying the next morning did worse.
-              On its own the setup has no edge: use the list to find stocks to study, then decide with the chart, levels, news and
-              the momentum rating.
-            </p>
+            <PlanRecord r={data.records.plan} market={market} />
             {data.candidates.length === 0 ? (
               <p className="text-sm text-ink-3">No stock meets the conditions right now.</p>
             ) : (
@@ -210,9 +203,10 @@ export default function PulsePage() {
                       ))}
                     </div>
                     <p className="tabular mt-2 text-[11px] text-ink-3">
-                      RVOL {c.rvol?.toFixed(1) ?? "—"}× · RSI {c.rsi.toFixed(0)} · ADX {c.adx.toFixed(0)} · stop ref. 20 EMA {price(c.ema20, market)}
+                      RVOL {c.rvol?.toFixed(1) ?? "—"}× · RSI {c.rsi.toFixed(0)} · ADX {c.adx.toFixed(0)}
                       {c.squeeze_before && " · tight range or low volume before the break"}
                     </p>
+                    {c.plan && <PlanStrip plan={c.plan} market={market} />}
                     <div className="mt-3 flex items-center gap-3 border-t border-line pt-2.5 text-xs">
                       <button
                         onClick={() => setOpen(c.symbol)}
@@ -253,6 +247,47 @@ export default function PulsePage() {
           </p>
         </>
       )}
+    </div>
+  );
+}
+
+/** What the candidate trade plan did on 10 years of breakouts, in plain words. */
+function PlanRecord({ r, market }: { r: Pulse["records"]["plan"]; market: MarketId }) {
+  return (
+    <div className="mb-3 rounded-lg bg-warn-wash px-3 py-2.5 text-xs leading-relaxed text-warn">
+      <p>
+        <b>How far did similar breakouts go?</b> The plan on each card (entry now, stop under the breakout level, target at twice
+        the risk, out after 10 trading days) was tested on {r.trades.toLocaleString()} past breakouts{market === "in" ? " (upper-circuit days excluded)" : ""}:
+      </p>
+      <div className="my-2 flex h-2.5 overflow-hidden rounded-full" aria-hidden>
+        <div className="bg-up" style={{ width: `${r.target_hit * 100}%` }} />
+        <div className="bg-line" style={{ width: `${r.timed_out * 100}%` }} />
+        <div className="bg-down" style={{ width: `${r.stopped * 100}%` }} />
+      </div>
+      <p>
+        <b>{pct(r.target_hit)} reached the target</b> (usually within {r.median_days_to_target} days), {pct(r.timed_out)} ran out of time and{" "}
+        <b>{pct(r.stopped)} hit the stop first</b>. The typical best gain within 10 days was {signedPct(r.median_best_gain)}. On average the plan
+        about broke even before costs and lost a little after ({r.avg_r.toFixed(2)}R); stocks with a momentum rating of 80+ did a bit better
+        ({r.high_momentum.avg_r.toFixed(2)}R). So the levels are a disciplined plan, not a forecast: size every trade for the stop, and
+        expect most to fail.
+      </p>
+    </div>
+  );
+}
+
+function PlanStrip({ plan, market }: { plan: NonNullable<Pulse["candidates"][number]["plan"]>; market: MarketId }) {
+  const cell = (label: string, value: number, note: string, cls: string) => (
+    <div className="min-w-0">
+      <p className="text-ink-3">{label}</p>
+      <p className={clsx("tabular font-medium", cls)}>{price(value, market)}</p>
+      <p className="tabular text-ink-3">{note}</p>
+    </div>
+  );
+  return (
+    <div className="mt-2.5 grid grid-cols-3 gap-2 rounded-lg bg-wash px-2.5 py-2 text-[11px]">
+      {cell("Entry (now)", plan.entry, `max ${plan.max_days} days`, "text-ink")}
+      {cell("Stop-loss", plan.stop, `−${(plan.risk_pct * 100).toFixed(1)}%`, "text-down")}
+      {cell("Target (2:1)", plan.target, `+${(plan.reward_pct * 100).toFixed(1)}%`, "text-up")}
     </div>
   );
 }
