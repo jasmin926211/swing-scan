@@ -15,6 +15,11 @@ const LIGHT = {
   volume: "#d9d9d5",
   crosshair: "#c9c9c4",
   paper: "#ffffff",
+  // EMA lines: three categorical hues plus a neutral for the long-term 200 (all pairs checked, since lines cross).
+  ema9: "#eda100",
+  ema21: "#e87ba4",
+  ema50: "#6250d6",
+  ema200: "#52514e",
 };
 
 const DARK: typeof LIGHT = {
@@ -30,6 +35,10 @@ const DARK: typeof LIGHT = {
   volume: "#3a3a36",
   crosshair: "#5a5a54",
   paper: "#111110",
+  ema9: "#c98500",
+  ema21: "#d55181",
+  ema50: "#9085e9",
+  ema200: "#b4b3ad",
 };
 
 export type ChartColors = typeof LIGHT;
