@@ -30,7 +30,7 @@ export function ExpectedMove({ market, symbol, livePrice }: { market: MarketId; 
   const base = livePrice ?? data?.close ?? null;
 
   return (
-    <section className="rounded-xl border border-line">
+    <section className="overflow-hidden rounded-xl border border-line">
       <div className="border-b border-line px-4 py-3">
         <h2 className="text-sm font-semibold">Expected move</h2>
         <p className="mt-0.5 text-xs leading-relaxed text-ink-3">
@@ -41,21 +41,23 @@ export function ExpectedMove({ market, symbol, livePrice }: { market: MarketId; 
       {error && <p className="px-4 py-3 text-sm text-ink-2">{error}</p>}
       {!data && !error && <div className="m-4 h-24 animate-pulse rounded-lg bg-wash" />}
       {data && base != null && (
-        <div className="grid gap-px bg-line lg:grid-cols-[3fr_2fr]">
-          <div className="grid grid-cols-1 gap-px bg-line sm:grid-cols-3">
-            {data.horizons.map((h) => (
-              <div key={h.days} className="bg-paper px-4 py-3">
-                <p className="text-xs text-ink-3">{LABEL[h.days] ?? `${h.days} days`}</p>
-                <p className="tabular mt-1 text-xl font-semibold tracking-tight">±{pctText(h.likely.up)}</p>
-                <p className="tabular mt-0.5 text-xs text-ink-2">
-                  {price(base * (1 + h.likely.down), market)} – {price(base * (1 + h.likely.up), market)}
-                </p>
-                <p className="mt-1 text-[11px] text-ink-3">
-                  Rare (1 in 20): beyond ±{pctText(h.rare.up)}
-                </p>
-              </div>
-            ))}
-            <p className="bg-paper px-4 py-3 text-xs leading-relaxed text-ink-2 sm:col-span-3">
+        <div className="grid lg:grid-cols-[3fr_2fr]">
+          <div>
+            <div className="grid grid-cols-1 divide-y divide-line sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+              {data.horizons.map((h) => (
+                <div key={h.days} className="px-4 py-3">
+                  <p className="text-xs text-ink-3">{LABEL[h.days] ?? `${h.days} days`}</p>
+                  <p className="tabular mt-1 text-xl font-semibold tracking-tight">±{pctText(h.likely.up)}</p>
+                  <p className="tabular mt-0.5 text-xs text-ink-2">
+                    {price(base * (1 + h.likely.down), market)} – {price(base * (1 + h.likely.up), market)}
+                  </p>
+                  <p className="mt-1 text-[11px] text-ink-3">
+                    Rare (1 in 20): beyond ±{pctText(h.rare.up)}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <p className="border-t border-line px-4 py-3 text-xs leading-relaxed text-ink-2">
               <span className="font-medium text-ink">Stop guide:</span> a stop less than {pctText(data.horizons[0].likely.down)} away
               ({price(base * (1 + data.horizons[0].likely.down), market)} for a buy) sits inside ordinary daily noise and gets hit about 1 day in 10
               with no real change in the trend. For a 2-week swing, normal movement reaches {pctText(data.horizons[2].likely.down)} on the downside.
@@ -90,10 +92,10 @@ function RiskCalculator({ market, base, defaultStop }: { market: MarketId; base:
 
   const perShare = base * (stopPct / 100);
   const qty = perShare > 0 && risk > 0 ? Math.floor(risk / perShare) : 0;
-  const INPUT = "tabular w-full rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm outline-none focus:border-ink-3";
+  const INPUT = "tabular w-full rounded-lg border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none focus:border-ink-3";
 
   return (
-    <div className="bg-paper px-4 py-3">
+    <div className="border-t border-line px-4 py-3 lg:border-l lg:border-t-0">
       <p className="text-xs font-semibold text-ink">Position size</p>
       <div className="mt-2 grid grid-cols-2 gap-3">
         <label className="text-xs text-ink-3">
