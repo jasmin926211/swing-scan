@@ -128,6 +128,12 @@ function AiRange({ market, c }: { market: MarketId; c: PulseCandidate }) {
   }
 
   const s = fc?.summary;
+  // In testing the range held 84% of outcomes, but only 43% when the latest close sat outside the AI's own range
+  // (56 of 4,247 forecasts): the model is then extremely one-sided and shouldn't be trusted.
+  const eps = s ? s.last_close * 1e-4 : 0; // "on the edge" counts as inside, as in the test
+  const oneSided = !!s && (s.last_close < s.close_p10 - eps || s.last_close > s.close_p90 + eps);
+  const drift = s ? plan.entry / s.last_close - 1 : 0; // the forecast starts from the last completed close
+  const where = (v: number) => (!s ? "" : v < s.close_p10 ? "below the range" : v > s.close_p90 ? "above the range" : "inside the range");
   const lo = s ? Math.min(s.close_p10, plan.stop) : 0;
   const hi = s ? Math.max(s.close_p90, plan.target) : 1;
   const at = (v: number) => `${((v - lo) / (hi - lo || 1)) * 100}%`;
@@ -147,7 +153,14 @@ function AiRange({ market, c }: { market: MarketId; c: PulseCandidate }) {
         </button>
       </div>
       {error && <p className="mt-3 text-sm text-down">{error}</p>}
-      {s && (
+      {s && oneSided && (
+        <p className="mt-3 rounded-lg bg-warn-wash px-3 py-2 text-xs leading-relaxed text-warn">
+          <b>Don&apos;t use this range.</b> The AI is extremely one-sided here: the latest close ({price(s.last_close, market)}) is outside its own
+          80% range ({price(s.close_p10, market)} – {price(s.close_p90, market)}). In testing that happened in 56 of 4,247 forecasts, and the range then
+          held only 43% of the time (84% otherwise). It often happens after very sharp moves like this one.
+        </p>
+      )}
+      {s && !oneSided && (
         <div className="mt-4">
           <div className="relative h-8">
             <div className="absolute inset-x-0 top-3.5 h-1 rounded-full bg-line" />
@@ -157,14 +170,25 @@ function AiRange({ market, c }: { market: MarketId; c: PulseCandidate }) {
               <div key={k} className={clsx("absolute top-1 h-6 w-0.5", cls)} style={{ left: at(v) }} title={k} />
             ))}
           </div>
+          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-ink-3">
+            {([["bg-accent/30", "80% range"], ["bg-accent", "median"], ["bg-ink", "entry"], ["bg-down", "stop"], ["bg-up", "target"]] as const).map(([cls, label]) => (
+              <span key={label} className="flex items-center gap-1.5"><span className={clsx("h-2.5 w-2.5 rounded-sm", cls)} />{label}</span>
+            ))}
+          </div>
           <div className="tabular mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-xs sm:grid-cols-4">
             <span><span className="text-ink-3">80% range </span>{price(s.close_p10, market)} – {price(s.close_p90, market)}</span>
             <span><span className="text-ink-3">Median </span>{price(s.predicted_close, market)}</span>
-            <span className="text-down"><span className="text-ink-3">Stop </span>{price(plan.stop, market)} {s.close_p10 <= plan.stop ? "(inside the range)" : "(below the range)"}</span>
-            <span className="text-up"><span className="text-ink-3">Target </span>{price(plan.target, market)} {s.close_p90 >= plan.target ? "(inside the range)" : "(above the range)"}</span>
+            <span className="text-down"><span className="text-ink-3">Stop </span>{price(plan.stop, market)} ({where(plan.stop)})</span>
+            <span className="text-up"><span className="text-ink-3">Target </span>{price(plan.target, market)} ({where(plan.target)})</span>
           </div>
+          {Math.abs(drift) > 0.02 && (
+            <p className="mt-2 text-[11px] text-warn">
+              The forecast starts from the last completed close, {price(s.last_close, market)}; the live price has moved {drift >= 0 ? "+" : ""}
+              {(drift * 100).toFixed(1)}% since, so read the range with that in mind.
+            </p>
+          )}
           <p className="mt-2 text-[11px] leading-relaxed text-ink-3">
-            The 80% range held the actual price 83% of the time in testing. A target above the range means the AI&apos;s paths rarely reach it within
+            The 80% range held the actual price 84% of the time in testing. A target above the range means the AI&apos;s paths rarely reach it within
             {" "}{plan.max_days} days; a stop inside the range means ordinary swings can reach it. Closed higher after views like this in testing:{" "}
             {s.tested_prob_up != null ? `≈ ${Math.round(s.tested_prob_up * 100)}%` : "not tested"}.
           </p>
