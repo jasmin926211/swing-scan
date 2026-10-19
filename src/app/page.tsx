@@ -14,7 +14,7 @@ const FEATURES = [
   {
     icon: Sparkles,
     title: "AI forecasts in seconds",
-    body: "Pick a stock and CandleTrade AI samples dozens of possible futures from its recent candles: the median path, a likely range and the chance of closing higher, drawn right on the chart.",
+    body: "Pick a stock and CandleTrade AI samples dozens of possible futures from its recent candles: the median path and a likely range tested on stocks it hadn’t seen, drawn right on the chart.",
   },
   {
     icon: Target,
@@ -37,8 +37,8 @@ const STEPS = [
 
 const IDEAS = [
   {
-    title: "Forecasts are probabilities",
-    body: "A 65% chance of closing higher still means it won’t, about one time in three. Size every trade so being wrong is affordable.",
+    title: "Direction is close to a coin flip",
+    body: "In our tests on stocks the AI hadn’t seen, its up / down view was right about half the time, so we don’t show it as a call. Plan with ranges and stops, and size every trade so being wrong is affordable.",
   },
   {
     title: "Risk 1–2% per trade",
@@ -64,8 +64,8 @@ const IDEAS = [
 
 const FAQ = [
   {
-    q: "Should I buy just because the AI says “Bullish”?",
-    a: "No. “Bullish” means at least 60% of the AI’s sampled paths end higher and the average path is up; it is a probability, not a signal to act on alone. Check the trust note under the forecast first, then decide entry, stop-loss and position size from your own plan. If the AI hasn’t beaten “price stays flat” on that stock recently, the forecast is flagged as low trust.",
+    q: "Will the AI tell me when a stock is going up?",
+    a: "Only when that has proved reliable, and so far it hasn’t. We tested the AI’s up / down view on thousands of past forecasts for stocks it hadn’t seen: even when most of its paths pointed up, those stocks closed higher only about half the time. So the site shows “No reliable direction” instead of a buy or sell call that would often be wrong. The forecast’s price range is reliable (it held the actual price about 85% of the time), so use it, the Expected move and the trade checklist to plan entry, stop-loss and size.",
   },
   {
     q: "Which timeframe should I use for swing or intraday trading?",

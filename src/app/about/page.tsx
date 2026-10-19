@@ -90,7 +90,9 @@ export default function About() {
               The AI’s edge on direction is weak: about 56% right 10 days ahead and close to a coin flip over one to
               three days, and its price error is no better than assuming the price stays flat. Its raw ranges were far
               too narrow, so we widen them to match how often prices really landed inside. No model predicts single
-              stocks reliably, so CandleTrade is built to show you when not to trust it.
+              stocks reliably, so CandleTrade is built to show you when not to trust it. A later test on 200 fresh stocks
+              found no confidence level at which its up / down view was right at least 60% of the time in both halves of
+              the test, so the site shows &ldquo;No reliable direction&rdquo; instead of buy or sell calls.
             </p>
           </div>
           <ul className="space-y-3 text-sm">

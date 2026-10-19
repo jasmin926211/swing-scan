@@ -20,9 +20,10 @@ const HORIZON: Record<Interval, { value: number; unit: string; options: number[]
 };
 
 const OUTLOOK = {
-  bullish: { label: "Bullish", Icon: TrendingUp, cls: "bg-up-wash text-up" },
-  bearish: { label: "Bearish", Icon: TrendingDown, cls: "bg-down-wash text-down" },
-  neutral: { label: "Neutral", Icon: Minus, cls: "bg-wash text-ink-2" },
+  bullish: { label: "Likely up (validated)", Icon: TrendingUp, cls: "bg-up-wash text-up" },
+  bearish: { label: "Likely down (validated)", Icon: TrendingDown, cls: "bg-down-wash text-down" },
+  // No call: the model's view hasn't proved reliable out of sample, so the site doesn't turn it into up / down.
+  neutral: { label: "No reliable direction", Icon: Minus, cls: "bg-wash text-ink-2" },
 };
 
 export function ForecastPanel({
@@ -134,22 +135,14 @@ export function ForecastPanel({
             <p className="tabular text-xs text-ink-3">from last close {price(s.last_close, market)}</p>
           </div>
 
-          <div>
-            <div className="mb-1 flex justify-between text-xs">
-              <span className="text-ink-3">Chance of closing higher</span>
-              <span className="tabular font-medium">{pct(s.prob_up, 0)}</span>
-            </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-line" role="meter" aria-valuenow={Math.round(s.prob_up * 100)} aria-valuemin={0} aria-valuemax={100}>
-              <div className="h-full rounded-full bg-accent" style={{ width: `${s.prob_up * 100}%` }} />
-            </div>
-          </div>
+          <DirectionNote s={s} paths={forecast.paths.length} />
 
           <dl className="grid grid-cols-2 gap-3 text-sm">
             <Item label="80% likely close" value={`${price(s.close_p10, market)} – ${price(s.close_p90, market)}`} wide />
             <Item label="Expected high" value={price(s.predicted_high, market)} />
             <Item label="Expected low" value={price(s.predicted_low, market)} />
             <Item label="Mean return" value={`${s.expected_return >= 0 ? "+" : ""}${pct(s.expected_return, 2)}`} />
-            <Item label="Paths ending higher" value={`${Math.round(s.prob_up * forecast.paths.length)} / ${forecast.paths.length}`} />
+            <Item label="Range width" value={pct(s.close_p90 / s.close_p10 - 1, 1)} />
           </dl>
 
           <p className="text-xs leading-relaxed text-ink-3">
@@ -185,9 +178,35 @@ function TrustNote({ symbol, accuracy }: { symbol: string; accuracy: AccuracySta
       </p>
     );
   return (
-    <p className="rounded-lg bg-up-wash px-3 py-2 text-xs leading-relaxed text-up">
-      <b>Better than “no change” recently.</b> On {symbol}: direction right {hits}, {errors}. Still a small sample.
+    <p className="rounded-lg bg-wash px-3 py-2 text-xs leading-relaxed text-ink-2">
+      <b>Looked better than “no change” recently</b> on {symbol}: direction right {hits}, {errors}. {r.checks.length} checks
+      can&apos;t prove skill: a coin flip gets 6 of 8 right about 1 time in 7.
     </p>
+  );
+}
+
+/** The model's own up / down view, next to how often such views were right in testing. */
+function DirectionNote({ s, paths }: { s: Forecast["summary"]; paths: number }) {
+  const upPaths = Math.round(s.prob_up * paths);
+  return (
+    <div className="rounded-lg border border-line px-3 py-2.5 text-xs leading-relaxed">
+      <div className="flex justify-between gap-3">
+        <span className="text-ink-3">Model&apos;s paths ending higher</span>
+        <span className="tabular text-ink-2">
+          {upPaths} / {paths}
+        </span>
+      </div>
+      <div className="mt-1 flex justify-between gap-3">
+        <span className="text-ink-3">Closed higher after views like this, in testing</span>
+        <span className="tabular font-medium text-ink">{s.tested_prob_up != null ? `≈ ${pct(s.tested_prob_up, 0)}` : "not tested"}</span>
+      </div>
+      {!s.direction_validated && (
+        <p className="mt-1.5 text-ink-3">
+          On thousands of past forecasts for fresh stocks, the model&apos;s up / down view wasn&apos;t right often enough to act on,
+          so it isn&apos;t turned into a buy or sell call. Use the range below for planning, not the direction.
+        </p>
+      )}
+    </div>
   );
 }
 
