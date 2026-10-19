@@ -26,7 +26,7 @@ export function Header() {
     <header className="sticky top-0 z-30 border-b border-line bg-paper/90 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 md:px-6">
         <div className="flex items-center gap-3 sm:gap-6">
-          <Logo href={user ? "/markets" : "/"} compact={!!user} />
+          <Logo href="/" compact={!!user} />
           {user ? (
             <nav className="flex gap-1 text-sm">
               <NavLink href="/markets" active={pathname.startsWith("/markets") || pathname.startsWith("/stock")}>
