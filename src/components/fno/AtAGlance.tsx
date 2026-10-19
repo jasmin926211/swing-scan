@@ -54,9 +54,9 @@ export function AtAGlance({ market, oi, move, spot, loading }: {
       : null;
   const pcrText =
     oi.pcr == null ? null
-    : oi.pcr >= 1.2 ? "More puts than calls written: option sellers look comfortable with the price holding up."
-    : oi.pcr <= 0.7 ? "More calls than puts written: option sellers are betting the price stays capped."
-    : "Puts and calls are roughly balanced: no strong lean either way.";
+    : oi.pcr >= 1.2 ? "More puts than calls open. Commonly read as option sellers expecting the price to hold up; not a tested prediction."
+    : oi.pcr <= 0.7 ? "More calls than puts open. Commonly read as option sellers expecting the price to stay capped; not a tested prediction."
+    : "Puts and calls are roughly balanced.";
   const movePct = move && days > 0 ? Math.exp(k80(days) * move.daily_vol * Math.sqrt(days)) - 1 : null;
 
   return (

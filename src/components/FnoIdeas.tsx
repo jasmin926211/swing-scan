@@ -50,9 +50,9 @@ export function FnoIdeas({ market, symbol, expiry }: { market: MarketId; symbol:
     <section className="rounded-xl border border-line">
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-line px-4 py-3">
         <div>
-          <h2 className="text-sm font-semibold">AI trade ideas for {fmtDate(expiry)} expiry</h2>
+          <h2 className="text-sm font-semibold">Trade ideas for {fmtDate(expiry)} expiry</h2>
           <p className="mt-0.5 text-xs text-ink-3">
-            Forecasts {symbol} to expiry, then values futures and defined-risk option trades on every sampled path.
+            Forecasts {symbol} to expiry, then lays out futures and defined-risk option trades with their payoffs.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -88,9 +88,8 @@ export function FnoIdeas({ market, symbol, expiry }: { market: MarketId; symbol:
           <div className="grid gap-4 lg:grid-cols-3">
             <div className="space-y-3 text-sm">
               <OutlookBadge outlook={s.outlook} />
-              <Stat label={`Median price at expiry (${result.horizon} trading days)`} value={price(s.predicted_close * scale, market)}
-                sub={`spot ${price(result.spot, market)}`} />
-              <Stat label="AI 80% range" value={`${price(s.close_p10 * scale, market)} – ${price(s.close_p90 * scale, market)}`} />
+              <Stat label={`AI 80% range at expiry (${result.horizon} trading days)`}
+                value={`${price(s.close_p10 * scale, market)} – ${price(s.close_p90 * scale, market)}`} sub={`spot ${price(result.spot, market)}`} />
               <Stat label="Closed higher after views like this, in testing" value={s.tested_prob_up != null ? `≈ ${pct(s.tested_prob_up, 0)}` : "not tested"}
                 sub={`model's paths ending higher: ${pct(s.prob_up, 0)}`} />
               {result.market_iv != null && <Stat label="Market implied volatility (ATM)" value={pct(result.market_iv)} />}
@@ -110,10 +109,10 @@ export function FnoIdeas({ market, symbol, expiry }: { market: MarketId; symbol:
           </div>
 
           <div className="rounded-lg bg-wash px-3 py-2 text-xs leading-relaxed text-ink-2">
-            Each idea is valued twice: on the AI&apos;s paths, and on the option market&apos;s own expectation (its implied
-            volatility). The AI&apos;s ranges are widened to match how often prices really landed inside them, but its
-            direction calls are only slightly better than a coin flip. Trust an idea more when both columns agree.
-            Analysis only, not advice.
+            Chance of profit and average P&amp;L use the option market&apos;s own expectation (its implied volatility), not
+            the AI: in testing the AI&apos;s up / down view was right about half the time, so scoring trades on its paths
+            would make some look better than they are. The AI range is shown as context only. Every idea is listed, none
+            is recommended. Analysis only, not advice.
           </div>
 
           <div className="overflow-x-auto">
@@ -125,10 +124,8 @@ export function FnoIdeas({ market, symbol, expiry }: { market: MarketId; symbol:
                   <th className="px-2 py-2 text-right font-normal">Max profit</th>
                   <th className="px-2 py-2 text-right font-normal">Max loss</th>
                   <th className="px-2 py-2 text-right font-normal">Breakeven</th>
-                  <th className="px-2 py-2 text-right font-normal">AI P(profit)</th>
-                  <th className="px-2 py-2 text-right font-normal">AI avg P&amp;L</th>
-                  <th className="px-2 py-2 text-right font-normal">Market P(profit)</th>
-                  <th className="px-2 py-2 text-right font-normal">Market avg P&amp;L</th>
+                  <th className="px-2 py-2 text-right font-normal">Chance of profit</th>
+                  <th className="px-2 py-2 text-right font-normal">Avg P&amp;L</th>
                 </tr>
               </thead>
               <tbody>
@@ -163,7 +160,6 @@ function IdeaRow({ idea, market, selected, onSelect }: { idea: Idea; market: Mar
       <td className="px-2 py-2.5">
         <p className="flex items-center gap-1.5 font-medium">
           {idea.name}
-          {idea.matches_outlook && <span className="rounded bg-accent-wash px-1 text-[10px] font-normal text-accent">matches AI view</span>}
         </p>
         <p className="mt-0.5 text-xs leading-relaxed text-ink-3">{legs.join(" · ")}</p>
       </td>
@@ -171,14 +167,8 @@ function IdeaRow({ idea, market, selected, onSelect }: { idea: Idea; market: Mar
       <td className="px-2 py-2.5 text-right">{idea.max_profit == null ? "Open" : money(idea.max_profit, market)}</td>
       <td className="px-2 py-2.5 text-right">{idea.max_loss == null ? "Open" : money(idea.max_loss, market)}</td>
       <td className="px-2 py-2.5 text-right text-xs">{idea.breakevens.map((b) => price(b, market)).join(" / ") || "—"}</td>
-      <td className="px-2 py-2.5 text-right font-medium">{pct(idea.prob_profit, 0)}</td>
-      <td className={clsx("px-2 py-2.5 text-right font-medium", idea.expected_pnl >= 0 ? "text-up" : "text-down")}>
-        {money(idea.expected_pnl, market)}
-      </td>
-      <td className="px-2 py-2.5 text-right text-ink-2">{pct(idea.market_prob_profit, 0)}</td>
-      <td className={clsx("px-2 py-2.5 text-right", (idea.market_expected_pnl ?? 0) >= 0 ? "text-up" : "text-down")}>
-        {money(idea.market_expected_pnl, market)}
-      </td>
+      <td className="px-2 py-2.5 text-right">{idea.market_prob_profit == null ? "—" : pct(idea.market_prob_profit, 0)}</td>
+      <td className="px-2 py-2.5 text-right text-ink-2">{idea.market_expected_pnl == null ? "—" : money(idea.market_expected_pnl, market)}</td>
     </tr>
   );
 }

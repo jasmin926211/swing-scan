@@ -124,26 +124,24 @@ export function ForecastPanel({
           </div>
 
           <div>
-            <p className="text-xs text-ink-3">Median predicted close</p>
+            <p className="text-xs text-ink-3">80% likely close</p>
             <p className="tabular text-2xl font-semibold tracking-tight">
-              {price(s.predicted_close, market)}{" "}
-              <span className={clsx("text-sm font-medium", s.predicted_close >= s.last_close ? "text-up" : "text-down")}>
-                {s.predicted_close >= s.last_close ? "+" : ""}
-                {pct(s.predicted_close / s.last_close - 1, 2)}
-              </span>
+              {price(s.close_p10, market)} – {price(s.close_p90, market)}
             </p>
-            <p className="tabular text-xs text-ink-3">from last close {price(s.last_close, market)}</p>
+            <p className="tabular text-xs text-ink-3">
+              from last close {price(s.last_close, market)} · range width {pct(s.close_p90 / s.close_p10 - 1, 1)} · held about 84% of
+              outcomes in testing
+            </p>
           </div>
 
-          <DirectionNote s={s} paths={forecast.paths.length} />
+          {oneSided(s) && (
+            <p className="rounded-lg bg-warn-wash px-3 py-2 text-xs leading-relaxed text-warn">
+              <b>Don&apos;t use this range.</b> The AI is extremely one-sided here: the last close ({price(s.last_close, market)}) is outside its
+              own 80% range. In testing the range then held only 43% of the time (84% otherwise). It often happens after very sharp moves.
+            </p>
+          )}
 
-          <dl className="grid grid-cols-2 gap-3 text-sm">
-            <Item label="80% likely close" value={`${price(s.close_p10, market)} – ${price(s.close_p90, market)}`} wide />
-            <Item label="Expected high" value={price(s.predicted_high, market)} />
-            <Item label="Expected low" value={price(s.predicted_low, market)} />
-            <Item label="Mean return" value={`${s.expected_return >= 0 ? "+" : ""}${pct(s.expected_return, 2)}`} />
-            <Item label="Range width" value={pct(s.close_p90 / s.close_p10 - 1, 1)} />
-          </dl>
+          <DirectionNote s={s} paths={forecast.paths.length} />
 
           <p className="text-xs leading-relaxed text-ink-3">
             {used && MODELS.find((m) => m.id === used.model)?.label} model · {forecast.bars_used} bars up to{" "}
@@ -154,6 +152,13 @@ export function ForecastPanel({
       )}
     </section>
   );
+}
+
+/** In testing the 80% range held 84% of outcomes, but only 43% when the last close sat outside the AI's own range
+ *  (56 of 4,247 forecasts): the model is then extremely one-sided. "On the edge" counts as inside, as in the test. */
+function oneSided(s: Forecast["summary"]): boolean {
+  const eps = s.last_close * 1e-4;
+  return s.last_close < s.close_p10 - eps || s.last_close > s.close_p90 + eps;
 }
 
 /** How much to trust this forecast, from the AI's recent record on the same stock. */
@@ -252,15 +257,6 @@ function Segmented<T extends string | number>({
           {o.label}
         </button>
       ))}
-    </div>
-  );
-}
-
-function Item({ label, value, wide }: { label: string; value: string; wide?: boolean }) {
-  return (
-    <div className={clsx(wide && "col-span-2")}>
-      <dt className="text-xs text-ink-3">{label}</dt>
-      <dd className="tabular mt-0.5 font-medium">{value}</dd>
     </div>
   );
 }

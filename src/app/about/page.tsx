@@ -20,7 +20,7 @@ const HOW_IT_WORKS = [
   },
   {
     title: "Many futures, not one",
-    body: "For each forecast it samples 20 or more possible paths. The median path, the spread between them and the share that end higher become the forecast you see.",
+    body: "For each forecast it samples 20 or more possible paths. The spread between them becomes the price range you see; the direction they lean isn’t shown as a call, because in testing it was right only about half the time.",
   },
 ];
 

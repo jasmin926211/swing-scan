@@ -100,17 +100,18 @@ export function CandidateDialog({ market, c, indexName, indexLive, tz, onClose }
             <BreakoutChart market={market} c={c} candles={data.stock} index={data.index} indexName={indexName} indexLive={indexLive} tz={tz} />
           )}
           {data && data.stock.length < 30 && <p className="text-sm text-ink-2">Not enough price history to draw the indicators.</p>}
-          {c.plan && <AiRange market={market} c={c} />}
+          <AiRange market={market} c={c} />
         </div>
       </div>
     </div>
   );
 }
 
-/** Kronos's 10-day range next to the plan's stop and target, on demand. Its range is tested (held 83% of outcomes);
- *  its up / down view isn't reliable, so no hit probabilities are claimed. */
+const RANGE_DAYS = 10; // the horizon the AI range was tested at
+
+/** The AI's 10-day range next to the live price, on demand. Its range is tested (held 84% of outcomes); its up / down
+ *  view isn't, so no median or direction is shown. */
 function AiRange({ market, c }: { market: MarketId; c: PulseCandidate }) {
-  const plan = c.plan!;
   const [fc, setFc] = useState<Forecast | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -119,7 +120,7 @@ function AiRange({ market, c }: { market: MarketId; c: PulseCandidate }) {
     setBusy(true);
     setError(null);
     try {
-      setFc(await runForecast(market, c.symbol, { interval: "1d", model: "fast", horizon: plan.max_days, n_samples: 20 }));
+      setFc(await runForecast(market, c.symbol, { interval: "1d", model: "fast", horizon: RANGE_DAYS, n_samples: 20 }));
     } catch (e) {
       setError(e instanceof Error ? e.message : "The forecast failed");
     } finally {
@@ -132,19 +133,18 @@ function AiRange({ market, c }: { market: MarketId; c: PulseCandidate }) {
   // (56 of 4,247 forecasts): the model is then extremely one-sided and shouldn't be trusted.
   const eps = s ? s.last_close * 1e-4 : 0; // "on the edge" counts as inside, as in the test
   const oneSided = !!s && (s.last_close < s.close_p10 - eps || s.last_close > s.close_p90 + eps);
-  const drift = s ? plan.entry / s.last_close - 1 : 0; // the forecast starts from the last completed close
-  const where = (v: number) => (!s ? "" : v < s.close_p10 ? "below the range" : v > s.close_p90 ? "above the range" : "inside the range");
-  const lo = s ? Math.min(s.close_p10, plan.stop) : 0;
-  const hi = s ? Math.max(s.close_p90, plan.target) : 1;
+  const drift = s ? c.price / s.last_close - 1 : 0; // the forecast starts from the last completed close
+  const lo = s ? Math.min(s.close_p10, c.price) : 0;
+  const hi = s ? Math.max(s.close_p90, c.price) : 1;
   const at = (v: number) => `${((v - lo) / (hi - lo || 1)) * 100}%`;
   return (
     <section className="mt-4 rounded-xl border border-line p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold">AI forecast range for the next {plan.max_days} days</h3>
+          <h3 className="text-sm font-semibold">AI forecast range for the next {RANGE_DAYS} days</h3>
           <p className="mt-0.5 text-xs text-ink-3">
-            Where CandleTrade AI expects the price to land, next to the plan&apos;s stop and target. Its range has been reliable in testing; its
-            up / down call hasn&apos;t, so read the range, not a direction.
+            Where CandleTrade AI expects the price to land. Its range has been reliable in testing; its up / down call hasn&apos;t, so it
+            shows how far the price may swing, not which way.
           </p>
         </div>
         <button onClick={run} disabled={busy}
@@ -166,20 +166,17 @@ function AiRange({ market, c }: { market: MarketId; c: PulseCandidate }) {
             <div className="absolute inset-x-0 top-3.5 h-1 rounded-full bg-line" />
             <div className="absolute top-2.5 h-3 rounded bg-accent/30" style={{ left: at(s.close_p10), width: `calc(${at(s.close_p90)} - ${at(s.close_p10)})` }}
               title="80% likely range" />
-            {([["stop", plan.stop, "bg-down"], ["entry", plan.entry, "bg-ink"], ["target", plan.target, "bg-up"], ["median", s.predicted_close, "bg-accent"]] as const).map(([k, v, cls]) => (
-              <div key={k} className={clsx("absolute top-1 h-6 w-0.5", cls)} style={{ left: at(v) }} title={k} />
-            ))}
+            <div className="absolute top-1 h-6 w-0.5 bg-ink" style={{ left: at(c.price) }} title="live price" />
           </div>
           <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-ink-3">
-            {([["bg-accent/30", "80% range"], ["bg-accent", "median"], ["bg-ink", "entry"], ["bg-down", "stop"], ["bg-up", "target"]] as const).map(([cls, label]) => (
+            {([["bg-accent/30", "80% range"], ["bg-ink", "live price"]] as const).map(([cls, label]) => (
               <span key={label} className="flex items-center gap-1.5"><span className={clsx("h-2.5 w-2.5 rounded-sm", cls)} />{label}</span>
             ))}
           </div>
-          <div className="tabular mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-xs sm:grid-cols-4">
+          <div className="tabular mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-xs sm:grid-cols-3">
             <span><span className="text-ink-3">80% range </span>{price(s.close_p10, market)} – {price(s.close_p90, market)}</span>
-            <span><span className="text-ink-3">Median </span>{price(s.predicted_close, market)}</span>
-            <span className="text-down"><span className="text-ink-3">Stop </span>{price(plan.stop, market)} ({where(plan.stop)})</span>
-            <span className="text-up"><span className="text-ink-3">Target </span>{price(plan.target, market)} ({where(plan.target)})</span>
+            <span><span className="text-ink-3">Down to </span>{((s.close_p10 / c.price - 1) * 100).toFixed(1)}%</span>
+            <span><span className="text-ink-3">Up to </span>+{((s.close_p90 / c.price - 1) * 100).toFixed(1)}%</span>
           </div>
           {Math.abs(drift) > 0.02 && (
             <p className="mt-2 text-[11px] text-warn">
@@ -188,9 +185,7 @@ function AiRange({ market, c }: { market: MarketId; c: PulseCandidate }) {
             </p>
           )}
           <p className="mt-2 text-[11px] leading-relaxed text-ink-3">
-            The 80% range held the actual price 84% of the time in testing. A target above the range means the AI&apos;s paths rarely reach it within
-            {" "}{plan.max_days} days; a stop inside the range means ordinary swings can reach it. Closed higher after views like this in testing:{" "}
-            {s.tested_prob_up != null ? `≈ ${Math.round(s.tested_prob_up * 100)}%` : "not tested"}.
+            The 80% range held the actual price 84% of the time in testing. A stop inside it can be reached by ordinary swings.
           </p>
         </div>
       )}
