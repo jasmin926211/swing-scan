@@ -19,7 +19,7 @@ const PUBLIC_PAGES = [
 ];
 
 export function Header() {
-  const { user, ready } = useAuth();
+  const { user, signedIn } = useAuth();
   const pathname = usePathname();
   const inApp = ["/markets", "/stock", "/fno", "/pulse"].some((p) => pathname.startsWith(p));
 
@@ -27,8 +27,8 @@ export function Header() {
     <header className="sticky top-0 z-30 border-b border-line bg-paper/90 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 md:px-6">
         <div className="flex items-center gap-3 sm:gap-6">
-          <Logo href="/" compact={!!user} />
-          {user ? (
+          <Logo href="/" compact={signedIn} />
+          {signedIn ? (
             <nav className="flex gap-1 text-sm">
               <NavLink href="/markets" active={pathname.startsWith("/markets") || pathname.startsWith("/stock")}>
                 Markets
@@ -54,9 +54,16 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-1 sm:gap-3">
-          {inApp && user && <CountrySwitch />}
+          {inApp && signedIn && <CountrySwitch />}
           <ThemeToggle />
-          {ready && (user ? <UserMenu /> : <SignedOutActions />)}
+          {user ? (
+            <UserMenu />
+          ) : signedIn ? (
+            // Signed in, account details still loading: hold the avatar's place so nothing shifts.
+            <span className="h-8 w-8 animate-pulse rounded-full bg-wash" aria-hidden />
+          ) : (
+            <SignedOutActions />
+          )}
         </div>
       </div>
     </header>
