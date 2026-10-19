@@ -389,3 +389,15 @@ export type Filing = {
 };
 export type StockFilings = { source: "NSE" | "BSE"; days: number; items: Filing[]; routine: number };
 export const getFilings = (m: MarketId, symbol: string) => request<StockFilings>(`${stockPath(m, symbol)}/filings`);
+
+/** Moves are fractions of the price: -0.021 = -2.1%. "likely" holds ~80% of past moves, "rare" ~95%. */
+export type MoveRange = { down: number; up: number };
+export type ExpectedMove = {
+  daily_vol: number;
+  close: number;
+  as_of: number;
+  lookback: number;
+  horizons: { days: number; likely: MoveRange; rare: MoveRange }[];
+  tested: string;
+};
+export const getExpectedMove = (m: MarketId, symbol: string) => request<ExpectedMove>(`${stockPath(m, symbol)}/expected-move`);
