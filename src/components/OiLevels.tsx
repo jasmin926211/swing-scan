@@ -16,11 +16,10 @@ export const BUILDUP: Record<Buildup, { label: string; meaning: string; cls: str
 
 const pct = (v: number) => `${v > 0 ? "+" : ""}${(v * 100).toFixed(1)}%`;
 
-/** Open-interest levels for an F&O stock: option walls (support / resistance), PCR, max pain and the futures build-up. */
-export function OiLevels({ market, symbol }: { market: MarketId; symbol: string }) {
+/** Loads a stock's open interest (null while loading). */
+export function useStockOi(market: MarketId, symbol: string): { data: StockOi | null; error: string | null } {
   const [data, setData] = useState<StockOi | null>(null);
   const [error, setError] = useState<string | null>(null);
-
   useEffect(() => {
     let alive = true;
     setData(null);
@@ -32,7 +31,16 @@ export function OiLevels({ market, symbol }: { market: MarketId; symbol: string 
       alive = false;
     };
   }, [market, symbol]);
+  return { data, error };
+}
 
+/** Open-interest levels for an F&O stock: option walls (support / resistance), PCR, max pain and the futures build-up. */
+export function OiLevels({ market, symbol }: { market: MarketId; symbol: string }) {
+  const { data, error } = useStockOi(market, symbol);
+  return <OiLevelsView market={market} data={data} error={error} />;
+}
+
+export function OiLevelsView({ market, data, error }: { market: MarketId; data: StockOi | null; error: string | null }) {
   return (
     <section className="overflow-hidden rounded-xl border border-line">
       <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line px-4 py-3">
