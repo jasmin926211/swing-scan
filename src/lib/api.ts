@@ -81,6 +81,8 @@ export type StockFilters = {
   max_pe?: number | null;
   /** an active validated pattern (nightly scan) */
   pattern?: "" | "any" | "bull" | "bear";
+  /** India F&O: the last trading day's futures build-up */
+  buildup?: "" | Exclude<Buildup, "neutral">;
 };
 export type StockQuery = StockFilters & {
   sort?: "symbol" | "price" | "change_pct" | "volume" | "rel_volume" | "turnover" | "market_cap" | "from_high" | "pe";
@@ -422,3 +424,33 @@ export type Checklist = {
 };
 export const getChecklist = (m: MarketId, symbol: string, side: TradeSide) =>
   request<Checklist>(`${stockPath(m, symbol)}/checklist?side=${side}`);
+
+export type Buildup = "long_buildup" | "short_buildup" | "short_covering" | "long_unwinding" | "neutral";
+export type BuildupRow = {
+  symbol: string;
+  kind: "stock" | "index";
+  price: number; // nearest futures contract
+  price_chg_pct: number; // fraction: 0.012 = +1.2%
+  oi: number; // all expiries
+  oi_chg_pct: number;
+  buildup: Buildup;
+};
+export type OiStrike = { strike: number; oi: number; oi_change: number | null };
+export type StockOi = {
+  symbol: string;
+  as_of: string | null; // India: the trading day of NSE's end-of-day file; US: live
+  source: string;
+  buildup: BuildupRow | null;
+  expiry: string;
+  pcr: number | null;
+  max_pain: number | null;
+  spot: number | null;
+  resistance: number | null; // strike with the most call OI
+  support: number | null; // strike with the most put OI
+  prev_resistance: number | null; // the day before (India)
+  prev_support: number | null;
+  top_calls: OiStrike[];
+  top_puts: OiStrike[];
+};
+export const getOiBuildup = (m: MarketId) => request<{ date: string; rows: BuildupRow[] }>(`/api/markets/${m}/oi/buildup`);
+export const getStockOi = (m: MarketId, symbol: string) => request<StockOi>(`${stockPath(m, symbol)}/oi`);

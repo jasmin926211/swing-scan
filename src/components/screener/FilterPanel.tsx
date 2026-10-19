@@ -108,6 +108,17 @@ export function FilterPanel({ market, filters, onChange, sectors, exchanges }: P
           <option value="bear">Bearish pattern</option>
         </select>
       </Field>
+      {market === "in" && (
+        <Field label="F&O build-up (last trading day)">
+          <select value={filters.buildup ?? ""} onChange={(e) => onChange({ buildup: e.target.value as StockFilters["buildup"] })} className={INPUT}>
+            <option value="">Any</option>
+            <option value="long_buildup">Long build-up (price ↑, OI ↑)</option>
+            <option value="short_buildup">Short build-up (price ↓, OI ↑)</option>
+            <option value="short_covering">Short covering (price ↑, OI ↓)</option>
+            <option value="long_unwinding">Long unwinding (price ↓, OI ↓)</option>
+          </select>
+        </Field>
+      )}
       <NumberField label="Minimum volume (shares)" value={filters.min_volume} onChange={(min_volume) => onChange({ min_volume })} />
       {market === "in" && (
         <label className="flex items-end gap-2 pb-2 text-sm text-ink-2">

@@ -17,6 +17,7 @@ import { StockLogo } from "@/components/StockLogo";
 import { NewsButton } from "@/components/NewsDialog";
 import { ExpectedMove } from "@/components/ExpectedMove";
 import { TradeChecklist } from "@/components/TradeChecklist";
+import { OiLevels } from "@/components/OiLevels";
 
 const INTERVALS: { id: Interval; label: string }[] = [
   { id: "1h", label: "Hourly" },
@@ -239,6 +240,8 @@ export default function StockPage() {
         selected={selectedSignal}
         onSelect={setSelectedSignal}
       />
+
+      {quote?.has_fno && <OiLevels market={market} symbol={symbol} />}
 
       <AccuracyCheck market={market} symbol={symbol} interval={interval} check={accuracy} />
 
