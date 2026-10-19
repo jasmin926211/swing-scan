@@ -7,7 +7,7 @@ const ROW = 30;
 
 /** Sectors ranked by their median move today. Rows glide to their new rank on each refresh. */
 export function SectorBars({ sectors }: { sectors: Pulse["sectors"] }) {
-  const shown = sectors.slice(0, 14);
+  const shown = sectors.slice(0, 12);
   const order = [...shown].sort((a, b) => b.change_pct - a.change_pct);
   const max = Math.max(0.5, ...shown.map((s) => Math.abs(s.change_pct)));
   // Rendered in a fixed (alphabetical) order so React keeps each row's element; the rank only moves it.

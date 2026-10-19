@@ -6,7 +6,7 @@ import { useChartColors, FONT } from "@/lib/charts/theme";
 import { duration, useReducedMotion } from "@/lib/charts/motion";
 import { useWidth } from "@/lib/charts/useWidth";
 
-const H = 180;
+const H = 300;
 const M = { top: 10, right: 40, bottom: 22, left: 8 };
 
 /** % of stocks above their 20 EMA through today's session, one point every ~3 minutes. */
@@ -38,9 +38,11 @@ export function BreadthLine({ points, tz }: { points: { t: number; above_ema20: 
   return (
     <div ref={box} className="w-full" style={{ height: H }}>
       {width > 0 && data.length < 2 && (
-        <p className="flex h-full items-center justify-center text-center text-xs text-ink-3">
-          The line builds up through the session: a point every 3 minutes while the page is in use.
-        </p>
+        <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
+          {last && <p className="tabular text-3xl font-semibold tracking-tight">{Math.round(last.above_ema20 * 100)}%</p>}
+          {last && <p className="text-xs text-ink-2">of stocks above their 20 EMA right now</p>}
+          <p className="mt-2 max-w-sm text-xs text-ink-3">The line builds through the session, adding a point every 3 minutes while anyone has this page open.</p>
+        </div>
       )}
       {width > 0 && data.length >= 2 && (
         <svg width={width} height={H} className="block max-w-full" role="img" style={{ fontFamily: FONT }}

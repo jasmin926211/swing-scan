@@ -13,7 +13,7 @@ export function MoodGauge({ value }: { value: number | null }) {
   const reduced = useReducedMotion();
   const needle = useRef<SVGGElement>(null);
   const prev = useRef(0.5);
-  const W = 260, H = 150, R = 110;
+  const W = 300, H = 160, R = 110; // wide enough for the 0 / 50 / 100 labels outside the arc
   const angle = (v: number) => -90 + v * 180;
   const arc = d3.arc<{ a0: number; a1: number }>().innerRadius(R - 18).outerRadius(R).cornerRadius(3)
     .startAngle((d) => (angle(d.a0) * Math.PI) / 180).endAngle((d) => (angle(d.a1) * Math.PI) / 180);
@@ -34,10 +34,10 @@ export function MoodGauge({ value }: { value: number | null }) {
   }, [value, reduced]);
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="block w-full max-w-[300px]" role="img"
+    <svg viewBox={`0 0 ${W} ${H}`} className="block w-full max-w-[320px]" role="img"
       aria-label={value == null ? "Market mood unavailable" : `Market mood ${Math.round(value * 100)} out of 100: ${moodLabel(value)}`}
       style={{ fontFamily: FONT }}>
-      <g transform={`translate(${W / 2},${R + 12})`}>
+      <g transform={`translate(${W / 2},${R + 22})`}>
         {zones.map((z) => <path key={z.a0} d={arc(z) ?? ""} fill={z.c} fillOpacity={0.85} />)}
         {[0, 0.5, 1].map((v) => (
           <text key={v} x={(R + 10) * Math.cos(((angle(v) - 90) * Math.PI) / 180)} y={(R + 10) * Math.sin(((angle(v) - 90) * Math.PI) / 180) + 4}

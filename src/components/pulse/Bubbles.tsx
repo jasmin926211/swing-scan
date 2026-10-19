@@ -26,7 +26,9 @@ export function Bubbles({ data, market }: { data: Pulse["bubbles"]; market: Mark
 
   const lim = useMemo(() => Math.min(10, Math.max(2, d3.quantile(data.map((d) => Math.abs(d.change_pct)).sort(d3.ascending), 0.97) ?? 3)), [data]);
   const x = d3.scaleLinear().domain([-lim, lim]).range([0, innerW]).clamp(true);
-  const y = d3.scaleLog().domain([0.2, 8]).range([innerH, 0]).clamp(true);
+  // Up to the busiest stock (capped at 50×, beyond which a bubble sits on the top edge).
+  const top = Math.min(50, Math.max(8, (d3.max(data, (d) => d.rvol) ?? 8) * 1.2));
+  const y = d3.scaleLog().domain([0.2, top]).range([innerH, 0]).clamp(true);
   const r = d3.scaleSqrt().domain([0, d3.max(data, (d) => d.turnover) || 1]).range([3, 22]);
 
   // Bubbles glide to their new place on each refresh (keyed by symbol); new ones grow in.
@@ -55,7 +57,7 @@ export function Bubbles({ data, market }: { data: Pulse["bubbles"]; market: Mark
         <svg width={width} height={H} className="block max-w-full" style={{ fontFamily: FONT }} role="img"
           aria-label="Bubble chart of today's most traded stocks: price change against relative volume">
           <g transform={`translate(${M.left},${M.top})`}>
-            {[0.5, 1, 1.5, 3, 6].map((v) => (
+            {[0.5, 1, 1.5, 3, 6, 12, 25, 50].filter((v) => v <= top).map((v) => (
               <g key={v}>
                 <line x2={innerW} y1={y(v)} y2={y(v)} stroke={v === 1.5 ? COLORS.ink3 : COLORS.line} strokeDasharray={v === 1.5 ? "4 3" : undefined} />
                 <text x={-8} y={y(v)} dy="0.32em" textAnchor="end" fontSize={10} fill={COLORS.ink3}>{v}×</text>
