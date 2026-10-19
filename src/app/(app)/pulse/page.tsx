@@ -169,7 +169,7 @@ export default function PulsePage() {
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {data.candidates.map((c) => (
-                  <div key={c.symbol} className="flex flex-col rounded-xl border border-line p-3 transition-colors hover:border-ink-3">
+                  <div key={c.symbol} className="flex min-w-0 flex-col rounded-xl border border-line p-3 transition-colors hover:border-ink-3">
                     <div className="flex items-center gap-2.5">
                       <StockLogo market={market} symbol={c.symbol} size={30} />
                       <div className="min-w-0 flex-1">
@@ -279,7 +279,7 @@ function PlanStrip({ plan, market }: { plan: NonNullable<Pulse["candidates"][num
   const cell = (label: string, value: number, note: string, cls: string) => (
     <div className="min-w-0">
       <p className="text-ink-3">{label}</p>
-      <p className={clsx("tabular font-medium", cls)}>{price(value, market)}</p>
+      <p className={clsx("tabular truncate font-medium", cls)}>{price(value, market)}</p>
       <p className="tabular text-ink-3">{note}</p>
     </div>
   );
@@ -299,19 +299,40 @@ function LeadersList({ data, zone, market }: { data: Pulse["leaders"]; zone: Pul
     .slice(0, 12);
   if (top.length === 0) return <p className="text-sm text-ink-3">No stock is in the leaders zone right now.</p>;
   return (
-    <ol className="divide-y divide-line text-sm">
-      {top.map((d, i) => (
-        <li key={d.symbol} className="flex items-center gap-2 py-1.5">
-          <span className="tabular w-5 text-xs text-ink-3">{i + 1}</span>
-          <Link href={`/stock/${market}/${encodeURIComponent(d.symbol)}`} className="min-w-0 flex-1 truncate font-medium hover:underline">
-            {d.symbol}
-            {d.sector && <span className="ml-1.5 text-xs font-normal text-ink-3">{d.sector}</span>}
-          </Link>
-          <span className="tabular rounded bg-up-wash px-1.5 text-[11px] font-medium text-up">{d.rating}</span>
-          <span className="tabular w-14 text-right text-xs text-ink-2">{d.from_high > -0.005 ? "at high" : `${(d.from_high * 100).toFixed(1)}%`}</span>
-        </li>
-      ))}
-    </ol>
+    <table className="w-full table-fixed text-sm">
+      <caption className="sr-only">Top stocks in the leaders zone</caption>
+      <thead>
+        <tr className="border-b border-line text-left text-[11px] text-ink-3">
+          <th scope="col" className="w-6 pb-1.5 font-normal">#</th>
+          <th scope="col" className="pb-1.5 font-normal">Stock</th>
+          <th scope="col" className="w-[72px] pb-1.5 text-right font-normal leading-tight" title="Momentum rating vs all liquid stocks: 99 = stronger than 99% of the market">
+            Momentum
+            <span className="block text-[10px]">1–99</span>
+          </th>
+          <th scope="col" className="w-[72px] pb-1.5 text-right font-normal leading-tight" title="How far the price is below its highest price of the last 12 months">
+            From high
+            <span className="block text-[10px]">52 weeks</span>
+          </th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-line">
+        {top.map((d, i) => (
+          <tr key={d.symbol}>
+            <td className="tabular py-1.5 text-xs text-ink-3">{i + 1}</td>
+            <td className="truncate py-1.5 pr-2">
+              <Link href={`/stock/${market}/${encodeURIComponent(d.symbol)}`} className="font-medium hover:underline">
+                {d.symbol}
+              </Link>
+              {d.sector && <span className="ml-1.5 text-xs text-ink-3">{d.sector}</span>}
+            </td>
+            <td className="py-1.5 text-right">
+              <span className="tabular rounded bg-up-wash px-1.5 text-[11px] font-medium text-up">{d.rating}</span>
+            </td>
+            <td className="tabular py-1.5 text-right text-xs text-ink-2">{d.from_high > -0.005 ? "at high" : `${(d.from_high * 100).toFixed(1)}%`}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
