@@ -470,6 +470,8 @@ export type PulseCandidate = {
   score: number;
   rating: number | null; // momentum rating 1-99 (NSE-style)
   upper_circuit: boolean; // India: stuck at the price band, a buy rarely fills
+  /** entry now, stop under the breakout level, target at 2x the risk, at most max_days trading days */
+  plan: { entry: number; stop: number; target: number; risk_pct: number; reward_pct: number; max_days: number } | null;
   ema20: number;
   breakout_level: number;
 };
@@ -505,6 +507,16 @@ export type Pulse = {
   records: {
     momentum: { month: number; quarter: number };
     breakouts: { days2: number; days5: number; days10: number; win_rate: number };
+    plan: {
+      trades: number;
+      target_hit: number;
+      stopped: number;
+      timed_out: number;
+      median_days_to_target: number;
+      median_best_gain: number;
+      avg_r: number;
+      high_momentum: { target_hit: number; avg_r: number };
+    };
   };
 };
 export const getPulse = (m: MarketId) => request<Pulse>(`/api/markets/${m}/pulse`);
