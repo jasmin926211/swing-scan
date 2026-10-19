@@ -401,3 +401,20 @@ export type ExpectedMove = {
   tested: string;
 };
 export const getExpectedMove = (m: MarketId, symbol: string) => request<ExpectedMove>(`${stockPath(m, symbol)}/expected-move`);
+
+export type CheckStatus = "pass" | "warn" | "fail" | "info";
+export type TradeSide = "long" | "short";
+export type Checklist = {
+  symbol: string;
+  name: string | null;
+  price: number | null;
+  side: TradeSide;
+  verdict: "Passes" | "Caution" | "Skip";
+  counts: Record<CheckStatus, number>;
+  fails: string[];
+  warns: string[];
+  plan: { entry: number; stop: number; target: number; risk_per_share: number; rr: number };
+  checks: { step: number; title: string; status: CheckStatus; summary: string; detail: string }[];
+};
+export const getChecklist = (m: MarketId, symbol: string, side: TradeSide) =>
+  request<Checklist>(`${stockPath(m, symbol)}/checklist?side=${side}`);

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import clsx from "clsx";
+import { ListChecks } from "lucide-react";
 import type { MarketId } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { MARKETS } from "@/lib/format";
@@ -20,7 +21,7 @@ const PUBLIC_PAGES = [
 export function Header() {
   const { user, ready } = useAuth();
   const pathname = usePathname();
-  const inApp = ["/markets", "/stock", "/fno"].some((p) => pathname.startsWith(p));
+  const inApp = ["/markets", "/stock", "/fno", "/checklist"].some((p) => pathname.startsWith(p));
 
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-paper/90 backdrop-blur">
@@ -35,6 +36,11 @@ export function Header() {
               <NavLink href="/fno" active={pathname.startsWith("/fno")}>
                 F&amp;O
               </NavLink>
+              <NavLink href="/checklist" active={pathname.startsWith("/checklist")}>
+                {/* An icon on phones: the header has no room for a third word there. */}
+                <ListChecks className="h-4 w-4 sm:hidden" aria-label="Checklist" />
+                <span className="hidden sm:inline">Checklist</span>
+              </NavLink>
             </nav>
           ) : (
             <nav className="hidden gap-1 text-sm md:flex">
@@ -47,7 +53,7 @@ export function Header() {
           )}
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1 sm:gap-3">
           {inApp && user && <CountrySwitch />}
           <ThemeToggle />
           {ready && (user ? <UserMenu /> : <SignedOutActions />)}
@@ -61,7 +67,7 @@ function NavLink({ href, active, children }: { href: string; active: boolean; ch
   return (
     <Link
       href={href}
-      className={clsx("rounded-md px-2.5 py-1 transition-colors", active ? "bg-wash font-medium text-ink" : "text-ink-2 hover:text-ink")}
+      className={clsx("flex items-center rounded-md px-2 py-1 transition-colors sm:px-2.5", active ? "bg-wash font-medium text-ink" : "text-ink-2 hover:text-ink")}
     >
       {children}
     </Link>
@@ -86,11 +92,12 @@ function CountrySwitch() {
   const router = useRouter();
   const pathname = usePathname();
   const onFno = pathname.startsWith("/fno");
+  const onChecklist = pathname.startsWith("/checklist");
 
   function choose(m: MarketId) {
     setMarket(m);
     // A stock or contract page belongs to one market; switching country goes back to that country's list.
-    const home = onFno ? "/fno" : "/markets";
+    const home = onFno ? "/fno" : onChecklist ? "/checklist" : "/markets";
     if (pathname !== home) router.push(home);
   }
 
@@ -102,7 +109,7 @@ function CountrySwitch() {
           role="radio"
           aria-checked={market === m}
           onClick={() => choose(m)}
-          className={clsx("rounded-md px-2 py-1 transition-colors sm:px-3", market === m ? "bg-ink text-paper" : "text-ink-2 hover:text-ink")}
+          className={clsx("rounded-md px-1.5 py-1 transition-colors sm:px-3", market === m ? "bg-ink text-paper" : "text-ink-2 hover:text-ink")}
         >
           <span className="mr-1.5 hidden sm:inline">{MARKETS[m].flag}</span>
           {MARKETS[m].name}
