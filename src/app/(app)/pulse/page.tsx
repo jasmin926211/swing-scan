@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import { Check, X } from "lucide-react";
-import { getPulse, type Pulse, type PulseCheck } from "@/lib/api";
+import { getPulse, type MarketId, type Pulse, type PulseCheck } from "@/lib/api";
 import { MARKETS, price } from "@/lib/format";
 import { useMarket } from "@/lib/market";
 import { MoodGauge, moodLabel } from "@/components/pulse/MoodGauge";
@@ -13,6 +13,7 @@ import { Bubbles } from "@/components/pulse/Bubbles";
 import { SectorBars } from "@/components/pulse/SectorBars";
 import { StockLogo } from "@/components/StockLogo";
 import { CandidateDialog } from "@/components/pulse/CandidateDialog";
+import { LeadersMap } from "@/components/pulse/LeadersMap";
 import { LineChart } from "lucide-react";
 import { BUILDUP } from "@/components/OiLevels";
 
@@ -27,6 +28,7 @@ const CHECK_LABEL: Record<PulseCheck, string> = {
   relative_strength: "Beating the index (20 days)",
 };
 const pct = (v: number | null | undefined, d = 0) => (v == null ? "—" : `${(v * 100).toFixed(d)}%`);
+const signedPct = (v: number) => `${v >= 0 ? "+" : ""}${(v * 100).toFixed(2)}%`;
 
 /** Market Pulse: is the market strong enough to be aggressive, which sectors lead, and which stocks are breaking out. */
 export default function PulsePage() {
@@ -148,9 +150,27 @@ export default function PulsePage() {
           </Card>
 
           <Card
-            title={`Breakout candidates · ${data.candidates_total}`}
-            note="Through the 20-day high and above the 20 EMA, with most of the swing checklist met. A shortlist to check, not a buy list: stop below the 20 EMA, target at least 1:2."
+            title={`Momentum leaders · ${data.leaders_zone.count} in the zone`}
+            note={`Momentum rating (NSE Nifty200 Momentum 30 method: 6- and 12-month returns adjusted for volatility, ranked 1–99) against distance from the 52-week high. Tested on 10 years: the top 20% beat the average liquid stock by ${pct(data.records.momentum.quarter, 1)} over the next 3 months (${pct(data.records.momentum.month, 1)} over 1 month), after costs. A tilt for 1–3 month holds, not a 2–3 day signal; momentum can drop sharply in fast rebounds after market falls.`}
           >
+            <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+              <LeadersMap data={data.leaders} zone={data.leaders_zone} market={market} />
+              <LeadersList data={data.leaders} zone={data.leaders_zone} market={market} />
+            </div>
+          </Card>
+
+          <Card
+            title={`Breakout candidates · ${data.candidates_total}`}
+            note="Through the 20-day high and above the 20 EMA, with most of the swing checklist met. A watchlist to check, not a buy list."
+          >
+            <p className="mb-3 rounded-lg bg-warn-wash px-3 py-2 text-xs leading-relaxed text-warn">
+              <b>Tested on 10 years:</b> buying every stock with this setup at the breakout day&apos;s close averaged{" "}
+              {signedPct(data.records.breakouts.days2)} after 2 days, {signedPct(data.records.breakouts.days5)} after 5 and{" "}
+              {signedPct(data.records.breakouts.days10)} after 10, after costs, with {pct(data.records.breakouts.win_rate)} of trades
+              winning{market === "in" ? " (upper-circuit days excluded: they can't be bought)" : ""}. Buying the next morning did worse.
+              On its own the setup has no edge: use the list to find stocks to study, then decide with the chart, levels, news and
+              the momentum rating.
+            </p>
             {data.candidates.length === 0 ? (
               <p className="text-sm text-ink-3">No stock meets the conditions right now.</p>
             ) : (
@@ -163,6 +183,12 @@ export default function PulsePage() {
                         <Link href={`/stock/${market}/${encodeURIComponent(c.symbol)}`} className="block truncate font-medium hover:underline">{c.symbol}</Link>
                         <p className="truncate text-xs text-ink-3">{c.sector ?? c.name}</p>
                       </div>
+                      {c.rating != null && (
+                        <span title="Momentum rating vs all liquid stocks (1–99)"
+                          className={clsx("tabular rounded px-1.5 py-0.5 text-[10px] font-medium", c.rating >= 80 ? "bg-up-wash text-up" : c.rating < 40 ? "bg-down-wash text-down" : "bg-wash text-ink-2")}>
+                          Mom {c.rating}
+                        </span>
+                      )}
                       <div className="text-right">
                         <p className="tabular text-sm font-medium">{price(c.price, market)}</p>
                         <p className={clsx("tabular text-xs", (c.change_pct ?? 0) >= 0 ? "text-up" : "text-down")}>
@@ -171,6 +197,11 @@ export default function PulsePage() {
                         </p>
                       </div>
                     </div>
+                    {c.upper_circuit && (
+                      <p className="mt-2 rounded bg-warn-wash px-2 py-1 text-[11px] text-warn">
+                        At the upper circuit: only buyers, so a buy order rarely fills today.
+                      </p>
+                    )}
                     <div className="mt-2.5 flex flex-wrap gap-1">
                       {(Object.keys(CHECK_LABEL) as PulseCheck[]).map((k) => (
                         <span key={k} className={clsx("inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px]", c.checks[k] ? "bg-up-wash text-up" : "bg-wash text-ink-3")}>
@@ -223,6 +254,29 @@ export default function PulsePage() {
         </>
       )}
     </div>
+  );
+}
+
+function LeadersList({ data, zone, market }: { data: Pulse["leaders"]; zone: Pulse["leaders_zone"]; market: MarketId }) {
+  const top = data
+    .filter((d) => d.rating >= zone.rating && d.from_high >= zone.from_high)
+    .sort((a, b) => b.rating - a.rating || b.from_high - a.from_high)
+    .slice(0, 12);
+  if (top.length === 0) return <p className="text-sm text-ink-3">No stock is in the leaders zone right now.</p>;
+  return (
+    <ol className="divide-y divide-line text-sm">
+      {top.map((d, i) => (
+        <li key={d.symbol} className="flex items-center gap-2 py-1.5">
+          <span className="tabular w-5 text-xs text-ink-3">{i + 1}</span>
+          <Link href={`/stock/${market}/${encodeURIComponent(d.symbol)}`} className="min-w-0 flex-1 truncate font-medium hover:underline">
+            {d.symbol}
+            {d.sector && <span className="ml-1.5 text-xs font-normal text-ink-3">{d.sector}</span>}
+          </Link>
+          <span className="tabular rounded bg-up-wash px-1.5 text-[11px] font-medium text-up">{d.rating}</span>
+          <span className="tabular w-14 text-right text-xs text-ink-2">{d.from_high > -0.005 ? "at high" : `${(d.from_high * 100).toFixed(1)}%`}</span>
+        </li>
+      ))}
+    </ol>
   );
 }
 
