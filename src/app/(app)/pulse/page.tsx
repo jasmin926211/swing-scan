@@ -12,6 +12,8 @@ import { BreadthLine } from "@/components/pulse/BreadthLine";
 import { Bubbles } from "@/components/pulse/Bubbles";
 import { SectorBars } from "@/components/pulse/SectorBars";
 import { StockLogo } from "@/components/StockLogo";
+import { CandidateDialog } from "@/components/pulse/CandidateDialog";
+import { LineChart } from "lucide-react";
 import { BUILDUP } from "@/components/OiLevels";
 
 const REFRESH_S = 180; // trends can turn quickly; every 3 minutes
@@ -32,6 +34,7 @@ export default function PulsePage() {
   const [data, setData] = useState<Pulse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [left, setLeft] = useState(REFRESH_S);
+  const [open, setOpen] = useState<string | null>(null); // candidate symbol shown on a chart
 
   const load = useCallback(async () => {
     try {
@@ -153,12 +156,11 @@ export default function PulsePage() {
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {data.candidates.map((c) => (
-                  <Link key={c.symbol} href={`/stock/${market}/${encodeURIComponent(c.symbol)}`}
-                    className="group rounded-xl border border-line p-3 transition-colors hover:border-ink-3 hover:bg-wash">
+                  <div key={c.symbol} className="flex flex-col rounded-xl border border-line p-3 transition-colors hover:border-ink-3">
                     <div className="flex items-center gap-2.5">
                       <StockLogo market={market} symbol={c.symbol} size={30} />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium group-hover:underline">{c.symbol}</p>
+                        <Link href={`/stock/${market}/${encodeURIComponent(c.symbol)}`} className="block truncate font-medium hover:underline">{c.symbol}</Link>
                         <p className="truncate text-xs text-ink-3">{c.sector ?? c.name}</p>
                       </div>
                       <div className="text-right">
@@ -180,11 +182,33 @@ export default function PulsePage() {
                       RVOL {c.rvol?.toFixed(1) ?? "—"}× · RSI {c.rsi.toFixed(0)} · ADX {c.adx.toFixed(0)} · stop ref. 20 EMA {price(c.ema20, market)}
                       {c.squeeze_before && " · tight range or low volume before the break"}
                     </p>
-                  </Link>
+                    <div className="mt-3 flex items-center gap-3 border-t border-line pt-2.5 text-xs">
+                      <button
+                        onClick={() => setOpen(c.symbol)}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-ink px-3 py-1.5 font-medium text-paper transition-opacity hover:opacity-90"
+                      >
+                        <LineChart className="h-3.5 w-3.5" /> Show on chart
+                      </button>
+                      <Link href={`/stock/${market}/${encodeURIComponent(c.symbol)}`} className="font-medium text-ink-2 hover:text-ink hover:underline">
+                        Open stock →
+                      </Link>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
           </Card>
+
+          {open && data.candidates.some((c) => c.symbol === open) && (
+            <CandidateDialog
+              market={market}
+              c={data.candidates.find((c) => c.symbol === open)!}
+              indexName={data.index.name}
+              indexLive={data.index.price}
+              tz={TZ[market]}
+              onClose={() => setOpen(null)}
+            />
+          )}
 
           {data.buildup && (
             <Card title="F&O positioning" note={`Futures build-up across F&O stocks at the end of ${new Date(data.buildup.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}.`}>
