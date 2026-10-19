@@ -468,8 +468,19 @@ export type PulseCandidate = {
   squeeze_before: boolean;
   checks: Record<PulseCheck, boolean>;
   score: number;
+  rating: number | null; // momentum rating 1-99 (NSE-style)
+  upper_circuit: boolean; // India: stuck at the price band, a buy rarely fills
   ema20: number;
   breakout_level: number;
+};
+export type PulseLeader = {
+  symbol: string;
+  sector: string | null;
+  rating: number;
+  from_high: number; // fraction below the 52-week high (negative)
+  above_200dma: boolean;
+  turnover: number;
+  change_pct: number | null;
 };
 export type Pulse = {
   market: MarketId;
@@ -489,5 +500,11 @@ export type Pulse = {
   candidates_total: number;
   bubbles: { symbol: string; sector: string | null; change_pct: number; rvol: number; turnover: number }[];
   buildup: { date: string; counts: Partial<Record<Buildup, number>> } | null;
+  leaders: PulseLeader[];
+  leaders_zone: { rating: number; from_high: number; count: number };
+  records: {
+    momentum: { month: number; quarter: number };
+    breakouts: { days2: number; days5: number; days10: number; win_rate: number };
+  };
 };
 export const getPulse = (m: MarketId) => request<Pulse>(`/api/markets/${m}/pulse`);
