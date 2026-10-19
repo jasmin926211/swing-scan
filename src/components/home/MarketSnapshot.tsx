@@ -101,7 +101,7 @@ export function MarketSnapshot() {
 
 function Panel({ title, className, children }: { title: string; className?: string; children: React.ReactNode }) {
   return (
-    <section className={clsx("rounded-xl border border-line", className)}>
+    <section className={clsx("min-w-0 overflow-hidden rounded-xl border border-line", className)}>
       <h3 className="border-b border-line px-4 py-2.5 text-xs font-medium text-ink-2">{title}</h3>
       {children}
     </section>
@@ -120,25 +120,27 @@ function StockRows({ rows, market, showCap }: { rows?: PublicStock[]; market: Ma
   }
   if (rows.length === 0) return <p className="px-4 py-3 text-sm text-ink-3">No data yet.</p>;
   return (
-    <table className="w-full text-sm">
+    // Fixed layout: price and change get set widths and the name column takes what's left, so a long company name
+    // is cut off with "…" instead of widening the table past its card (the gainers / losers cards are narrow).
+    <table className="w-full table-fixed text-sm">
       <tbody>
         {rows.map((s) => (
           <tr key={s.symbol} className="border-t border-line first:border-t-0">
-            <td className="px-4 py-2">
-              <div className="flex items-center gap-2.5">
+            <td className="py-2 pl-4 pr-2">
+              <div className="flex min-w-0 items-center gap-2.5">
                 <StockLogo market={market} symbol={s.symbol} size={28} />
                 <div className="min-w-0">
                   {/* Members-only page: signed-out visitors are sent to sign in and brought back here. */}
-                  <Link href={`/stock/${market}/${encodeURIComponent(s.symbol)}`} className="font-medium hover:underline">
+                  <Link href={`/stock/${market}/${encodeURIComponent(s.symbol)}`} className="block truncate font-medium hover:underline">
                     {s.symbol}
                   </Link>
-                  <p className="max-w-[150px] truncate text-xs text-ink-3 sm:max-w-[240px]">{s.name}</p>
+                  <p className="truncate text-xs text-ink-3" title={s.name ?? undefined}>{s.name}</p>
                 </div>
               </div>
             </td>
-            <td className="tabular px-4 py-2 text-right font-medium">{price(s.price, market)}</td>
-            <td className={clsx("tabular px-4 py-2 text-right", changeColor(s.change_pct))}>{signedPct(s.change_pct)}</td>
-            {showCap && <td className="tabular hidden px-4 py-2 text-right text-ink-2 sm:table-cell">{compact(s.market_cap, market)}</td>}
+            <td className="tabular w-28 px-2 py-2 text-right font-medium">{price(s.price, market)}</td>
+            <td className={clsx("tabular w-20 py-2 pl-2 pr-4 text-right", changeColor(s.change_pct))}>{signedPct(s.change_pct)}</td>
+            {showCap && <td className="tabular hidden w-28 py-2 pl-2 pr-4 text-right text-ink-2 sm:table-cell">{compact(s.market_cap, market)}</td>}
           </tr>
         ))}
       </tbody>
