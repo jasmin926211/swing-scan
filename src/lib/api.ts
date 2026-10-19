@@ -377,3 +377,15 @@ export type NewsFeed = { summary: NewsSummary; items: NewsItem[] };
 export type StockNews = { symbol: string; days: number; model: string; company: NewsFeed & { query: string }; market: NewsFeed };
 
 export const getNews = (m: MarketId, symbol: string) => request<StockNews>(`${stockPath(m, symbol)}/news`);
+
+export type Filing = {
+  exchange: "NSE" | "BSE";
+  published: number; // epoch ms
+  type: string; // the exchange's own category
+  text: string;
+  url: string; // the filing's PDF
+  tag: string; // our plain-language type: Results, Dividend, Order win, ...
+  routine: boolean;
+};
+export type StockFilings = { source: "NSE" | "BSE"; days: number; items: Filing[]; routine: number };
+export const getFilings = (m: MarketId, symbol: string) => request<StockFilings>(`${stockPath(m, symbol)}/filings`);
