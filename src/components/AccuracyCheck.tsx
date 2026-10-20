@@ -60,7 +60,9 @@ export function AccuracyCheck({ symbol, market, interval, check }: { symbol: str
   const { result, running, elapsed, error, run } = check;
   const { bars, unit } = HORIZON[interval];
 
-  const beatsNaive = result && result.mean_error_pct < result.naive_error_pct;
+  const n = result?.checks.length ?? 0;
+  const inside = result ? result.checks.filter((c) => c.actual >= c.low && c.actual <= c.high).length : 0;
+  const rightWay = result ? result.checks.filter((c) => c.direction_hit).length : 0;
 
   return (
     <section className="rounded-xl border border-line">
@@ -68,8 +70,8 @@ export function AccuracyCheck({ symbol, market, interval, check }: { symbol: str
         <div>
           <h2 className="text-sm font-semibold">How has the AI done on {symbol}?</h2>
           <p className="mt-0.5 text-xs text-ink-3">
-            Forecasts {bars} {unit} ahead from the last {CHECKS} past points, each using only data before it, then compares with
-            what actually happened. Default model, 8 paths each.
+            Forecasts {bars} {unit} ahead from the last {CHECKS} past points, each using only data before it, then checks whether the actual
+            price landed inside the AI&apos;s 80% range. The range is the part that held up in testing; its up / down lean didn&apos;t.
           </p>
         </div>
         <button
@@ -84,20 +86,19 @@ export function AccuracyCheck({ symbol, market, interval, check }: { symbol: str
 
       {result && (
         <div className="border-t border-line">
-          <div className="grid grid-cols-2 gap-4 p-4 text-sm md:grid-cols-4">
-            <Metric
-              label="Direction right"
-              value={`${Math.round(result.direction_accuracy * result.checks.length)} / ${result.checks.length}`}
-              note="a coin flip gets half"
-            />
-            <Metric label="Avg price error" value={pct(result.mean_error_pct)} note={`no-change guess: ${pct(result.naive_error_pct)}`} />
-            <Metric label="Inside 80% range" value={pct(result.band_coverage, 0)} note="well calibrated ≈ 80%" />
-            <div>
-              <p className="text-xs text-ink-3">Verdict</p>
-              <p className="mt-0.5 font-medium">{beatsNaive ? "Beat “no change”" : "Did not beat “no change”"}</p>
-              <p className="text-xs text-ink-3">{CHECKS} checks is a small sample</p>
-            </div>
+          <div className="grid grid-cols-1 gap-4 p-4 text-sm sm:grid-cols-3">
+            <Metric label="Price landed inside the 80% range" value={`${inside} / ${n}`}
+              note={`expected about ${Math.round(n * 0.8)} of ${n} · in testing it held 84%`} />
+            <Metric label="Up / down lean right" value={`${rightWay} / ${n}`} note={`a coin flip gets about ${n / 2}; not used for calls`} />
+            <Metric label="Middle of the range vs the price" value={`${pct(result.mean_error_pct)} off`}
+              note={`“no change” was ${pct(result.naive_error_pct)} off`} />
           </div>
+          <p className="border-t border-line px-4 py-2.5 text-xs leading-relaxed text-ink-2">
+            {inside >= Math.round(n * 0.75)
+              ? `The range held on ${symbol} recently: use it for how far the price may swing (stops, position size), not for which way.`
+              : `The range missed more often than usual on ${symbol} recently: allow for bigger swings than it shows.`}{" "}
+            {n} checks is a small sample.
+          </p>
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -106,31 +107,35 @@ export function AccuracyCheck({ symbol, market, interval, check }: { symbol: str
                   <th className="px-4 py-2 font-normal">From</th>
                   <th className="px-4 py-2 font-normal">To</th>
                   <th className="px-4 py-2 text-right font-normal">Close then</th>
-                  <th className="px-4 py-2 text-right font-normal">AI said</th>
-                  <th className="hidden px-4 py-2 text-right font-normal md:table-cell">80% range</th>
+                  <th className="px-4 py-2 text-right font-normal">AI 80% range</th>
                   <th className="px-4 py-2 text-right font-normal">Actual</th>
-                  <th className="px-4 py-2 text-center font-normal">Direction</th>
+                  <th className="px-4 py-2 text-center font-normal">Inside range?</th>
+                  <th className="hidden px-4 py-2 font-normal md:table-cell">Up / down lean (not used)</th>
                 </tr>
               </thead>
               <tbody>
-                {result.checks.map((c) => (
-                  <tr key={c.from_time} className="tabular border-t border-line">
-                    <td className="px-4 py-2 text-ink-2">{barTime(c.from_time, interval === "1h")}</td>
-                    <td className="px-4 py-2 text-ink-2">{barTime(c.to_time, interval === "1h")}</td>
-                    <td className="px-4 py-2 text-right">{price(c.base, market)}</td>
-                    <td className="px-4 py-2 text-right">{price(c.predicted, market)}</td>
-                    <td className="hidden px-4 py-2 text-right text-ink-3 md:table-cell">
-                      {price(c.low, market)} – {price(c.high, market)}
-                    </td>
-                    <td className="px-4 py-2 text-right font-medium">{price(c.actual, market)}</td>
-                    <td className="px-4 py-2">
-                      <span className={clsx("flex items-center justify-center gap-1 text-xs", c.direction_hit ? "text-up" : "text-down")}>
-                        {c.direction_hit ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
-                        {c.direction_hit ? "Right" : "Wrong"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {result.checks.map((c) => {
+                  const hit = c.actual >= c.low && c.actual <= c.high;
+                  const leanUp = c.predicted >= c.base, wentUp = c.actual >= c.base;
+                  return (
+                    <tr key={c.from_time} className="tabular border-t border-line">
+                      <td className="px-4 py-2 text-ink-2">{barTime(c.from_time, interval === "1h")}</td>
+                      <td className="px-4 py-2 text-ink-2">{barTime(c.to_time, interval === "1h")}</td>
+                      <td className="px-4 py-2 text-right">{price(c.base, market)}</td>
+                      <td className="px-4 py-2 text-right text-ink-2">{price(c.low, market)} – {price(c.high, market)}</td>
+                      <td className="px-4 py-2 text-right font-medium">{price(c.actual, market)}</td>
+                      <td className="px-4 py-2">
+                        <span className={clsx("flex items-center justify-center gap-1 text-xs", hit ? "text-up" : "text-down")}>
+                          {hit ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                          {hit ? "Inside" : c.actual > c.high ? "Above" : "Below"}
+                        </span>
+                      </td>
+                      <td className="hidden px-4 py-2 text-xs text-ink-3 md:table-cell">
+                        AI leaned {leanUp ? "up" : "down"}, price went {wentUp ? "up" : "down"} {c.direction_hit ? "(matched)" : "(didn’t)"}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
