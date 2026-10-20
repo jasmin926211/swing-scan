@@ -161,31 +161,23 @@ function oneSided(s: Forecast["summary"]): boolean {
   return s.last_close < s.close_p10 - eps || s.last_close > s.close_p90 + eps;
 }
 
-/** How much to trust this forecast, from the AI's recent record on the same stock. */
+/** How much to trust this forecast's range, from the AI's recent record on the same stock. */
 function TrustNote({ symbol, accuracy }: { symbol: string; accuracy: AccuracyState }) {
   const r = accuracy.result;
   if (accuracy.running && !r)
     return <p className="rounded-lg bg-wash px-3 py-2 text-xs text-ink-2">Checking the AI&apos;s recent record on {symbol}… {accuracy.elapsed}s</p>;
   if (!r) return null;
-  const hits = `${Math.round(r.direction_accuracy * r.checks.length)}/${r.checks.length}`;
-  const errors = `price error ${pct(r.mean_error_pct)} vs ${pct(r.naive_error_pct)} for “no change”`;
-  if (r.verdict === "none")
+  const n = r.checks.length;
+  const inside = r.checks.filter((c) => c.actual >= c.low && c.actual <= c.high).length;
+  if (inside >= Math.round(n * 0.75))
     return (
-      <p className="rounded-lg bg-down-wash px-3 py-2 text-xs leading-relaxed text-down">
-        <b>Low trust.</b> The AI has had no skill on {symbol} recently: direction right {hits}, {errors}. Treat this
-        forecast as noise.
-      </p>
-    );
-  if (r.verdict === "weak")
-    return (
-      <p className="rounded-lg bg-warn-wash px-3 py-2 text-xs leading-relaxed text-warn">
-        <b>Mixed record.</b> On {symbol} recently: direction right {hits}, {errors}. Use with caution.
+      <p className="rounded-lg bg-wash px-3 py-2 text-xs leading-relaxed text-ink-2">
+        <b>The range held on {symbol} recently:</b> the price landed inside it {inside} of {n} times. {n} checks is a small sample.
       </p>
     );
   return (
-    <p className="rounded-lg bg-wash px-3 py-2 text-xs leading-relaxed text-ink-2">
-      <b>Looked better than “no change” recently</b> on {symbol}: direction right {hits}, {errors}. {r.checks.length} checks
-      can&apos;t prove skill: a coin flip gets 6 of 8 right about 1 time in 7.
+    <p className="rounded-lg bg-warn-wash px-3 py-2 text-xs leading-relaxed text-warn">
+      <b>The range missed more often than usual on {symbol}:</b> inside only {inside} of {n} times recently. Allow for bigger swings than it shows.
     </p>
   );
 }
