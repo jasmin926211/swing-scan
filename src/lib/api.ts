@@ -408,6 +408,17 @@ export type ExpectedMove = {
 };
 export const getExpectedMove = (m: MarketId, symbol: string) => request<ExpectedMove>(`${stockPath(m, symbol)}/expected-move`);
 
+export type SummarySide = "bull" | "bear" | "check";
+export type SummaryPoint = { side: SummarySide; text: string; tested: boolean; detail: string };
+export type StockSummary = {
+  symbol: string;
+  price: number;
+  rating: number | null;
+  points: SummaryPoint[];
+  counts: Record<SummarySide, { tested: number; facts: number }>;
+};
+export const getSummary = (m: MarketId, symbol: string) => request<StockSummary>(`${stockPath(m, symbol)}/summary`);
+
 export type CheckStatus = "pass" | "warn" | "fail" | "info";
 export type TradeSide = "long" | "short";
 export type Checklist = {
