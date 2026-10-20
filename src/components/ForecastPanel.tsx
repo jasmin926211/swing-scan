@@ -129,8 +129,11 @@ export function ForecastPanel({
               {price(s.close_p10, market)} – {price(s.close_p90, market)}
             </p>
             <p className="tabular text-xs text-ink-3">
-              from last close {price(s.last_close, market)} · range width {pct(s.close_p90 / s.close_p10 - 1, 1)} · held about 84% of
-              outcomes in testing
+              from last close {price(s.last_close, market)} · range width {pct(s.close_p90 / s.close_p10 - 1, 1)} ·{" "}
+              {/* Only the daily, 10-day, Fast setting was tested out of sample (the same one that has a tested chance). */}
+              {s.tested_prob_up != null
+                ? "held about 84% of outcomes in testing"
+                : "this setting (candles, horizon, model) wasn't tested; daily candles, 10 days, Fast held 84%"}
             </p>
           </div>
 
