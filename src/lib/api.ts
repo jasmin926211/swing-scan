@@ -430,7 +430,8 @@ export type Checklist = {
   counts: Record<CheckStatus, number>;
   fails: string[];
   warns: string[];
-  plan: { entry: number; stop: number; target: number; risk_per_share: number; rr: number };
+  /** valid: reward at least 1.5x the risk; otherwise note says why there's no plan and what to wait for */
+  plan: { entry: number; stop: number; target: number; risk_per_share: number; rr: number; valid?: boolean; note?: string | null };
   checks: { step: number; title: string; status: CheckStatus; summary: string; detail: string }[];
 };
 export const getChecklist = (m: MarketId, symbol: string, side: TradeSide) =>

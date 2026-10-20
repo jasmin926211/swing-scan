@@ -32,8 +32,10 @@ function planText(c: Checklist, market: MarketId, shares: number): string {
   const lines = [
     `${c.symbol}${c.name ? ` (${c.name})` : ""}: ${c.side === "long" ? "BUY" : "SELL / SHORT"} plan, ${new Date().toLocaleDateString("en-GB")}`,
     `Verdict: ${VERDICT[c.verdict].text}${c.fails.length ? ` (failed: ${c.fails.join(", ")})` : ""}`,
-    `Entry ${price(c.plan.entry, market)} · Stop ${price(c.plan.stop, market)} · Target ${price(c.plan.target, market)} · Risk:reward 1:${c.plan.rr.toFixed(1)}`,
-    `Size ${shares} shares (risk ${money(shares * c.plan.risk_per_share, market)})`,
+    ...(c.plan.valid === false
+      ? [`No trade plan: ${c.plan.note}`]
+      : [`Entry ${price(c.plan.entry, market)} · Stop ${price(c.plan.stop, market)} · Target ${price(c.plan.target, market)} · Risk:reward 1:${c.plan.rr.toFixed(1)}`,
+         `Size ${shares} shares (risk ${money(shares * c.plan.risk_per_share, market)})`]),
     "",
     ...c.checks.map((x) => `${x.step}. ${x.title} [${STATUS[x.status].label}]: ${x.summary}`),
     "",
@@ -162,21 +164,30 @@ export function TradeChecklist({ market, symbol }: { market: MarketId; symbol: s
               )}
             </div>
 
-            <dl className="tabular mt-4 grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
-              <dt className="text-ink-3">{data.side === "long" ? "Buy" : "Short"} at</dt>
-              <dd className="text-right font-medium">{price(data.plan.entry, market)}</dd>
-              <dt className="text-ink-3">Stop-loss</dt>
-              <dd className="text-right text-down">{price(data.plan.stop, market)}</dd>
-              <dt className="text-ink-3">Target</dt>
-              <dd className="text-right text-up">{price(data.plan.target, market)}</dd>
-              <dt className="text-ink-3">Risk:reward</dt>
-              <dd className={clsx("text-right font-medium", data.plan.rr >= 2 ? "text-up" : "text-down")}>1:{data.plan.rr.toFixed(1)}</dd>
-              <dt className="text-ink-3">Size (risking {money(risk, market)})</dt>
-              <dd className="text-right">{shares.toLocaleString()} shares</dd>
-              <dt className="text-ink-3">Position value</dt>
-              <dd className="text-right">{money(shares * data.plan.entry, market)}</dd>
-            </dl>
-            <p className="mt-2 text-[11px] text-ink-3">The risk amount comes from the position-size calculator in Expected move.</p>
+            {data.plan.valid === false ? (
+              <div className="mt-4 rounded-lg border border-line bg-wash px-3 py-2.5 text-sm">
+                <p className="font-medium">No trade plan at this price</p>
+                <p className="mt-1 text-xs leading-relaxed text-ink-2">{data.plan.note}</p>
+              </div>
+            ) : (
+              <>
+                <dl className="tabular mt-4 grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
+                  <dt className="text-ink-3">{data.side === "long" ? "Buy" : "Short"} at</dt>
+                  <dd className="text-right font-medium">{price(data.plan.entry, market)}</dd>
+                  <dt className="text-ink-3">Stop-loss</dt>
+                  <dd className="text-right text-down">{price(data.plan.stop, market)}</dd>
+                  <dt className="text-ink-3">Target</dt>
+                  <dd className="text-right text-up">{price(data.plan.target, market)}</dd>
+                  <dt className="text-ink-3">Risk:reward</dt>
+                  <dd className={clsx("text-right font-medium", data.plan.rr >= 2 ? "text-up" : "text-down")}>1:{data.plan.rr.toFixed(1)}</dd>
+                  <dt className="text-ink-3">Size (risking {money(risk, market)})</dt>
+                  <dd className="text-right">{shares.toLocaleString()} shares</dd>
+                  <dt className="text-ink-3">Position value</dt>
+                  <dd className="text-right">{money(shares * data.plan.entry, market)}</dd>
+                </dl>
+                <p className="mt-2 text-[11px] text-ink-3">The risk amount comes from the position-size calculator in Expected move.</p>
+              </>
+            )}
 
             <button
               onClick={copy}
