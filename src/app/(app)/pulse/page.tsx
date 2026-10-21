@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
-import { Check, ChevronDown, X } from "lucide-react";
-import { getPulse, type MarketId, type Pulse, type PulseCheck, type PulseStock } from "@/lib/api";
+import { ChevronDown } from "lucide-react";
+import { getPulse, type MarketId, type Pulse, type PulseStock } from "@/lib/api";
 import { MARKETS, price } from "@/lib/format";
 import { useMarket } from "@/lib/market";
 import { MoodGauge, moodLabel } from "@/components/pulse/MoodGauge";
@@ -12,23 +12,12 @@ import { BreadthLine } from "@/components/pulse/BreadthLine";
 import { Bubbles } from "@/components/pulse/Bubbles";
 import { SectorBars } from "@/components/pulse/SectorBars";
 import { StockLogo } from "@/components/StockLogo";
-import { CandidateDialog } from "@/components/pulse/CandidateDialog";
 import { LeadersMap } from "@/components/pulse/LeadersMap";
-import { LineChart } from "lucide-react";
 import { BUILDUP } from "@/components/OiLevels";
 
 const REFRESH_S = 180; // trends can turn quickly; every 3 minutes
 const TZ = { in: "Asia/Kolkata", us: "America/New_York" } as const;
-const CHECK_LABEL: Record<PulseCheck, string> = {
-  above_ema20: "Above 20 EMA",
-  breakout: "Above 20-day high",
-  volume: "Volume ≥ 1.5×",
-  rsi: "RSI ≥ 60",
-  adx: "ADX > 20, rising",
-  relative_strength: "Beating the index (20 days)",
-};
 const pct = (v: number | null | undefined, d = 0) => (v == null ? "—" : `${(v * 100).toFixed(d)}%`);
-const signedPct = (v: number) => `${v >= 0 ? "+" : ""}${(v * 100).toFixed(2)}%`;
 
 /** Market Pulse: how broad the market's strength is, which sectors lead, and which stocks are breaking out. */
 export default function PulsePage() {
@@ -36,7 +25,6 @@ export default function PulsePage() {
   const [data, setData] = useState<Pulse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [left, setLeft] = useState(REFRESH_S);
-  const [open, setOpen] = useState<string | null>(null); // candidate symbol shown on a chart
 
   const load = useCallback(async () => {
     try {
@@ -78,7 +66,7 @@ export default function PulsePage() {
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Market Pulse · {MARKETS[market].name}</h1>
           <p className="mt-0.5 text-sm text-ink-2">
-            How broad the market’s strength is today, which sectors lead, and which stocks are breaking out
+            How broad the market’s strength is today, which sectors lead, and where volume and momentum are
             {data ? ` · ${data.stocks.toLocaleString()} liquid stocks` : ""}.
           </p>
         </div>
@@ -156,81 +144,6 @@ export default function PulsePage() {
             </div>
           </Card>
 
-          <Card
-            title={`Breakout candidates · ${data.candidates_total}`}
-            note="Through the 20-day high and above the 20 EMA, with most of the swing checklist met. A watchlist to check, not a buy list."
-          >
-            <PlanRecord r={data.records.plan} market={market} />
-            {data.candidates.length === 0 ? (
-              <p className="text-sm text-ink-3">No stock meets the conditions right now.</p>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {data.candidates.map((c) => (
-                  <div key={c.symbol} className="flex min-w-0 flex-col rounded-xl border border-line p-3 transition-colors hover:border-ink-3">
-                    <div className="flex items-center gap-2.5">
-                      <StockLogo market={market} symbol={c.symbol} size={30} />
-                      <div className="min-w-0 flex-1">
-                        <Link href={`/stock/${market}/${encodeURIComponent(c.symbol)}`} className="block truncate font-medium hover:underline">{c.symbol}</Link>
-                        <p className="truncate text-xs text-ink-3">{c.sector ?? c.name}</p>
-                      </div>
-                      {c.rating != null && (
-                        <span title="Momentum rating vs all liquid stocks (1–99)"
-                          className={clsx("tabular rounded px-1.5 py-0.5 text-[10px] font-medium", c.rating >= 80 ? "bg-up-wash text-up" : c.rating < 40 ? "bg-down-wash text-down" : "bg-wash text-ink-2")}>
-                          Mom {c.rating}
-                        </span>
-                      )}
-                      <div className="text-right">
-                        <p className="tabular text-sm font-medium">{price(c.price, market)}</p>
-                        <p className={clsx("tabular text-xs", (c.change_pct ?? 0) >= 0 ? "text-up" : "text-down")}>
-                          {(c.change_pct ?? 0) >= 0 ? "+" : ""}
-                          {(c.change_pct ?? 0).toFixed(2)}%
-                        </p>
-                      </div>
-                    </div>
-                    {c.upper_circuit && (
-                      <p className="mt-2 rounded bg-warn-wash px-2 py-1 text-[11px] text-warn">
-                        At the upper circuit: only buyers, so a buy order rarely fills today.
-                      </p>
-                    )}
-                    <div className="mt-2.5 flex flex-wrap gap-1">
-                      {(Object.keys(CHECK_LABEL) as PulseCheck[]).map((k) => (
-                        <span key={k} className={clsx("inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px]", c.checks[k] ? "bg-up-wash text-up" : "bg-wash text-ink-3")}>
-                          {c.checks[k] ? <Check className="h-3 w-3" aria-label="met" /> : <X className="h-3 w-3" aria-label="not met" />} {CHECK_LABEL[k]}
-                        </span>
-                      ))}
-                    </div>
-                    <p className="tabular mt-2 text-[11px] text-ink-3">
-                      RVOL {c.rvol?.toFixed(1) ?? "—"}× · RSI {c.rsi.toFixed(0)} · ADX {c.adx.toFixed(0)}
-                      {c.squeeze_before && " · tight range or low volume before the break"}
-                    </p>
-                    <div className="mt-3 flex items-center gap-3 border-t border-line pt-2.5 text-xs">
-                      <button
-                        onClick={() => setOpen(c.symbol)}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-ink px-3 py-1.5 font-medium text-paper transition-opacity hover:opacity-90"
-                      >
-                        <LineChart className="h-3.5 w-3.5" /> Show on chart
-                      </button>
-                      <Link href={`/stock/${market}/${encodeURIComponent(c.symbol)}`} className="font-medium text-ink-2 hover:text-ink hover:underline">
-                        Open stock →
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-
-          {open && data.candidates.some((c) => c.symbol === open) && (
-            <CandidateDialog
-              market={market}
-              c={data.candidates.find((c) => c.symbol === open)!}
-              indexName={data.index.name}
-              indexLive={data.index.price}
-              tz={TZ[market]}
-              onClose={() => setOpen(null)}
-            />
-          )}
-
           {data.buildup && (
             <Card title="F&O positioning" note={`Futures build-up across F&O stocks at the end of ${new Date(data.buildup.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}.`}>
               <BuildupBar counts={data.buildup.counts} />
@@ -238,35 +151,11 @@ export default function PulsePage() {
           )}
 
           <p className="text-[11px] leading-relaxed text-ink-3">
-            Indicators (20 EMA, 20-day high and volume, RSI, ADX) come from each stock&apos;s last completed day and are compared with live prices.
+            Indicators (20 EMA, 50- and 200-day averages, average volume, momentum) come from each stock&apos;s last completed day and are compared with live prices.
             Volume is today&apos;s so far, so RVOL reads low early in the session. These readings describe the market; they aren&apos;t tested predictions.
           </p>
         </>
       )}
-    </div>
-  );
-}
-
-/** What the candidate trade plan did on 10 years of breakouts, in plain words. */
-function PlanRecord({ r, market }: { r: Pulse["records"]["plan"]; market: MarketId }) {
-  return (
-    <div className="mb-3 rounded-lg bg-warn-wash px-3 py-2.5 text-xs leading-relaxed text-warn">
-      <p>
-        <b>Why there&apos;s no entry, stop or target here.</b> Buying breakouts like these at the close, with a stop under the
-        breakout level, a target at twice the risk and out after 10 trading days, was tested on {r.trades.toLocaleString()} past
-        breakouts{market === "in" ? " (upper-circuit days excluded)" : ""}:
-      </p>
-      <div className="my-2 flex h-2.5 overflow-hidden rounded-full" aria-hidden>
-        <div className="bg-up" style={{ width: `${r.target_hit * 100}%` }} />
-        <div className="bg-line" style={{ width: `${r.timed_out * 100}%` }} />
-        <div className="bg-down" style={{ width: `${r.stopped * 100}%` }} />
-      </div>
-      <p>
-        <b>{pct(r.target_hit)} reached the target</b> (usually within {r.median_days_to_target} days), {pct(r.timed_out)} ran out of time and{" "}
-        <b>{pct(r.stopped)} hit the stop first</b>. The typical best gain within 10 days was {signedPct(r.median_best_gain)}. On average that
-        lost a little after costs ({r.avg_r.toFixed(2)}R; momentum rating 80+: {r.high_momentum.avg_r.toFixed(2)}R), and no other
-        target or time limit made money either. So this list shows what is breaking out, to study on the chart; it is not a buy signal.
-      </p>
     </div>
   );
 }

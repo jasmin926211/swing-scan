@@ -1,4 +1,4 @@
-// Illustrative candlestick chart with a forecast fan (decorative, not real data).
+// Illustrative candlestick chart with an Expected move range (decorative, not real data).
 
 const UP = "#1baf7a";
 const DOWN = "#e34948";
@@ -45,7 +45,7 @@ function band(lo: (f: (typeof fan)[number]) => number, hi: (f: (typeof fan)[numb
 export function HeroArt() {
   return (
     <div className="relative rounded-2xl border border-line bg-paper p-3 shadow-[0_1px_0_rgba(0,0,0,0.02)]">
-      <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label="Illustration: candlestick chart with a forecast range">
+      <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label="Illustration: candlestick chart with its normal 2-week range">
         {[0.25, 0.5, 0.75].map((f) => (
           <line key={f} x1={PAD} x2={W - PAD} y1={PAD + f * (H - 2 * PAD)} y2={PAD + f * (H - 2 * PAD)} className="stroke-line" />
         ))}
@@ -59,17 +59,17 @@ export function HeroArt() {
           );
         })}
         <line x1={nowX + STEP / 2} x2={nowX + STEP / 2} y1={PAD - 6} y2={H - PAD} stroke={FORECAST} strokeDasharray="2 3" />
-        <text x={nowX + STEP / 2 + 6} y={PAD + 2} fontSize="11" fill={FORECAST}>AI forecast →</text>
+        <text x={nowX + STEP / 2 + 6} y={PAD + 2} fontSize="11" fill={FORECAST}>Expected move →</text>
         <polygon points={band((f) => f.lo80, (f) => f.hi80)} fill={FORECAST} fillOpacity={0.1} />
         <polygon points={band((f) => f.lo50, (f) => f.hi50)} fill={FORECAST} fillOpacity={0.18} />
       </svg>
       <div className="absolute bottom-6 left-6 rounded-xl border border-line bg-paper/95 px-3.5 py-2.5 text-xs shadow-sm">
-        <p className="text-ink-3">CandleTrade AI · next 10 days</p>
+        <p className="text-ink-3">Expected move · next 2 weeks</p>
         <p className="mt-0.5 font-semibold text-ink">
-          Likely range shown <span className="font-normal text-ink-3">· held 84% of outcomes in testing</span>
+          Normal range shown <span className="font-normal text-ink-3">· ~80% of moves stayed inside in testing</span>
         </p>
         <p className="mt-1 flex items-center gap-1.5 text-[11px] text-ink-3">
-          <span className="h-1.5 w-1.5 rounded-full bg-ink-3" /> No up / down call unless it has proved reliable
+          <span className="h-1.5 w-1.5 rounded-full bg-ink-3" /> No up / down call unless it passed a 10-year test
         </p>
       </div>
     </div>

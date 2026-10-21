@@ -15,7 +15,7 @@ const DIST_H = 90;
 const HEIGHT = M.top + PAYOFF_H + GAP + DIST_H + M.bottom;
 const BINS = 24;
 
-/** P&L per lot at expiry for one idea (top), over the AI's distribution of prices at expiry (bottom).
+/** P&L per lot at expiry for one idea (top), over the option market's implied distribution of prices at expiry (bottom).
  *  Two panels share the price axis; each keeps its own y-axis (no dual axis on one plot). */
 export function PayoffChart({ idea, finalPrices, spot, lotSize, market }: {
   idea: Idea; finalPrices: number[]; spot: number; lotSize: number; market: MarketId;
@@ -89,7 +89,7 @@ export function PayoffChart({ idea, finalPrices, spot, lotSize, market }: {
     <div ref={box} className="relative w-full">
       {width > 0 && (
         <svg className="block max-w-full" width={width} height={HEIGHT} style={{ fontFamily: FONT }} role="img"
-          aria-label={`Profit and loss at expiry per lot for ${idea.name}, above the AI's distribution of prices at expiry`}>
+          aria-label={`Profit and loss at expiry per lot for ${idea.name}, above the option market's implied distribution of prices at expiry`}>
           <defs>
             <clipPath id={`clip-${uid}`}><rect width={innerW} height={PAYOFF_H} /></clipPath>
           </defs>
@@ -124,7 +124,7 @@ export function PayoffChart({ idea, finalPrices, spot, lotSize, market }: {
               ))}
             </g>
             <line x2={innerW} y1={DIST_H} y2={DIST_H} stroke={COLORS.line} />
-            <text x={-8} y={4} textAnchor="end" fontSize={10} fill={COLORS.ink3}>AI paths</text>
+            <text x={-8} y={4} textAnchor="end" fontSize={10} fill={COLORS.ink3}>Market view</text>
             {x.ticks(6).map((t) => (
               <text key={t} x={x(t)} y={DIST_H + 17} textAnchor="middle" fontSize={11} fill={COLORS.ink3} className="tabular">
                 {price(t, market)}
@@ -150,7 +150,7 @@ export function PayoffChart({ idea, finalPrices, spot, lotSize, market }: {
           style={hoverX > innerW / 2 ? { right: width - (M.left + hoverX) + 12 } : { left: M.left + hoverX + 12 }}>
           <p className="text-ink-3">If it expires at {price(hx, market)}</p>
           <p className={`tabular font-semibold ${hp >= 0 ? "text-up" : "text-down"}`}>{money(hp, market)} per lot</p>
-          <p className="tabular mt-0.5 text-ink-3">{Math.round(share * 100)}% of AI paths end at or below this</p>
+          <p className="tabular mt-0.5 text-ink-3">{Math.round(share * 100)}% of the market's implied outcomes end at or below this</p>
         </div>
       )}
     </div>

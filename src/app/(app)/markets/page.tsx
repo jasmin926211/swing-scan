@@ -208,7 +208,7 @@ export default function Markets() {
             {MARKETS[market].name} · {MARKETS[market].universe}
           </h1>
           <p className="mt-0.5 text-sm text-ink-2">
-            {page ? `${page.priced.toLocaleString()} stocks with live prices. ` : ""}Screen them down, then run an AI forecast on your picks.
+            {page ? `${page.priced.toLocaleString()} stocks with live prices. ` : ""}Screen them down, then open a stock for its chart, tested signals and facts.
           </p>
         </div>
         {page && (

@@ -2,8 +2,6 @@
 
 export type MarketId = "in" | "us";
 export type Interval = "1h" | "1d" | "1wk";
-/** Public model choices; the backend maps them to the model it runs. */
-export type ModelName = "fast" | "balanced" | "accurate";
 
 export type Quote = {
   ticker: string;
@@ -95,71 +93,6 @@ export type StockQuote = Quote & { symbol: string; sector?: string; exchange?: s
 /** [time ms, open, high, low, close, volume] */
 export type Candle = [number, number, number, number, number, number];
 
-// lookback (bars of history fed to the model) is left to the backend default.
-export type ForecastParams = { interval: Interval; model?: ModelName; horizon: number; n_samples: number };
-
-export type ForecastSummary = {
-  last_close: number;
-  predicted_close: number;
-  expected_return: number;
-  prob_up: number;
-  close_p10: number;
-  close_p90: number;
-  predicted_high: number;
-  predicted_low: number;
-  /** "bullish" / "bearish" only where direction calls were validated out of sample; otherwise "neutral". */
-  outlook: "bullish" | "bearish" | "neutral";
-  /** How often stocks really closed higher after forecasts like this, in testing; null if this setting wasn't tested. */
-  tested_prob_up: number | null;
-  direction_validated: boolean;
-};
-
-export type ForecastPoint = {
-  time: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  p10: number;
-  p25: number;
-  p75: number;
-  p90: number;
-};
-
-export type Forecast = {
-  as_of: number;
-  bars_used: number;
-  seconds: number;
-  summary: ForecastSummary;
-  points: ForecastPoint[];
-  paths: number[][];
-};
-
-export type Check = {
-  from_time: number;
-  to_time: number;
-  base: number;
-  predicted: number;
-  low: number;
-  high: number;
-  actual: number;
-  direction_hit: boolean;
-  error_pct: number;
-  naive_error_pct: number;
-};
-
-export type Backtest = {
-  checks: Check[];
-  direction_accuracy: number;
-  mean_error_pct: number;
-  naive_error_pct: number;
-  band_coverage: number;
-  /** 1 - error / no-change error: > 0 means closer than "price stays flat" */
-  skill: number;
-  verdict: "good" | "weak" | "none";
-  seconds: number;
-};
-
 export class ApiError extends Error {
   constructor(message: string, readonly status: number) {
     super(message);
@@ -197,10 +130,6 @@ export function getStocks(m: MarketId, query: StockQuery) {
 export const getQuote = (m: MarketId, symbol: string) => request<StockQuote>(stockPath(m, symbol));
 export const getHistory = (m: MarketId, symbol: string, interval: Interval) =>
   request<{ interval: Interval; candles: Candle[] }>(`${stockPath(m, symbol)}/history?interval=${interval}`);
-export const runForecast = (m: MarketId, symbol: string, p: ForecastParams) =>
-  post<Forecast>(`${stockPath(m, symbol)}/forecast`, p);
-export const runBacktest = (m: MarketId, symbol: string, p: ForecastParams & { n_checks: number }) =>
-  post<Backtest>(`${stockPath(m, symbol)}/backtest`, p);
 
 // --- futures & options (analysis only) ---
 
@@ -263,26 +192,26 @@ export type OptionChain = {
 export type Idea = {
   name: string;
   direction: "bullish" | "bearish" | "neutral";
-  matches_outlook: boolean;
   legs: { side: "BUY" | "SELL"; kind: "FUT" | "CE" | "PE"; strike: number; price: number }[];
   net_premium: number;
   max_profit: number | null;
   max_loss: number | null;
   breakevens: number[];
-  expected_pnl: number;
-  prob_profit: number;
-  market_prob_profit: number | null;
-  market_expected_pnl: number | null;
+  /** Chance of profit and average P&L at expiry under the option market's own implied volatility (not a forecast). */
+  market_prob_profit: number;
+  market_expected_pnl: number;
 };
 
 export type IdeasResult = {
   expiry: string;
-  horizon: number;
+  days: number;
   spot: number;
   lot_size: number;
   future_price: number | null;
-  market_iv: number | null;
-  forecast: Forecast;
+  market_iv: number;
+  /** The option market's 80% range at expiry (10th-90th percentile of its implied prices). */
+  range80: [number, number];
+  /** A sample of the market-implied prices at expiry, for the payoff chart. */
   final_prices: number[];
   ideas: Idea[];
 };
@@ -295,7 +224,7 @@ export const getFnoUnderlyings = (m: MarketId) => request<FnoUnderlying[]>(`/api
 export const getFnoOverview = (m: MarketId, symbol: string) => request<FnoOverview>(fnoPath(m, symbol));
 export const getOptionChain = (m: MarketId, symbol: string, expiry: string) =>
   request<OptionChain>(`${fnoPath(m, symbol)}/chain?expiry=${expiry}`);
-export const runIdeas = (m: MarketId, symbol: string, body: { expiry: string; model: ModelName; n_samples: number }) =>
+export const runIdeas = (m: MarketId, symbol: string, body: { expiry: string }) =>
   post<IdeasResult>(`${fnoPath(m, symbol)}/ideas`, body);
 export const getUpstoxStatus = () => request<UpstoxStatus>("/api/fno/status");
 // The admin key travels in the POST body so it never lands in URLs or logs.
@@ -367,20 +296,15 @@ export type PatternSignal = {
 export const getPatterns = (m: MarketId, symbol: string) =>
   request<{ signals: PatternSignal[]; liquid: boolean }>(`${stockPath(m, symbol)}/patterns`);
 
-export type Sentiment = "positive" | "neutral" | "negative";
 export type NewsItem = {
   title: string;
   source: string;
   url: string;
   published: number; // epoch ms
   also: string[]; // other outlets that ran the same story
-  sentiment: Sentiment;
-  score: number; // P(positive) - P(negative), -1..1
-  confidence: number;
 };
-export type NewsSummary = Record<Sentiment, number> & { total: number; net: number; verdict: string };
-export type NewsFeed = { summary: NewsSummary; items: NewsItem[] };
-export type StockNews = { symbol: string; days: number; model: string; company: NewsFeed & { query: string }; market: NewsFeed };
+export type NewsFeed = { items: NewsItem[] };
+export type StockNews = { symbol: string; days: number; company: NewsFeed & { query: string }; market: NewsFeed };
 
 export const getNews = (m: MarketId, symbol: string) => request<StockNews>(`${stockPath(m, symbol)}/news`);
 
@@ -419,23 +343,16 @@ export type StockSummary = {
 };
 export const getSummary = (m: MarketId, symbol: string) => request<StockSummary>(`${stockPath(m, symbol)}/summary`);
 
-export type CheckStatus = "pass" | "warn" | "fail" | "info";
-export type TradeSide = "long" | "short";
+/** Before you trade: facts about the stock, with "caution" only for practical risks (no verdict, no trade plan). */
+export type FactStatus = "info" | "caution";
 export type Checklist = {
   symbol: string;
   name: string | null;
   price: number | null;
-  side: TradeSide;
-  verdict: "Passes" | "Caution" | "Skip";
-  counts: Record<CheckStatus, number>;
-  fails: string[];
-  warns: string[];
-  /** valid: reward at least 1.5x the risk; otherwise note says why there's no plan and what to wait for */
-  plan: { entry: number; stop: number; target: number; risk_per_share: number; rr: number; valid?: boolean; note?: string | null };
-  checks: { step: number; title: string; status: CheckStatus; summary: string; detail: string }[];
+  items: { title: string; status: FactStatus; summary: string; detail: string }[];
+  cautions: string[];
 };
-export const getChecklist = (m: MarketId, symbol: string, side: TradeSide) =>
-  request<Checklist>(`${stockPath(m, symbol)}/checklist?side=${side}`);
+export const getChecklist = (m: MarketId, symbol: string) => request<Checklist>(`${stockPath(m, symbol)}/checklist`);
 
 export type Buildup = "long_buildup" | "short_buildup" | "short_covering" | "long_unwinding" | "neutral";
 export type BuildupRow = {

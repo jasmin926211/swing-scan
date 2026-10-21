@@ -2,97 +2,52 @@
 
 import { useEffect, useState } from "react";
 import clsx from "clsx";
-import { Minus, Play, TrendingDown, TrendingUp } from "lucide-react";
-import { needsUpstox, runIdeas, type Idea, type IdeasResult, type MarketId, type ModelName } from "@/lib/api";
+import { needsUpstox, runIdeas, type Idea, type IdeasResult, type MarketId } from "@/lib/api";
 import { fmtDate, money, pct, price } from "@/lib/format";
 import { PayoffChart } from "./charts/PayoffChart";
 
-const OUTLOOK = {
-  bullish: { label: "Likely up (validated)", Icon: TrendingUp, cls: "bg-up-wash text-up" },
-  bearish: { label: "Likely down (validated)", Icon: TrendingDown, cls: "bg-down-wash text-down" },
-  neutral: { label: "No reliable direction", Icon: Minus, cls: "bg-wash text-ink-2" },
-};
-
+/** Futures and defined-risk option ideas for one expiry, valued under the option market's own implied volatility. */
 export function FnoIdeas({ market, symbol, expiry }: { market: MarketId; symbol: string; expiry: string }) {
-  const [model, setModel] = useState<ModelName>("fast");
-  const [samples, setSamples] = useState(30);
   const [result, setResult] = useState<IdeasResult | null>(null);
-  const [running, setRunning] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState(0); // idea shown in the payoff chart
 
   useEffect(() => {
-    if (!running) return;
-    const started = Date.now();
-    const t = setInterval(() => setElapsed(Math.round((Date.now() - started) / 1000)), 500);
-    return () => clearInterval(t);
-  }, [running]);
-
-  async function run() {
-    setRunning(true);
-    setElapsed(0);
+    let alive = true;
+    setLoading(true);
     setError(null);
-    try {
-      setResult(await runIdeas(market, symbol, { expiry, model, n_samples: samples }));
-      setSelected(0);
-    } catch (e) {
-      setError(needsUpstox(e) ? "Connect Upstox above to load Indian option prices first." : (e as Error).message);
-    } finally {
-      setRunning(false);
-    }
-  }
-
-  const s = result?.forecast.summary;
-  const scale = result ? result.spot / result.forecast.summary.last_close : 1; // forecast was rescaled to live spot
+    runIdeas(market, symbol, { expiry })
+      .then((r) => {
+        if (!alive) return;
+        setResult(r);
+        setSelected(0);
+      })
+      .catch((e) => alive && setError(needsUpstox(e) ? "Connect Upstox above to load Indian option prices first." : (e as Error).message))
+      .finally(() => alive && setLoading(false));
+    return () => {
+      alive = false;
+    };
+  }, [market, symbol, expiry]);
 
   return (
     <section className="rounded-xl border border-line">
-      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-line px-4 py-3">
-        <div>
-          <h2 className="text-sm font-semibold">Trade ideas for {fmtDate(expiry)} expiry</h2>
-          <p className="mt-0.5 text-xs text-ink-3">
-            Forecasts {symbol} to expiry, then lays out futures and defined-risk option trades with their payoffs.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <select value={model} onChange={(e) => setModel(e.target.value as ModelName)} className="rounded-lg border border-line bg-paper px-2 py-1.5 text-ink-2">
-            <option value="fast">Fast (recommended)</option>
-            <option value="balanced">Balanced</option>
-            <option value="accurate">Thorough (slowest)</option>
-          </select>
-          <select value={samples} onChange={(e) => setSamples(Number(e.target.value))} className="rounded-lg border border-line bg-paper px-2 py-1.5 text-ink-2">
-            {[20, 30, 50].map((n) => (
-              <option key={n} value={n}>
-                {n} paths
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={run}
-            disabled={running}
-            className="flex items-center gap-2 rounded-lg bg-ink px-4 py-1.5 font-medium text-paper transition-opacity hover:opacity-90 disabled:opacity-60"
-          >
-            {running ? `Running on CPU… ${elapsed}s` : (
-              <>
-                <Play className="h-3.5 w-3.5" /> {result ? "Run again" : "Run AI forecast"}
-              </>
-            )}
-          </button>
-        </div>
+      <div className="border-b border-line px-4 py-3">
+        <h2 className="text-sm font-semibold">Trade ideas for {fmtDate(expiry)} expiry</h2>
+        <p className="mt-0.5 text-xs text-ink-3">
+          Futures and defined-risk option trades on {symbol}, with their payoffs, valued under the option market&apos;s own pricing.
+        </p>
       </div>
       {error && <p className="px-4 py-3 text-sm text-down">{error}</p>}
+      {loading && !result && <div className="m-4 h-48 animate-pulse rounded-lg bg-wash" />}
 
-      {result && s && (
-        <div className={clsx("space-y-5 p-4", running && "opacity-50")}>
+      {result && (
+        <div className={clsx("space-y-5 p-4", loading && "opacity-50")}>
           <div className="grid gap-4 lg:grid-cols-3">
             <div className="space-y-3 text-sm">
-              <OutlookBadge outlook={s.outlook} />
-              <Stat label={`AI 80% range at expiry (${result.horizon} trading days)`}
-                value={`${price(s.close_p10 * scale, market)} – ${price(s.close_p90 * scale, market)}`} sub={`spot ${price(result.spot, market)}`} />
-              <Stat label="Closed higher after views like this, in testing" value={s.tested_prob_up != null ? `≈ ${pct(s.tested_prob_up, 0)}` : "not tested"}
-                sub={`model's paths ending higher: ${pct(s.prob_up, 0)}`} />
-              {result.market_iv != null && <Stat label="Market implied volatility (ATM)" value={pct(result.market_iv)} />}
+              <Stat label={`Market's 80% range at expiry (${result.days} days)`}
+                value={`${price(result.range80[0], market)} – ${price(result.range80[1], market)}`} sub={`spot ${price(result.spot, market)}`} />
+              <Stat label="Implied volatility (at the money)" value={pct(result.market_iv)} />
             </div>
             <div className="lg:col-span-2">
               {result.ideas[selected] ? (
@@ -109,10 +64,9 @@ export function FnoIdeas({ market, symbol, expiry }: { market: MarketId; symbol:
           </div>
 
           <div className="rounded-lg bg-wash px-3 py-2 text-xs leading-relaxed text-ink-2">
-            Chance of profit and average P&amp;L use the option market&apos;s own expectation (its implied volatility), not
-            the AI: in testing the AI&apos;s up / down view was right about half the time, so scoring trades on its paths
-            would make some look better than they are. The AI range is shown as context only. Every idea is listed, none
-            is recommended. Analysis only, not advice.
+            Chance of profit and average P&amp;L are what the option market&apos;s own prices imply (its implied volatility), before
+            costs. That is the market&apos;s pricing, not a forecast: it says nothing about direction, and on average no idea has an
+            edge over another. Every idea is listed in a fixed order, none is recommended. Analysis only, not advice.
           </div>
 
           <div className="overflow-x-auto">
@@ -138,8 +92,7 @@ export function FnoIdeas({ market, symbol, expiry }: { market: MarketId; symbol:
           </div>
           <p className="text-xs text-ink-3">
             Premium: + is credit received, − is debit paid. “Open” means no limit (e.g. a bought call’s profit or a sold future’s loss).
-            {result.future_price == null && market === "in" && " No futures contract expires on this date, so futures ideas are left out."}{" "}
-            The forecast took {result.forecast.seconds}s.
+            {result.future_price == null && market === "in" && " No futures contract expires on this date, so futures ideas are left out."}
           </p>
         </div>
       )}
@@ -167,18 +120,9 @@ function IdeaRow({ idea, market, selected, onSelect }: { idea: Idea; market: Mar
       <td className="px-2 py-2.5 text-right">{idea.max_profit == null ? "Open" : money(idea.max_profit, market)}</td>
       <td className="px-2 py-2.5 text-right">{idea.max_loss == null ? "Open" : money(idea.max_loss, market)}</td>
       <td className="px-2 py-2.5 text-right text-xs">{idea.breakevens.map((b) => price(b, market)).join(" / ") || "—"}</td>
-      <td className="px-2 py-2.5 text-right">{idea.market_prob_profit == null ? "—" : pct(idea.market_prob_profit, 0)}</td>
-      <td className="px-2 py-2.5 text-right text-ink-2">{idea.market_expected_pnl == null ? "—" : money(idea.market_expected_pnl, market)}</td>
+      <td className="px-2 py-2.5 text-right">{pct(idea.market_prob_profit, 0)}</td>
+      <td className="px-2 py-2.5 text-right text-ink-2">{money(idea.market_expected_pnl, market)}</td>
     </tr>
-  );
-}
-
-function OutlookBadge({ outlook }: { outlook: keyof typeof OUTLOOK }) {
-  const { label, Icon, cls } = OUTLOOK[outlook];
-  return (
-    <span className={clsx("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium", cls)}>
-      <Icon className="h-3.5 w-3.5" /> AI: {label}
-    </span>
   );
 }
 

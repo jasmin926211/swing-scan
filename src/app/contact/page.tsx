@@ -16,7 +16,7 @@ export default function Contact() {
       <PageHero
         eyebrow="Contact us"
         title="Talk to us"
-        intro="Questions about a forecast, an idea for a feature or something that looks wrong: send us a message and we’ll get back to you."
+        intro="Questions about a signal, an idea for a feature or something that looks wrong: send us a message and we’ll get back to you."
       />
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 md:px-6 lg:grid-cols-5">
         <aside className="space-y-6 lg:col-span-2">

@@ -3,16 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import { ExternalLink, FileText, Newspaper, X } from "lucide-react";
-import { getFilings, getNews, type Filing, type MarketId, type NewsFeed, type NewsItem, type Sentiment, type StockFilings, type StockNews } from "@/lib/api";
+import { getFilings, getNews, type Filing, type MarketId, type NewsFeed, type NewsItem, type StockFilings, type StockNews } from "@/lib/api";
 
-const SENTIMENT: Record<Sentiment, { label: string; mark: string; chip: string; bar: string }> = {
-  positive: { label: "Positive", mark: "▲", chip: "bg-up-wash text-up", bar: "bg-up" },
-  neutral: { label: "Neutral", mark: "●", chip: "bg-wash text-ink-2", bar: "bg-ink-3" },
-  negative: { label: "Negative", mark: "▼", chip: "bg-down-wash text-down", bar: "bg-down" },
-};
-const ORDER: Sentiment[] = ["positive", "neutral", "negative"];
-
-/** "Latest news" button for a stock page; opens a dialog with two weeks of headlines and their sentiment. */
+/** "Latest news" button for a stock page; opens a dialog with two weeks of headlines. */
 export function NewsButton({ market, symbol, name }: { market: MarketId; symbol: string; name?: string | null }) {
   const [open, setOpen] = useState(false);
   return (
@@ -43,7 +36,6 @@ function NewsDialog({ market, symbol, name, onClose }: { market: MarketId; symbo
       .then(setFilings)
       .catch((e) => setFilingsError(e instanceof Error ? e.message : "Exchange filings are unavailable right now"));
   }, [tab, market, symbol, filings, filingsError]);
-  const [filter, setFilter] = useState<Sentiment | "all">("all");
   const [shown, setShown] = useState(false); // drives the enter animation
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -78,7 +70,7 @@ function NewsDialog({ market, symbol, name, onClose }: { market: MarketId; symbo
   }
 
   const feed: NewsFeed | null = data && tab !== "filings" ? data[tab] : null;
-  const items = feed ? feed.items.filter((i) => filter === "all" || i.sentiment === filter) : [];
+  const items = feed ? feed.items : [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-labelledby="news-title">
@@ -93,7 +85,7 @@ function NewsDialog({ market, symbol, name, onClose }: { market: MarketId; symbo
           <div className="min-w-0">
             <h2 id="news-title" className="text-base font-semibold">Latest news · {symbol}</h2>
             <p className="mt-0.5 truncate text-xs text-ink-3">
-              {name ? `${name} · ` : ""}last {data?.days ?? 14} days · sentiment read by {data?.model ?? "FinBERT"}
+              {name ? `${name} · ` : ""}last {data?.days ?? 14} days
             </p>
           </div>
           <button ref={closeRef} onClick={close} aria-label="Close" className="rounded-lg p-1.5 text-ink-2 hover:bg-wash hover:text-ink">
@@ -105,14 +97,11 @@ function NewsDialog({ market, symbol, name, onClose }: { market: MarketId; symbo
           {tabs.map((t) => (
             <button
               key={t}
-              onClick={() => {
-                setTab(t);
-                setFilter("all");
-              }}
+              onClick={() => setTab(t)}
               className={clsx("-mb-px border-b-2 px-2.5 py-2.5 transition-colors", tab === t ? "border-ink font-medium text-ink" : "border-transparent text-ink-2 hover:text-ink")}
             >
               {t === "company" ? "Company" : t === "filings" ? "Exchange filings" : market === "in" ? "Indian market" : "US market"}
-              {t !== "filings" && data && <span className="ml-1.5 text-xs text-ink-3">{data[t].summary.total}</span>}
+              {t !== "filings" && data && <span className="ml-1.5 text-xs text-ink-3">{data[t].items.length}</span>}
             </button>
           ))}
         </div>
@@ -122,7 +111,7 @@ function NewsDialog({ market, symbol, name, onClose }: { market: MarketId; symbo
           {tab !== "filings" && error && <p className="text-sm text-down">{error}</p>}
           {tab !== "filings" && !data && !error && (
             <div className="space-y-3">
-              <p className="text-sm text-ink-2">Reading the latest headlines… the first load can take up to half a minute.</p>
+              <p className="text-sm text-ink-2">Loading the latest headlines…</p>
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="h-12 animate-pulse rounded-lg bg-wash" />
               ))}
@@ -130,28 +119,9 @@ function NewsDialog({ market, symbol, name, onClose }: { market: MarketId; symbo
           )}
           {feed && (
             <>
-              <Summary feed={feed} />
-              <div className="mt-4 flex flex-wrap gap-1.5 text-xs">
-                {(["all", ...ORDER] as const).map((f) => {
-                  const n = f === "all" ? feed.summary.total : feed.summary[f];
-                  return (
-                    <button
-                      key={f}
-                      onClick={() => setFilter(f)}
-                      disabled={n === 0}
-                      className={clsx(
-                        "rounded-full border px-3 py-1 transition-colors disabled:opacity-40",
-                        filter === f ? "border-ink bg-ink text-paper" : "border-line text-ink-2 hover:border-ink-3 hover:text-ink",
-                      )}
-                    >
-                      {f === "all" ? "All" : SENTIMENT[f].label} {n}
-                    </button>
-                  );
-                })}
-              </div>
               {items.length === 0 ? (
                 <p className="mt-6 text-sm text-ink-2">
-                  {feed.summary.total === 0 ? "No news found in the last two weeks." : "No headlines with this sentiment."}
+                  No news found in the last two weeks.
                 </p>
               ) : (
                 <ByDay items={items} />
@@ -164,37 +134,16 @@ function NewsDialog({ market, symbol, name, onClose }: { market: MarketId; symbo
           {tab === "filings" ? (
             <>
               Official announcements the company filed with {filings?.source ?? "the exchange"}, tagged by type. Open the PDF for the
-              details; filings aren&apos;t scored for sentiment because their wording is formulaic.
+              details.
             </>
           ) : (
             <>
-              Sentiment is read from each headline by an automatic model and can misread trader wording (&ldquo;rally&rdquo;,
-              &ldquo;upside&rdquo;). It describes the news, it doesn&apos;t predict the price: news is often priced in within minutes.
-              Headlines link to their publishers.
+              Headlines from news search, linked to their publishers. No good / bad tone is attached: an automatic tone score
+              was never shown to predict the price, and news is often priced in within minutes.
             </>
           )}
         </p>
       </div>
-    </div>
-  );
-}
-
-function Summary({ feed }: { feed: NewsFeed }) {
-  const { summary: s } = feed;
-  const tone = s.verdict.startsWith("Mostly positive") ? "text-up" : s.verdict.startsWith("Mostly negative") ? "text-down" : "text-ink";
-  return (
-    <div className="rounded-xl bg-wash px-4 py-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className={clsx("text-sm font-semibold", tone)}>{s.verdict}</p>
-        <p className="tabular text-xs text-ink-3">
-          {s.positive} positive · {s.neutral} neutral · {s.negative} negative
-        </p>
-      </div>
-      {s.total > 0 && (
-        <div className="mt-2.5 flex h-2 gap-0.5 overflow-hidden rounded-full" aria-hidden>
-          {ORDER.map((k) => s[k] > 0 && <div key={k} className={clsx("h-full", SENTIMENT[k].bar)} style={{ width: `${(s[k] / s.total) * 100}%` }} />)}
-        </div>
-      )}
     </div>
   );
 }
@@ -232,14 +181,10 @@ function ByDay({ items }: { items: NewsItem[] }) {
 }
 
 function Headline({ item }: { item: NewsItem }) {
-  const s = SENTIMENT[item.sentiment];
   const time = new Date(item.published).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
   return (
     <li className="py-2.5">
       <a href={item.url} target="_blank" rel="noopener noreferrer" className="group flex items-start gap-3">
-        <span className={clsx("mt-0.5 inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium", s.chip)}>
-          <span aria-hidden>{s.mark}</span> {s.label}
-        </span>
         <span className="min-w-0">
           <span className="text-sm leading-snug text-ink group-hover:underline">{item.title}</span>
           <ExternalLink className="ml-1 inline h-3 w-3 text-ink-3" aria-hidden />

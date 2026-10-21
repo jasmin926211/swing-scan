@@ -3,9 +3,8 @@
 import { Fragment, useEffect, useId, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 import clsx from "clsx";
-import type { Candle, Forecast, Interval, PatternSignal } from "@/lib/api";
+import type { Candle, Interval, PatternSignal } from "@/lib/api";
 import { useChartColors, FONT } from "@/lib/charts/theme";
-import { duration, useReducedMotion } from "@/lib/charts/motion";
 import { useWidth } from "@/lib/charts/useWidth";
 import { CROSS_PAIRS, EMA_PERIODS, crossovers, ema, type Cross, type EmaPeriod } from "@/lib/charts/ema";
 
@@ -35,13 +34,10 @@ type Domain = [number, number]; // visible bar indices (fractional while zooming
 const EMA_DEFAULT: EmaPeriod[] = [21, 50, 200];
 const EMA_KEY = "chart-emas";
 
-/** Candlestick + volume chart with an animated forecast fan. Bars are spaced by index (trading sessions),
- *  so weekends and holidays leave no gaps; forecast bars continue the index after the last candle. */
+/** Candlestick + volume chart. Bars are spaced by index (trading sessions), so weekends and holidays leave no gaps. */
 export function PriceChart({
   candles,
   interval,
-  forecast,
-  showPaths,
   decimals,
   signals = [],
   selected = null,
@@ -49,8 +45,6 @@ export function PriceChart({
 }: {
   candles: Candle[];
   interval: Interval;
-  forecast: Forecast | null;
-  showPaths: boolean;
   decimals: number;
   /** validated pattern signals to mark on the chart */
   signals?: PatternSignal[];
@@ -60,12 +54,9 @@ export function PriceChart({
 }) {
   const COLORS = useChartColors();
   const [box, width] = useWidth<HTMLDivElement>();
-  const reduced = useReducedMotion();
   const clipId = useId().replace(/:/g, "");
   const svgRef = useRef<SVGSVGElement>(null);
   const overlayRef = useRef<SVGRectElement>(null);
-  const pathsRef = useRef<SVGGElement>(null);
-  const revealRef = useRef<SVGRectElement>(null);
   const zoomRef = useRef<d3.ZoomBehavior<SVGRectElement, unknown> | null>(null);
   const [domain, setDomain] = useState<Domain | null>(null);
   const [range, setRange] = useState(DEFAULT_RANGE[interval]);
@@ -92,9 +83,8 @@ export function PriceChart({
   }
 
   const n = candles.length;
-  const fc = forecast?.points ?? [];
-  const total = n + fc.length;
-  const times = useMemo(() => [...candles.map((c) => c[0]), ...fc.map((p) => p.time)], [candles, fc]);
+  const total = n;
+  const times = useMemo(() => candles.map((c) => c[0]), [candles]);
   const innerW = Math.max(0, width - M.left - M.right);
   const plotH = HEIGHT - M.top - M.bottom;
   const priceH = plotH * (1 - VOLUME_SHARE) - GAP;
@@ -140,22 +130,17 @@ export function PriceChart({
     };
   }, [innerW, plotH, total, xFull]);
 
-  // New data or interval: back to the default range. A new forecast keeps the start and reveals the forecast.
+  // New data or interval: back to the default range.
   useEffect(() => {
     setRange(DEFAULT_RANGE[interval]);
     applyDomain(domainFor(DEFAULT_RANGE[interval]));
   }, [candles, interval, innerW]);
-  useEffect(() => {
-    if (!forecast) return;
-    applyDomain([Math.min(domain?.[0] ?? 0, n - 30), total - 0.5]);
-  }, [forecast]);
 
   const d = domain ?? domainFor(DEFAULT_RANGE[interval]);
   const x = useMemo(() => d3.scaleLinear().domain(d).range([0, innerW]), [d, innerW]);
   const lo = Math.max(0, Math.floor(d[0]));
   const hi = Math.min(total - 1, Math.ceil(d[1]));
   const visible = candles.slice(lo, Math.min(hi + 1, n));
-  const visibleFc = fc.filter((_, j) => n + j >= lo && n + j <= hi);
 
   // EMAs over the whole history (so the visible part is fully warmed up), and crossovers of the enabled pairs.
   const emas = useMemo(() => {
@@ -177,12 +162,12 @@ export function PriceChart({
   const plan = selected != null ? signals[selected] : null; // keep its entry / stop / target in view
   const y = useMemo(() => {
     const planLevels = plan ? [plan.entry, plan.stop, plan.target] : [];
-    const lows = [...visible.map((c) => c[3]), ...visibleFc.map((p) => p.p10), ...planLevels, ...emaVisible];
-    const highs = [...visible.map((c) => c[2]), ...visibleFc.map((p) => p.p90), ...planLevels, ...emaVisible];
+    const lows = [...visible.map((c) => c[3]), ...planLevels, ...emaVisible];
+    const highs = [...visible.map((c) => c[2]), ...planLevels, ...emaVisible];
     const [min, max] = [d3.min(lows) ?? 0, d3.max(highs) ?? 1];
     const pad = (max - min) * 0.06 || max * 0.01;
     return d3.scaleLinear().domain([min - pad, max + pad]).nice(6).range([priceH, 0]);
-  }, [visible, visibleFc, priceH, plan, emaVisible]);
+  }, [visible, priceH, plan, emaVisible]);
   const yVol = useMemo(
     () => d3.scaleLinear().domain([0, d3.max(visible, (c) => c[5]) || 1]).range([volH, 0]),
     [visible, volH],
@@ -191,7 +176,6 @@ export function PriceChart({
   const band = innerW / Math.max(1, d[1] - d[0]);
   const bodyW = Math.max(1, Math.min(14, band * 0.68));
   const fmt = d3.format(`,.${decimals}f`);
-  const last = candles[n - 1];
 
   // Each signal sits on the last candle of this chart that falls within the signal's own candle
   // (a weekly or monthly pattern lands on the last daily candle of that week / month).
@@ -219,53 +203,6 @@ export function PriceChart({
     }
   }, [selected]); // only when the selection changes, not on every zoom
 
-  // Forecast geometry, anchored on the last real close.
-  const anchor = last ? { i: n - 1, v: forecast?.summary.last_close ?? last[4] } : null;
-  const fcSeries = anchor ? [{ i: anchor.i, p10: anchor.v, p25: anchor.v, p75: anchor.v, p90: anchor.v },
-    ...fc.map((p, j) => ({ i: n + j, p10: p.p10, p25: p.p25, p75: p.p75, p90: p.p90 }))] : [];
-  const area = (k0: "p10" | "p25", k1: "p75" | "p90") =>
-    d3.area<(typeof fcSeries)[number]>().x((p) => x(p.i)).y0((p) => y(p[k0])).y1((p) => y(p[k1])).curve(d3.curveMonotoneX)(fcSeries) ?? "";
-  const pathLines = forecast && anchor
-    ? forecast.paths.map((path) =>
-        d3.line<[number, number]>().x((p) => x(p[0])).y((p) => y(p[1])).curve(d3.curveMonotoneX)(
-          [[anchor.i, anchor.v], ...path.map((v, j) => [n + j, v] as [number, number])],
-        ) ?? "")
-    : [];
-
-  // Animation: sampled paths draw in one by one, then fade back while the bands sweep in.
-  useEffect(() => {
-    if (!forecast || !pathsRef.current || !revealRef.current) return;
-    const draw = duration(700, reduced);
-    const stagger = duration(Math.min(45, 900 / Math.max(1, forecast.paths.length)), reduced);
-    const lines = d3.select(pathsRef.current).selectAll<SVGPathElement, unknown>("path");
-    lines.each(function () {
-      const len = this.getTotalLength();
-      d3.select(this).attr("stroke-dasharray", `${len} ${len}`).attr("stroke-dashoffset", len).attr("opacity", 0.55);
-    });
-    const drawEnd = draw + stagger * forecast.paths.length;
-    lines
-      .transition("draw").delay((_, i) => i * stagger).duration(draw).ease(d3.easeCubicOut)
-      .attr("stroke-dashoffset", 0)
-      .on("end", function () {
-        d3.select(this).attr("stroke-dasharray", null).attr("stroke-dashoffset", null); // geometry changes on zoom
-      })
-      .transition().duration(duration(500, reduced))
-      .attr("opacity", showPaths ? 0.18 : 0);
-    d3.select(revealRef.current)
-      .attr("width", 0)
-      .transition("reveal").delay(reduced ? 0 : drawEnd * 0.55).duration(duration(900, reduced)).ease(d3.easeCubicInOut)
-      .attr("width", innerW + M.right)
-      .on("end", function () {
-        d3.select(this).attr("width", 1e6);
-      });
-  }, [forecast, reduced]);
-
-  // Toggling "show all sampled paths" after the animation.
-  useEffect(() => {
-    if (!pathsRef.current) return;
-    d3.select(pathsRef.current).selectAll("path").transition("toggle").duration(duration(300, reduced)).attr("opacity", showPaths ? 0.18 : 0);
-  }, [showPaths, reduced]);
-
   // x-axis ticks at evenly spaced visible bars.
   const ticks = useMemo(() => {
     const count = Math.max(2, Math.floor(innerW / 110));
@@ -282,7 +219,7 @@ export function PriceChart({
     setHover({ i, y: my });
   }
 
-  const hovered = hover && (hover.i < n ? { kind: "candle" as const, c: candles[hover.i] } : { kind: "forecast" as const, p: fc[hover.i - n] });
+  const hovered = hover && hover.i < n ? candles[hover.i] : null;
   const tipLeft = hover ? x(hover.i) + M.left : 0;
 
   return (
@@ -324,12 +261,6 @@ export function PriceChart({
             Crossovers
           </label>
         </div>
-        {forecast && (
-          <div className="flex flex-wrap items-center gap-3 text-xs text-ink-2">
-            <LegendSwatch kind="band" opacity={0.28} label="50% range" />
-            <LegendSwatch kind="band" opacity={0.12} label="80% range" />
-          </div>
-        )}
       </div>
 
       <div ref={box} className="relative w-full select-none" style={{ height: HEIGHT }}>
@@ -339,15 +270,12 @@ export function PriceChart({
             className="block max-w-full" width={width}
             height={HEIGHT}
             role="img"
-            aria-label={`Candlestick chart with volume${forecast ? " and an AI forecast for the next " + fc.length + " bars" : ""}`}
+            aria-label="Candlestick chart with volume"
             style={{ fontFamily: FONT }}
           >
             <defs>
               <clipPath id={`plot-${clipId}`}>
                 <rect x={0} y={-M.top} width={innerW} height={HEIGHT} />
-              </clipPath>
-              <clipPath id={`reveal-${clipId}`}>
-                <rect ref={revealRef} x={anchor ? x(anchor.i) : 0} y={-M.top} height={HEIGHT} width={1e6} />
               </clipPath>
             </defs>
             <g transform={`translate(${M.left},${M.top})`}>
@@ -415,24 +343,6 @@ export function PriceChart({
                   </text>
                 ))}
 
-                {/* forecast */}
-                {forecast && anchor && (
-                  <>
-                    <line x1={x(anchor.i + 0.5)} x2={x(anchor.i + 0.5)} y1={0} y2={plotH} stroke={COLORS.forecast} strokeDasharray="2 3" />
-                    <text x={x(anchor.i + 0.5) + 6} y={12} fontSize={11} fill={COLORS.ink2}>
-                      Forecast →
-                    </text>
-                    <g ref={pathsRef}>
-                      {pathLines.map((p, k) => (
-                        <path key={k} d={p} fill="none" stroke={COLORS.forecast} strokeWidth={1} />
-                      ))}
-                    </g>
-                    <g clipPath={`url(#reveal-${clipId})`}>
-                      <path d={area("p10", "p90")} fill={COLORS.forecast} fillOpacity={0.12} />
-                      <path d={area("p25", "p75")} fill={COLORS.forecast} fillOpacity={0.16} />
-                    </g>
-                  </>
-                )}
               </g>
 
               {/* crosshair */}
@@ -527,13 +437,12 @@ export function PriceChart({
             <p className="text-ink-3">
               {times[hover.i] != null ? d3.utcFormat(interval === "1h" ? "%a %d %b %Y, %H:%M" : "%a %d %b %Y")(new Date(times[hover.i])) : ""}
             </p>
-            {hovered.kind === "candle" ? (
               <div className="tabular mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5">
-                <span className="text-ink-3">Open</span><span>{fmt(hovered.c[1])}</span>
-                <span className="text-ink-3">High</span><span>{fmt(hovered.c[2])}</span>
-                <span className="text-ink-3">Low</span><span>{fmt(hovered.c[3])}</span>
-                <span className="text-ink-3">Close</span><span className="font-semibold">{fmt(hovered.c[4])}</span>
-                <span className="text-ink-3">Volume</span><span>{d3.format(",.0f")(hovered.c[5])}</span>
+                <span className="text-ink-3">Open</span><span>{fmt(hovered[1])}</span>
+                <span className="text-ink-3">High</span><span>{fmt(hovered[2])}</span>
+                <span className="text-ink-3">Low</span><span>{fmt(hovered[3])}</span>
+                <span className="text-ink-3">Close</span><span className="font-semibold">{fmt(hovered[4])}</span>
+                <span className="text-ink-3">Volume</span><span>{d3.format(",.0f")(hovered[5])}</span>
                 {emaOn.map((p) => {
                   const v = emas[p][hover.i];
                   return v == null ? null : (
@@ -547,34 +456,12 @@ export function PriceChart({
                   );
                 })}
               </div>
-            ) : (
-              <div className="tabular mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5">
-                <span className="text-ink-3">50% range</span><span>{fmt(hovered.p.p25)} – {fmt(hovered.p.p75)}</span>
-                <span className="text-ink-3">80% range</span><span>{fmt(hovered.p.p10)} – {fmt(hovered.p.p90)}</span>
-              </div>
-            )}
           </div>
         )}
       </div>
       <EmaSummary candles={candles} emas={emas} emaOn={emaOn} crosses={crosses} interval={interval} />
       <p className="px-1 pt-1 text-[11px] text-ink-3">Scroll to zoom · drag to pan</p>
     </div>
-  );
-}
-
-function LegendSwatch({ kind, opacity = 1, label }: { kind: "line" | "band"; opacity?: number; label: string }) {
-  const COLORS = useChartColors();
-  return (
-    <span className="flex items-center gap-1.5">
-      <svg width="18" height="10" aria-hidden="true">
-        {kind === "line" ? (
-          <line x1="0" x2="18" y1="5" y2="5" stroke={COLORS.forecast} strokeWidth="2" strokeDasharray="5 3" />
-        ) : (
-          <rect width="18" height="10" rx="2" fill={COLORS.forecast} fillOpacity={opacity} />
-        )}
-      </svg>
-      {label}
-    </span>
   );
 }
 

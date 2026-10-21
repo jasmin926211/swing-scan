@@ -9,7 +9,7 @@ export function Footer() {
         <div className="space-y-3 sm:col-span-3 md:col-span-2">
           <Logo />
           <p className="max-w-sm text-sm leading-relaxed text-ink-2">
-            Live Indian and US markets with AI forecasts and an honest track record next to every one.
+            Live Indian and US markets, with only the trading signals that held up on 10 years of data.
           </p>
         </div>
         <FooterColumn
@@ -17,7 +17,7 @@ export function Footer() {
           links={[
             { href: "/markets", label: "Markets" },
             { href: "/fno", label: "Futures & options" },
-            { href: "/#accuracy", label: "Accuracy" },
+            { href: "/#tested", label: "What we tested" },
             { href: "/signup", label: "Create an account" },
           ]}
         />
@@ -35,7 +35,7 @@ export function Footer() {
           links={[
             { href: "https://finance.yahoo.com", label: "Prices: Yahoo Finance" },
             { href: "https://upstox.com/developer/api-documentation/", label: "Indian F&O: Upstox" },
-            { href: "/about#model", label: "Forecasts: CandleTrade AI" },
+            { href: "/about#research", label: "Research: how we test" },
             { href: "https://d3js.org", label: "Charts: D3" },
           ]}
         />
@@ -44,8 +44,8 @@ export function Footer() {
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-6 text-xs leading-relaxed text-ink-3 md:flex-row md:justify-between md:px-6">
           <p>© {new Date().getFullYear()} CandleTrade</p>
           <p className="max-w-3xl md:text-right">
-            CandleTrade is a research tool, not investment advice, and never places trades. Forecasts are probabilities
-            and are often wrong; prices may be delayed. Trade only with money you can afford to lose.
+            CandleTrade is a research tool, not investment advice, and never places trades. Even tested signals
+            are often wrong on a single trade; prices may be delayed. Trade only with money you can afford to lose.
           </p>
         </div>
       </div>

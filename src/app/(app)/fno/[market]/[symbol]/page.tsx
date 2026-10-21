@@ -116,7 +116,7 @@ export default function FnoPage() {
                 <p className="mt-0.5 text-sm text-ink-2">{overview.name}</p>
                 {overview.kind === "EQUITY" && (
                   <Link href={`/stock/${market}/${encodeURIComponent(symbol)}`} className="mt-2 inline-flex text-sm font-medium text-accent hover:underline">
-                    Price chart &amp; forecast →
+                    Price chart &amp; facts →
                   </Link>
                 )}
               </div>
@@ -138,7 +138,7 @@ export default function FnoPage() {
                 { id: "overview", label: "Overview" },
                 { id: "chain", label: "Option chain" },
                 { id: "oi", label: "OI chart" },
-                { id: "ideas", label: "AI trade ideas" },
+                { id: "ideas", label: "Trade ideas" },
               ]}
             />
 
@@ -181,8 +181,8 @@ export default function FnoPage() {
             )}
               <p className="text-xs text-ink-2">
                 Next: see every strike in <TabLink to="chain" go={setTab}>Option chain</TabLink>, where the open interest sits in{" "}
-                <TabLink to="oi" go={setTab}>OI chart</TabLink>, or defined-risk trades valued on the AI&apos;s paths in{" "}
-                <TabLink to="ideas" go={setTab}>AI trade ideas</TabLink>.
+                <TabLink to="oi" go={setTab}>OI chart</TabLink>, or defined-risk trades valued at the option market&apos;s own prices in{" "}
+                <TabLink to="ideas" go={setTab}>Trade ideas</TabLink>.
               </p>
             </TabPanel>
 

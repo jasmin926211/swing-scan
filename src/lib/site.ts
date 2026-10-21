@@ -1,17 +1,10 @@
-// Published accuracy figures. Source: walk-forward test in the backend README ("How accurate is it?"):
-// fast model (the default), 64-bar lookback, daily bars, 10 trading days ahead, 12 checks on each of
-// 36 stocks — 12 Indian F&O, 12 smaller Indian, 12 US — over ~1.2 years (395 forecasts, Oct 2026).
-// Update these together with that README when a new test is run.
-export const ACCURACY = {
-  forecasts: 395,
-  stocks: 36,
-  horizonDays: 10,
-  testedOn: "October 2026",
-  directionRight: 0.559,
-  shortTermDirection: 0.513, // 1 day ahead
-  avgError: 0.067,
-  noChangeError: 0.065,
-  rawBandCoverage: 0.34,
+// Published research figures (backend docs/PATTERNS.md). Update together with that file when a test is re-run.
+export const TESTED = {
+  patternSetups: 430, // signal types tested across 4 styles x 2 markets (section 3)
+  patternsPassed: 23, // validated and deployed (section 2)
+  momentumEdgeQuarter: 0.0176, // top 20% by momentum rating vs the average liquid stock, next 3 months, India (section 8)
+  expectedMoveCoverage: 0.8, // share of moves inside the Expected move's 80% range, held-out check (section 7)
+  breakoutTrades: 90273, // breakout buying with a stop and a 2R target: lost money (sections 8c, 8d)
 };
 
 export const COVERAGE = {

@@ -25,7 +25,7 @@ const WEEK52 = [
   { label: "Within 10% of 52-week low", key: "near_low", value: 10 },
 ] as const;
 
-/** Screening filters: everything here narrows the list before you pick stocks to forecast. */
+/** Screening filters: everything here narrows the list before you open a stock. */
 export function FilterPanel({ market, filters, onChange, sectors, exchanges }: Props) {
   const week52 = WEEK52.findIndex((w) => filters[w.key] === w.value);
   const currency = MARKETS[market].currency === "INR" ? "₹" : "$";
