@@ -427,6 +427,8 @@ export type Pulse = {
 export type PulseShortlistStock = {
   symbol: string; name: string | null; sector: string | null; price: number; change_pct: number | null;
   rating: number; from_high: number | null; turnover20: number;
+  /** % change of each of the last 5 completed sessions, oldest first (null until the nightly scan has them). */
+  last5: number[] | null;
 };
 export const getPulse = (m: MarketId) => request<Pulse>(`/api/markets/${m}/pulse`);
 
