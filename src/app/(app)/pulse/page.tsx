@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import { ChevronDown } from "lucide-react";
-import { getPulse, type MarketId, type Pulse, type PulseStock } from "@/lib/api";
+import { getMoves, getPulse, type MarketId, type Pulse, type PulseMoves, type PulseStock } from "@/lib/api";
 import { MARKETS, price } from "@/lib/format";
 import { useMarket } from "@/lib/market";
 import { moodLabel } from "@/components/pulse/MoodGauge";
@@ -128,9 +128,7 @@ export default function PulsePage() {
               <Card title="Breadth through the day" note="% of stocks above their 20 EMA. Rising from below 30–40% towards 60%+ often marks a fresh upswing.">
                 <BreadthLine points={data.history} tz={TZ[market]} />
               </Card>
-              <Card title="How far stocks moved today" note="Number of stocks in each band of today's change. A tall middle means a quiet day; heavy tails mean a broad move. Click a bar to see its stocks.">
-                <MoveHistogram bins={data.histogram} market={market} />
-              </Card>
+              <MovesCard data={data} market={market} />
               <Card title="Breadth" note="Share of stocks above each average. Above 60%: broad strength; below 30%: broad weakness.">
                 <div className="space-y-4 pt-1">
                   <Bar label="Above 20 EMA (short term)" value={data.breadth.above_ema20} />
@@ -200,6 +198,47 @@ export default function PulsePage() {
         </>
       )}
     </div>
+  );
+}
+
+/** How far stocks moved over the last 1-7 sessions; today's comes with the Pulse snapshot, longer periods on demand. */
+function MovesCard({ data, market }: { data: Pulse; market: MarketId }) {
+  const [days, setDays] = useState(1);
+  const [moves, setMoves] = useState<PulseMoves | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (days === 1) return;
+    let alive = true;
+    setError(null);
+    getMoves(market, days)
+      .then((m) => alive && setMoves(m))
+      .catch((e) => alive && setError(e instanceof Error ? e.message : "Could not load the moves"));
+    return () => {
+      alive = false;
+    };
+  }, [market, days, data.updated_at]); // refetched on every Pulse refresh
+  const bins = days === 1 ? data.histogram : moves?.days === days ? moves.bins : null;
+  const span = days === 1 ? "today" : `over the last ${days} sessions`;
+  return (
+    <Card
+      title={`How far stocks moved ${span}`}
+      note={`Number of stocks in each band of their move ${span}${days > 1 ? " (live price vs the close " + days + " sessions back)" : ""}. A tall middle means a quiet period; heavy tails mean a broad move. Click a bar to see its stocks.`}
+      action={
+        <label className="flex shrink-0 items-center gap-1.5 text-xs text-ink-3">
+          Period
+          <select value={days} onChange={(e) => setDays(Number(e.target.value))} aria-label="Number of sessions"
+            className="rounded-md border border-line bg-paper px-2 py-1 text-xs text-ink">
+            {[1, 2, 3, 4, 5, 6, 7].map((d) => (
+              <option key={d} value={d}>{d === 1 ? "1 day (today)" : `${d} days`}</option>
+            ))}
+          </select>
+        </label>
+      }
+    >
+      {error && <p className="text-sm text-ink-2">{error}</p>}
+      {!error && !bins && <div className="h-56 animate-pulse rounded-lg bg-wash" />}
+      {bins && <MoveHistogram key={days} bins={bins} market={market} days={days} />}
+    </Card>
   );
 }
 
@@ -283,10 +322,15 @@ function LeadersList({ data, zone, market }: { data: Pulse["leaders"]; zone: Pul
   );
 }
 
-function Card({ title, note, className, children }: { title: string; note?: string; className?: string; children: React.ReactNode }) {
+function Card({ title, note, className, action, children }: {
+  title: string; note?: string; className?: string; action?: React.ReactNode; children: React.ReactNode;
+}) {
   return (
     <section className={clsx("rounded-xl border border-line p-4", className)}>
-      <h2 className="text-sm font-semibold">{title}</h2>
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="text-sm font-semibold">{title}</h2>
+        {action}
+      </div>
       {note && <p className="mt-0.5 text-xs leading-relaxed text-ink-3">{note}</p>}
       <div className="mt-3">{children}</div>
     </section>

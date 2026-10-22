@@ -431,6 +431,9 @@ export type PulseShortlistStock = {
   last5: number[] | null;
 };
 export const getPulse = (m: MarketId) => request<Pulse>(`/api/markets/${m}/pulse`);
+/** How far stocks moved over the last 1-7 sessions (live price vs the close that many sessions back). */
+export type PulseMoves = { days: number; updated_at: number; bins: Pulse["histogram"] };
+export const getMoves = (m: MarketId, days: number) => request<PulseMoves>(`/api/markets/${m}/pulse/moves?days=${days}`);
 
 export type FlowStock = {
   symbol: string; name: string | null; sector: string | null; price: number; day_change: number | null;
