@@ -13,9 +13,10 @@ import { Bubbles } from "@/components/pulse/Bubbles";
 import { SectorBars } from "@/components/pulse/SectorBars";
 import { StockLogo } from "@/components/StockLogo";
 import { LeadersMap } from "@/components/pulse/LeadersMap";
+import { OrderFlow } from "@/components/pulse/OrderFlow";
 import { BUILDUP } from "@/components/OiLevels";
 
-const REFRESH_S = 180; // trends can turn quickly; every 3 minutes
+const REFRESH_S = 30; // during market hours prices move fast; the server recomputes at most every 25 s
 const TZ = { in: "Asia/Kolkata", us: "America/New_York" } as const;
 const pct = (v: number | null | undefined, d = 0) => (v == null ? "—" : `${(v * 100).toFixed(d)}%`);
 
@@ -133,6 +134,8 @@ export default function PulsePage() {
           <Card title="Volume vs move" note="Today's most traded stocks. Above the dashed line = at least 1.5× usual volume (in testing, heavy volume on up moves didn’t lead to better returns). Click a bubble to open the stock.">
             <Bubbles data={data.bubbles} market={market} />
           </Card>
+
+          {market === "in" && <OrderFlow />}
 
           <Card
             title={`Momentum leaders · ${data.leaders_zone.count} in the zone`}
