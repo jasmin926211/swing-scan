@@ -394,7 +394,7 @@ export type PulseLeader = {
   change_pct: number | null;
 };
 /** A stock behind one of Pulse's breadth counts (advances / declines, new highs / lows). */
-export type PulseStock = { symbol: string; name: string | null; sector: string | null; price: number; change_pct: number | null };
+export type PulseStock = { symbol: string; name: string | null; sector: string | null; price: number; change_pct: number | null; turnover?: number };
 
 export type Pulse = {
   market: MarketId;
