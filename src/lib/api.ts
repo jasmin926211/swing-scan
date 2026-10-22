@@ -533,3 +533,14 @@ export type Pulse = {
   };
 };
 export const getPulse = (m: MarketId) => request<Pulse>(`/api/markets/${m}/pulse`);
+
+export type FlowStock = {
+  symbol: string; name: string | null; sector: string | null; price: number; day_change: number | null;
+  volume_x: number; buyers: number; move: number; value: number;
+};
+export type FlowWindow = { buying: FlowStock[]; selling: FlowStock[]; buying_count: number; selling_count: number };
+export type Flow = {
+  updated_at: number; as_of: string | null; market_open: boolean; scanned: number; universe: number;
+  heavy: number; dominant: number; windows: Record<"5" | "15" | "30", FlowWindow>;
+};
+export const getFlow = (m: MarketId) => request<Flow>(`/api/markets/${m}/flow`);

@@ -14,6 +14,7 @@ import { SectorBars } from "@/components/pulse/SectorBars";
 import { StockLogo } from "@/components/StockLogo";
 import { CandidateDialog } from "@/components/pulse/CandidateDialog";
 import { LeadersMap } from "@/components/pulse/LeadersMap";
+import { OrderFlow } from "@/components/pulse/OrderFlow";
 import { LineChart } from "lucide-react";
 import { BUILDUP } from "@/components/OiLevels";
 
@@ -145,6 +146,8 @@ export default function PulsePage() {
           <Card title="Volume vs move" note="Today's most traded stocks. Above the dashed line = at least 1.5× usual volume (in testing, heavy volume on up moves didn’t lead to better returns). Click a bubble to open the stock.">
             <Bubbles data={data.bubbles} market={market} />
           </Card>
+
+          {market === "in" && <OrderFlow />}
 
           <Card
             title={`Momentum leaders · ${data.leaders_zone.count} in the zone`}
