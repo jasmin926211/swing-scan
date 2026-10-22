@@ -384,24 +384,6 @@ export type StockOi = {
 export const getOiBuildup = (m: MarketId) => request<{ date: string; rows: BuildupRow[] }>(`/api/markets/${m}/oi/buildup`);
 export const getStockOi = (m: MarketId, symbol: string) => request<StockOi>(`${stockPath(m, symbol)}/oi`);
 
-export type PulseCheck = "above_ema20" | "breakout" | "volume" | "rsi" | "adx" | "relative_strength";
-export type PulseCandidate = {
-  symbol: string;
-  name: string | null;
-  sector: string | null;
-  price: number;
-  change_pct: number | null;
-  rvol: number | null;
-  rsi: number;
-  adx: number;
-  squeeze_before: boolean;
-  checks: Record<PulseCheck, boolean>;
-  score: number;
-  rating: number | null; // momentum rating 1-99 (NSE-style)
-  upper_circuit: boolean; // India: stuck at the price band, a buy rarely fills
-  ema20: number;
-  breakout_level: number;
-};
 export type PulseLeader = {
   symbol: string;
   sector: string | null;
@@ -427,27 +409,24 @@ export type Pulse = {
   history: { t: number; above_ema20: number | null; ad: number | null }[];
   index: { name: string; price: number | null; change_pct: number | null };
   vix: { name: string; value: number | null; change_pct: number | null };
-  sectors: { sector: string; stocks: number; change_pct: number; above_ema20: number | null }[];
-  candidates: PulseCandidate[];
-  candidates_total: number;
+  /** week / month: the sector's median move over the last 5 / 20 trading days; turnover: value traded today. */
+  sectors: { sector: string; stocks: number; change_pct: number; above_ema20: number | null; turnover: number; week: number | null; month: number | null }[];
+  /** How many stocks moved by each band today (% edges; null = open-ended). */
+  histogram: { from: number | null; to: number | null; count: number }[];
+  /** Momentum strategy C: top 30 by momentum among the most traded stocks, with the funnel that gets there. */
+  shortlist: { funnel: { label: string; count: number }[]; stocks: PulseShortlistStock[] };
   bubbles: { symbol: string; sector: string | null; change_pct: number; rvol: number; turnover: number }[];
   buildup: { date: string; counts: Partial<Record<Buildup, number>> } | null;
   leaders: PulseLeader[];
   leaders_zone: { rating: number; from_high: number; count: number };
   records: {
     momentum: { month: number; quarter: number };
-    breakouts: { days2: number; days5: number; days10: number; win_rate: number };
-    plan: {
-      trades: number;
-      target_hit: number;
-      stopped: number;
-      timed_out: number;
-      median_days_to_target: number;
-      median_best_gain: number;
-      avg_r: number;
-      high_momentum: { target_hit: number; avg_r: number };
-    };
+    shortlist: { annual_return: number; halves: [number, number]; max_drop: number; pool_annual: number };
   };
+};
+export type PulseShortlistStock = {
+  symbol: string; name: string | null; sector: string | null; price: number; change_pct: number | null;
+  rating: number; from_high: number | null; turnover20: number;
 };
 export const getPulse = (m: MarketId) => request<Pulse>(`/api/markets/${m}/pulse`);
 

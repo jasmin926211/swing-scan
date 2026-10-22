@@ -7,7 +7,11 @@ import { ChevronDown } from "lucide-react";
 import { getPulse, type MarketId, type Pulse, type PulseStock } from "@/lib/api";
 import { MARKETS, price } from "@/lib/format";
 import { useMarket } from "@/lib/market";
-import { MoodGauge, moodLabel } from "@/components/pulse/MoodGauge";
+import { moodLabel } from "@/components/pulse/MoodGauge";
+import { MoveHistogram } from "@/components/pulse/MoveHistogram";
+import { SectorRotation } from "@/components/pulse/SectorRotation";
+import { SectorTreemap } from "@/components/pulse/SectorTreemap";
+import { Shortlist } from "@/components/pulse/Shortlist";
 import { BreadthLine } from "@/components/pulse/BreadthLine";
 import { Bubbles } from "@/components/pulse/Bubbles";
 import { SectorBars } from "@/components/pulse/SectorBars";
@@ -18,9 +22,19 @@ import { BUILDUP } from "@/components/OiLevels";
 
 const REFRESH_S = 30; // during market hours prices move fast; the server recomputes at most every 25 s
 const TZ = { in: "Asia/Kolkata", us: "America/New_York" } as const;
+const TAB_KEY = "pulse-tab";
+const TABS = [
+  { id: "overview", label: "Overview" },
+  { id: "sectors", label: "Sectors" },
+  { id: "momentum", label: "Momentum" },
+  { id: "flow", label: "Flow" },
+  { id: "fno", label: "F&O" },
+  { id: "shortlist", label: "Shortlist" },
+] as const;
+type TabId = (typeof TABS)[number]["id"];
 const pct = (v: number | null | undefined, d = 0) => (v == null ? "—" : `${(v * 100).toFixed(d)}%`);
 
-/** Market Pulse: how broad the market's strength is, which sectors lead, and which stocks are breaking out. */
+/** Market Pulse: a strip of the day's headline numbers, then one section at a time in tabs, ending in a shortlist. */
 export default function PulsePage() {
   const { market } = useMarket();
   const [data, setData] = useState<Pulse | null>(null);
@@ -57,18 +71,31 @@ export default function PulsePage() {
     return () => clearInterval(t);
   }, [load]);
 
-  const b = data?.breadth;
   const ad = data?.advance_decline;
   const hl = data?.highs_lows;
+  const tabs = TABS.filter((t) => t.id !== "fno" || (market === "in" && data?.buildup));
+  const [tab, setTab] = useState<TabId>("overview");
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(TAB_KEY) as TabId | null;
+      if (saved && TABS.some((t) => t.id === saved)) setTab(saved);
+    } catch {}
+  }, []);
+  function choose(id: TabId) {
+    setTab(id);
+    try {
+      localStorage.setItem(TAB_KEY, id);
+    } catch {}
+  }
+  const active = tabs.some((t) => t.id === tab) ? tab : "overview";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Market Pulse · {MARKETS[market].name}</h1>
           <p className="mt-0.5 text-sm text-ink-2">
-            How broad the market’s strength is today, which sectors lead, and where volume and momentum are
-            {data ? ` · ${data.stocks.toLocaleString()} liquid stocks` : ""}.
+            The market today{data ? ` across ${data.stocks.toLocaleString()} liquid stocks` : ""}, and a shortlist of the strongest.
           </p>
         </div>
         <RefreshRing left={left} total={REFRESH_S} live={!!data?.market_open} updated={data?.updated_at} tz={TZ[market]} onRefresh={load} />
@@ -76,91 +103,140 @@ export default function PulsePage() {
 
       {error && <p className="rounded-xl border border-line p-4 text-sm text-ink-2">{error}</p>}
       {!data && !error && (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          {[0, 1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-56 animate-pulse rounded-xl bg-wash" />
-          ))}
+        <div className="space-y-4">
+          <div className="h-20 animate-pulse rounded-xl bg-wash" />
+          <div className="h-80 animate-pulse rounded-xl bg-wash" />
         </div>
       )}
 
       {data && ad && hl && (
         <>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <Card title="Market mood" note="Breadth, advances vs declines and new highs vs lows, combined (0–100).">
-              <div className="flex flex-col items-center">
-                <MoodGauge value={data.mood} />
-                <p className="-mt-2 text-2xl font-semibold tracking-tight">{data.mood != null ? Math.round(data.mood * 100) : "—"}</p>
-                <p className={clsx("text-sm font-medium", data.mood == null ? "text-ink-3" : data.mood >= 0.65 ? "text-up" : data.mood < 0.45 ? "text-down" : "text-ink-2")}>
-                  {data.mood != null ? moodLabel(data.mood) : "Not enough data"}
-                </p>
-                <p className="mt-2 text-center text-xs text-ink-3">
-                  {data.mood == null
-                    ? ""
-                    : data.mood >= 0.65
-                      ? "Broad strength. In testing, breakouts did best on days like this, but still only about broke even."
-                      : data.mood < 0.45
-                        ? "Weak breadth. In testing, breakouts lost the most on days like this."
-                        : "Mixed. In testing, breakouts lost money on average on days like this."}
-                </p>
-              </div>
-            </Card>
+          <MarketStrip data={data} market={market} />
 
-            <Card title="Breadth" note="Share of stocks above each average. Above 60%: broad strength; below 30%: broad weakness.">
-              <div className="space-y-4 pt-1">
-                <Bar label="Above 20 EMA (short term)" value={b?.above_ema20} />
-                <Bar label="Above 50-day average" value={b?.above_50dma} />
-                <Bar label="Above 200-day average (long term)" value={b?.above_200dma} />
-              </div>
-            </Card>
-
-            <Card title={`${data.index.name} & risk`} note="A high volatility index means wider swings: smaller positions, wider stops.">
-              <div className="grid grid-cols-2 gap-4">
-                <Big label={data.index.name} value={price(data.index.price, market)} change={data.index.change_pct} />
-                <Big label={data.vix.name} value={data.vix.value != null ? data.vix.value.toFixed(2) : "—"} change={data.vix.change_pct} invert />
-              </div>
-              <BreadthLists ad={ad} hl={hl} market={market} />
-            </Card>
+          <div role="tablist" aria-label="Pulse sections" className="-mx-1 flex gap-1 overflow-x-auto border-b border-line px-1 text-sm">
+            {tabs.map((t) => (
+              <button key={t.id} role="tab" aria-selected={active === t.id} onClick={() => choose(t.id)}
+                className={clsx("-mb-px shrink-0 border-b-2 px-3 py-2 transition-colors",
+                  active === t.id ? "border-ink font-medium text-ink" : "border-transparent text-ink-2 hover:text-ink")}>
+                {t.label}
+              </button>
+            ))}
           </div>
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <Card title="Breadth through the day" note="% of stocks above their 20 EMA. Rising from below 30–40% towards 60%+ often marks a fresh upswing." className="lg:col-span-2">
-              <BreadthLine points={data.history} tz={TZ[market]} />
-            </Card>
-            <Card title="Sector strength" note="Median move today; ↑20 = share of the sector above its 20 EMA.">
-              <SectorBars sectors={data.sectors} />
-            </Card>
-          </div>
-
-          <Card title="Volume vs move" note="Today's most traded stocks. Above the dashed line = at least 1.5× usual volume (in testing, heavy volume on up moves didn’t lead to better returns). Click a bubble to open the stock.">
-            <Bubbles data={data.bubbles} market={market} />
-          </Card>
-
-          {market === "in" && <OrderFlow />}
-
-          <Card
-            title={`Momentum leaders · ${data.leaders_zone.count} in the zone`}
-            note={`Momentum rating (NSE Nifty200 Momentum 30 method: 6- and 12-month returns adjusted for volatility, ranked 1–99) against distance from the 52-week high. Tested on 10 years: the top 20% beat the average liquid stock by ${pct(data.records.momentum.quarter, 1)} over the next 3 months (${pct(data.records.momentum.month, 1)} over 1 month), after costs. A tilt for 1–3 month holds, not a 2–3 day signal; momentum can drop sharply in fast rebounds after market falls.`}
-          >
-            <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-              <LeadersMap data={data.leaders} zone={data.leaders_zone} market={market} />
-              <LeadersList data={data.leaders} zone={data.leaders_zone} market={market} />
+          {active === "overview" && (
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <Card title="Breadth through the day" note="% of stocks above their 20 EMA. Rising from below 30–40% towards 60%+ often marks a fresh upswing.">
+                <BreadthLine points={data.history} tz={TZ[market]} />
+              </Card>
+              <Card title="How far stocks moved today" note="Number of stocks in each band of today's change. A tall middle means a quiet day; heavy tails mean a broad move.">
+                <MoveHistogram bins={data.histogram} />
+              </Card>
+              <Card title="Breadth" note="Share of stocks above each average. Above 60%: broad strength; below 30%: broad weakness.">
+                <div className="space-y-4 pt-1">
+                  <Bar label="Above 20 EMA (short term)" value={data.breadth.above_ema20} />
+                  <Bar label="Above 50-day average" value={data.breadth.above_50dma} />
+                  <Bar label="Above 200-day average (long term)" value={data.breadth.above_200dma} />
+                </div>
+              </Card>
+              <Card title="Gainers, losers and new highs / lows" note="Tap a row to see the stocks behind the numbers.">
+                <BreadthLists ad={ad} hl={hl} market={market} />
+              </Card>
             </div>
-          </Card>
+          )}
 
-          {data.buildup && (
-            <Card title="F&O positioning" note={`Futures build-up across F&O stocks at the end of ${new Date(data.buildup.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}.`}>
+          {active === "sectors" && (
+            <div className="space-y-4">
+              <Card title="Sector map" note="Each tile is a sector, sized by money traded today and coloured by its median move. Hover a tile for details.">
+                <SectorTreemap sectors={data.sectors} market={market} />
+              </Card>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-[3fr_2fr]">
+                <Card title="Sector rotation" note="Median move over the last month against this week. Sectors drift between the corners as leadership changes. Bubble size = money traded today.">
+                  <SectorRotation sectors={data.sectors} />
+                </Card>
+                <Card title="Sectors today" note="Median move today; ↑20 = share of the sector above its 20 EMA.">
+                  <SectorBars sectors={data.sectors} />
+                </Card>
+              </div>
+            </div>
+          )}
+
+          {active === "momentum" && (
+            <Card
+              title={`Momentum leaders · ${data.leaders_zone.count} in the zone`}
+              note={`Momentum rating (NSE Nifty200 Momentum 30 method: 6- and 12-month returns adjusted for volatility, ranked 1–99) against distance from the 52-week high. Tested on 10 years: the top 20% beat the average liquid stock by ${pct(data.records.momentum.quarter, 1)} over the next 3 months, after costs. A tilt for 1–3 month holds, not a 2–3 day signal.`}
+            >
+              <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+                <LeadersMap data={data.leaders} zone={data.leaders_zone} market={market} />
+                <LeadersList data={data.leaders} zone={data.leaders_zone} market={market} />
+              </div>
+            </Card>
+          )}
+
+          {active === "flow" && (
+            <div className="space-y-4">
+              {market === "in" && <OrderFlow />}
+              <Card title="Volume vs move" note="Today's most traded stocks. Above the dashed line = at least 1.5× usual volume (in testing, heavy volume on up moves didn’t lead to better returns). Click a bubble to open the stock.">
+                <Bubbles data={data.bubbles} market={market} />
+              </Card>
+            </div>
+          )}
+
+          {active === "fno" && data.buildup && (
+            <Card title="F&O positioning" note={`Futures build-up across F&O stocks at the end of ${new Date(data.buildup.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}. A common reading of positioning, not a tested signal.`}>
               <BuildupBar counts={data.buildup.counts} />
             </Card>
           )}
 
+          {active === "shortlist" && (
+            <Card title={`Shortlist · ${data.shortlist.stocks.length} stocks`} note="Thousands of stocks narrowed to the strongest few, by the one method here that held up on 10 years of data.">
+              <Shortlist data={data.shortlist} record={data.records.shortlist} market={market} />
+            </Card>
+          )}
+
           <p className="text-[11px] leading-relaxed text-ink-3">
-            Indicators (20 EMA, 50- and 200-day averages, average volume, momentum) come from each stock&apos;s last completed day and are compared with live prices.
-            Volume is today&apos;s so far, so RVOL reads low early in the session. These readings describe the market; they aren&apos;t tested predictions.
+            Indicators come from each stock&apos;s last completed day and are compared with live prices. Volume is today&apos;s so far, so it
+            reads low early in the session. Only momentum is a tested signal here; the rest describes the market.
           </p>
         </>
       )}
     </div>
   );
+}
+
+/** One row of the day's headline numbers, always visible above the tabs. */
+function MarketStrip({ data, market }: { data: Pulse; market: MarketId }) {
+  const ad = data.advance_decline;
+  const hl = data.highs_lows;
+  const mood = data.mood;
+  const tiles = [
+    { label: "Market mood", value: mood != null ? String(Math.round(mood * 100)) : "—", sub: mood != null ? moodLabel(mood) : "",
+      tone: mood == null ? "" : mood >= 0.65 ? "text-up" : mood < 0.45 ? "text-down" : "text-ink-2",
+      title: "Breadth, advances vs declines and new highs vs lows, combined (0–100)" },
+    { label: "Above 20 EMA", value: pct(data.breadth.above_ema20), sub: "of stocks", tone: "", title: "Share of stocks above their 20-day EMA" },
+    { label: "Advances / declines", value: `${ad.advances} / ${ad.declines}`, sub: `${ad.unchanged} unchanged`, tone: ad.advances >= ad.declines ? "text-up" : "text-down", title: "" },
+    { label: "52-week highs / lows", value: `${hl.highs} / ${hl.lows}`, sub: "today", tone: hl.highs >= hl.lows ? "text-up" : "text-down", title: "" },
+    { label: data.index.name, value: price(data.index.price, market), sub: signed(data.index.change_pct), tone: (data.index.change_pct ?? 0) >= 0 ? "text-up" : "text-down", title: "" },
+    { label: data.vix.name, value: data.vix.value != null ? data.vix.value.toFixed(2) : "—", sub: signed(data.vix.change_pct),
+      tone: (data.vix.change_pct ?? 0) <= 0 ? "text-up" : "text-down", title: "Volatility index: higher means wider swings" },
+  ];
+  return (
+    <div className="grid grid-cols-2 overflow-hidden rounded-xl border border-line sm:grid-cols-3 lg:grid-cols-6">
+      {tiles.map((t, i) => (
+        <div key={t.label} title={t.title || undefined}
+          className={clsx("border-line px-4 py-3", i % 2 === 1 && "border-l", i >= 2 && "border-t",
+            "sm:border-l-0 sm:border-t-0 sm:[&:not(:nth-child(3n+1))]:border-l sm:[&:nth-child(n+4)]:border-t",
+            "lg:border-t-0 lg:[&:not(:first-child)]:border-l")}>
+          <p className="truncate text-[11px] text-ink-3">{t.label}</p>
+          <p className="tabular mt-0.5 text-lg font-semibold tracking-tight">{t.value}</p>
+          <p className={clsx("tabular text-[11px]", t.tone || "text-ink-3")}>{t.sub}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function signed(v: number | null | undefined) {
+  return v == null ? "" : `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`;
 }
 
 function LeadersList({ data, zone, market }: { data: Pulse["leaders"]; zone: Pulse["leaders_zone"]; market: MarketId }) {
@@ -234,22 +310,6 @@ function Bar({ label, value }: { label: string; value: number | null | undefined
           <span key={t} className="absolute -top-0.5 h-3.5 w-px bg-ink-3/60" style={{ left: `${t * 100}%` }} />
         ))}
       </div>
-    </div>
-  );
-}
-
-function Big({ label, value, change, invert }: { label: string; value: string; change: number | null; invert?: boolean }) {
-  const good = change != null && (invert ? change < 0 : change >= 0);
-  return (
-    <div>
-      <p className="text-xs text-ink-3">{label}</p>
-      <p className="tabular mt-0.5 text-xl font-semibold tracking-tight">{value}</p>
-      {change != null && (
-        <p className={clsx("tabular text-xs", good ? "text-up" : "text-down")}>
-          {change >= 0 ? "+" : ""}
-          {change.toFixed(2)}%
-        </p>
-      )}
     </div>
   );
 }
