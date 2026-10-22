@@ -22,7 +22,8 @@ function label(b: Bin) {
 }
 
 /** How many stocks moved by how much today: the shape of the day in one chart. Click a bar to list its stocks. */
-export function MoveHistogram({ bins, market }: { bins: Bin[]; market: MarketId }) {
+export function MoveHistogram({ bins, market, days = 1 }: { bins: Bin[]; market: MarketId; days?: number }) {
+  const span = days === 1 ? "today" : `over ${days} sessions`;
   const COLORS = useChartColors();
   const [box, width] = useWidth<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
@@ -70,22 +71,22 @@ export function MoveHistogram({ bins, market }: { bins: Bin[]; market: MarketId 
       )}
       <p className="h-4 text-center text-[11px] text-ink-3">
         {shown != null
-          ? `${bins[shown].count} stocks (${Math.round((bins[shown].count / total) * 100)}%) moved ${label(bins[shown])} today`
-          : "% change today · click a bar to see its stocks"}
+          ? `${bins[shown].count} stocks (${Math.round((bins[shown].count / total) * 100)}%) moved ${label(bins[shown])} ${span}`
+          : `% change ${span} · click a bar to see its stocks`}
       </p>
     </div>
-    {picked != null && <BinStocks bin={bins[picked]} market={market} onClose={() => setPicked(null)} />}
+    {picked != null && <BinStocks bin={bins[picked]} market={market} span={span} onClose={() => setPicked(null)} />}
     </div>
   );
 }
 
-function BinStocks({ bin, market, onClose }: { bin: Bin; market: MarketId; onClose: () => void }) {
+function BinStocks({ bin, market, span, onClose }: { bin: Bin; market: MarketId; span: string; onClose: () => void }) {
   const list = bin.stocks ?? [];
   return (
     <div className="mt-3 rounded-lg border border-line p-3 text-xs">
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <p className="font-medium text-ink">
-          Moved {label(bin)} today ·{" "}
+          Moved {label(bin)} {span} ·{" "}
           {list.length < bin.count ? `${list.length} most traded of ${bin.count}` : `${bin.count} stocks`}
         </p>
         <button onClick={onClose} className="text-ink-3 hover:text-ink">Close</button>
