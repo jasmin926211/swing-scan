@@ -17,7 +17,7 @@ import { LeadersMap } from "@/components/pulse/LeadersMap";
 import { LineChart } from "lucide-react";
 import { BUILDUP } from "@/components/OiLevels";
 
-const REFRESH_S = 180; // trends can turn quickly; every 3 minutes
+const REFRESH_S = 30; // during market hours prices move fast; the server recomputes at most every 25 s
 const TZ = { in: "Asia/Kolkata", us: "America/New_York" } as const;
 const CHECK_LABEL: Record<PulseCheck, string> = {
   above_ema20: "Above 20 EMA",
