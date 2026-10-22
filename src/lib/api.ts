@@ -411,8 +411,8 @@ export type Pulse = {
   vix: { name: string; value: number | null; change_pct: number | null };
   /** week / month: the sector's median move over the last 5 / 20 trading days; turnover: value traded today. */
   sectors: { sector: string; stocks: number; change_pct: number; above_ema20: number | null; turnover: number; week: number | null; month: number | null }[];
-  /** How many stocks moved by each band today (% edges; null = open-ended). */
-  histogram: { from: number | null; to: number | null; count: number }[];
+  /** How many stocks moved by each band today (% edges; null = open-ended), with the band's most traded stocks. */
+  histogram: { from: number | null; to: number | null; count: number; stocks: PulseStock[] }[];
   /** Momentum strategy C: top 30 by momentum among the most traded stocks, with the funnel that gets there. */
   shortlist: { funnel: { label: string; count: number }[]; stocks: PulseShortlistStock[] };
   bubbles: { symbol: string; sector: string | null; change_pct: number; rvol: number; turnover: number }[];

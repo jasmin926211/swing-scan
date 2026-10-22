@@ -128,8 +128,8 @@ export default function PulsePage() {
               <Card title="Breadth through the day" note="% of stocks above their 20 EMA. Rising from below 30–40% towards 60%+ often marks a fresh upswing.">
                 <BreadthLine points={data.history} tz={TZ[market]} />
               </Card>
-              <Card title="How far stocks moved today" note="Number of stocks in each band of today's change. A tall middle means a quiet day; heavy tails mean a broad move.">
-                <MoveHistogram bins={data.histogram} />
+              <Card title="How far stocks moved today" note="Number of stocks in each band of today's change. A tall middle means a quiet day; heavy tails mean a broad move. Click a bar to see its stocks.">
+                <MoveHistogram bins={data.histogram} market={market} />
               </Card>
               <Card title="Breadth" note="Share of stocks above each average. Above 60%: broad strength; below 30%: broad weakness.">
                 <div className="space-y-4 pt-1">

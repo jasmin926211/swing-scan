@@ -1,8 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import clsx from "clsx";
 import * as d3 from "d3";
-import type { Pulse } from "@/lib/api";
+import type { MarketId, Pulse } from "@/lib/api";
+import { price } from "@/lib/format";
+import { StockLogo } from "@/components/StockLogo";
 import { FONT, useChartColors } from "@/lib/charts/theme";
 import { useWidth } from "@/lib/charts/useWidth";
 
@@ -17,11 +21,13 @@ function label(b: Bin) {
   return `${b.from > 0 ? "+" : ""}${b.from} to ${b.to > 0 ? "+" : ""}${b.to}%`;
 }
 
-/** How many stocks moved by how much today: the shape of the day in one chart. */
-export function MoveHistogram({ bins }: { bins: Bin[] }) {
+/** How many stocks moved by how much today: the shape of the day in one chart. Click a bar to list its stocks. */
+export function MoveHistogram({ bins, market }: { bins: Bin[]; market: MarketId }) {
   const COLORS = useChartColors();
   const [box, width] = useWidth<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
+  const [picked, setPicked] = useState<number | null>(null);
+  const shown = hover ?? picked;
   const innerW = Math.max(0, width - M.left - M.right);
   const innerH = H - M.top - M.bottom;
   const x = d3.scaleBand<number>().domain(bins.map((_, i) => i)).range([0, innerW]).padding(0.12);
@@ -29,7 +35,8 @@ export function MoveHistogram({ bins }: { bins: Bin[] }) {
   const total = d3.sum(bins, (b) => b.count) || 1;
 
   return (
-    <div ref={box} className="w-full" style={{ height: H }}>
+    <div>
+    <div ref={box} className="w-full" style={{ minHeight: H + 16 }}>
       {width > 0 && (
         <svg width={width} height={H} className="block max-w-full" style={{ fontFamily: FONT }} role="img"
           aria-label="Histogram of today's moves across liquid stocks">
@@ -38,11 +45,14 @@ export function MoveHistogram({ bins }: { bins: Bin[] }) {
               const up = b.from != null && b.from >= 0;
               const h = innerH - y(b.count);
               return (
-                <g key={i} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}>
+                <g key={i} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} className="cursor-pointer"
+                  onClick={() => setPicked(picked === i ? null : i)} role="button" aria-pressed={picked === i}
+                  aria-label={`${b.count} stocks moved ${label(b)}; show them`}>
                   <rect x={x(i)} y={0} width={x.bandwidth()} height={innerH} fill="transparent" />
                   <rect x={x(i)} y={y(b.count)} width={x.bandwidth()} height={Math.max(0, h)} rx={3}
-                    fill={up ? COLORS.up : COLORS.down} fillOpacity={hover == null || hover === i ? 0.85 : 0.35} />
-                  {(hover === i || b.count / total >= 0.08) && (
+                    fill={up ? COLORS.up : COLORS.down} fillOpacity={shown == null || shown === i ? 0.85 : 0.35}
+                    stroke={picked === i ? COLORS.ink : "none"} strokeWidth={1.5} />
+                  {(shown === i || b.count / total >= 0.08) && (
                     <text x={(x(i) ?? 0) + x.bandwidth() / 2} y={y(b.count) - 5} textAnchor="middle" fontSize={11} fill={COLORS.ink2} className="tabular">
                       {b.count}
                     </text>
@@ -59,8 +69,48 @@ export function MoveHistogram({ bins }: { bins: Bin[] }) {
         </svg>
       )}
       <p className="h-4 text-center text-[11px] text-ink-3">
-        {hover != null ? `${bins[hover].count} stocks (${Math.round((bins[hover].count / total) * 100)}%) moved ${label(bins[hover])} today` : "% change today · hover a bar"}
+        {shown != null
+          ? `${bins[shown].count} stocks (${Math.round((bins[shown].count / total) * 100)}%) moved ${label(bins[shown])} today`
+          : "% change today · click a bar to see its stocks"}
       </p>
+    </div>
+    {picked != null && <BinStocks bin={bins[picked]} market={market} onClose={() => setPicked(null)} />}
+    </div>
+  );
+}
+
+function BinStocks({ bin, market, onClose }: { bin: Bin; market: MarketId; onClose: () => void }) {
+  const list = bin.stocks ?? [];
+  return (
+    <div className="mt-3 rounded-lg border border-line p-3 text-xs">
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <p className="font-medium text-ink">
+          Moved {label(bin)} today ·{" "}
+          {list.length < bin.count ? `${list.length} most traded of ${bin.count}` : `${bin.count} stocks`}
+        </p>
+        <button onClick={onClose} className="text-ink-3 hover:text-ink">Close</button>
+      </div>
+      {list.length === 0 ? (
+        <p className="py-1 text-ink-3">No stocks in this band.</p>
+      ) : (
+        <ul className="max-h-72 divide-y divide-line overflow-y-auto">
+          {list.map((x) => (
+            <li key={x.symbol}>
+              <Link href={`/stock/${market}/${encodeURIComponent(x.symbol)}`} className="flex items-center gap-2 py-1.5 hover:bg-wash">
+                <StockLogo market={market} symbol={x.symbol} size={18} />
+                <span className="min-w-0 flex-1 truncate">
+                  <span className="font-medium text-ink">{x.symbol}</span>
+                  {x.sector && <span className="text-ink-3"> · {x.sector}</span>}
+                </span>
+                <span className="tabular text-ink-2">{price(x.price, market)}</span>
+                <span className={clsx("tabular w-14 text-right", (x.change_pct ?? 0) >= 0 ? "text-up" : "text-down")}>
+                  {x.change_pct == null ? "—" : `${x.change_pct >= 0 ? "+" : ""}${x.change_pct.toFixed(2)}%`}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
