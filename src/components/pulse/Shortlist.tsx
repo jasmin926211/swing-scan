@@ -42,18 +42,20 @@ export function Shortlist({ data, record, market }: { data: Pulse["shortlist"]; 
           <p className="mt-2 text-xs text-ink-3">
             A group result for 1-month holds, not a signal on any one stock: many single names in it still fell, and the group itself
             dropped as much as {pct(record.max_drop, 0)} along the way. The test used only today&apos;s listed stocks, which flatters it.
-            Low volatility and the 52-week high were tested as extra filters and didn&apos;t help.
+            Low volatility and the 52-week high were tested as extra filters and didn&apos;t help. &ldquo;Last 5 days&rdquo; is a plain
+            fact about each stock&apos;s recent run, not a tested signal (in testing, strong short runs tended to give a little back).
           </p>
         </div>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[560px] text-sm">
+        <table className="w-full min-w-[680px] text-sm">
           <thead>
             <tr className="border-b border-line text-left text-[11px] text-ink-3">
               <th className="w-8 pb-2 font-normal">#</th>
               <th className="pb-2 font-normal">Stock</th>
               <th className="pb-2 text-right font-normal">Momentum</th>
+              <th className="pb-2 pl-4 font-normal" title="Each of the last 5 completed sessions: green = closed higher, red = lower">Last 5 days</th>
               <th className="pb-2 text-right font-normal">From 52-week high</th>
               <th className="pb-2 text-right font-normal">Traded / day</th>
               <th className="pb-2 text-right font-normal">Price</th>
@@ -76,6 +78,7 @@ export function Shortlist({ data, record, market }: { data: Pulse["shortlist"]; 
                 <td className="py-2 text-right">
                   <span className="tabular rounded bg-up-wash px-1.5 text-[11px] font-medium text-up">{s.rating}</span>
                 </td>
+                <td className="py-2 pl-4"><LastFive days={s.last5} /></td>
                 <td className="tabular py-2 text-right text-xs text-ink-2">
                   {s.from_high == null ? "—" : s.from_high > -0.005 ? "at high" : pct(s.from_high)}
                 </td>
@@ -90,5 +93,24 @@ export function Shortlist({ data, record, market }: { data: Pulse["shortlist"]; 
         </table>
       </div>
     </div>
+  );
+}
+
+/** The last 5 sessions as green / red marks, then how many closed higher and the 5-day move. */
+function LastFive({ days }: { days: number[] | null }) {
+  if (!days) return <span className="text-xs text-ink-3">after tonight&apos;s scan</span>;
+  const up = days.filter((d) => d > 0).length;
+  const total = (days.reduce((acc, d) => acc * (1 + d / 100), 1) - 1) * 100;
+  return (
+    <span className="flex items-center gap-2" title={days.map((d, i) => `Day ${i + 1}: ${d >= 0 ? "+" : ""}${d.toFixed(2)}%`).join("\n")}>
+      <span className="flex gap-0.5" aria-label={`${up} of the last 5 sessions closed higher`}>
+        {days.map((d, i) => (
+          <span key={i} className={clsx("h-3.5 w-2.5 rounded-sm", d > 0 ? "bg-up" : d < 0 ? "bg-down" : "bg-line")} />
+        ))}
+      </span>
+      <span className="tabular whitespace-nowrap text-xs text-ink-2">
+        {up}/5 up · <span className={total >= 0 ? "text-up" : "text-down"}>{total >= 0 ? "+" : ""}{total.toFixed(1)}%</span>
+      </span>
+    </span>
   );
 }
