@@ -8,7 +8,7 @@ import { getMoves, getPulse, type MarketId, type Pulse, type PulseMoves, type Pu
 import { MARKETS, price } from "@/lib/format";
 import { useMarket } from "@/lib/market";
 import { moodLabel } from "@/components/pulse/MoodGauge";
-import { MoveHistogram } from "@/components/pulse/MoveHistogram";
+import { MoveHistogram, type MoveMode } from "@/components/pulse/MoveHistogram";
 import { SectorRotation } from "@/components/pulse/SectorRotation";
 import { SectorTreemap } from "@/components/pulse/SectorTreemap";
 import { Shortlist } from "@/components/pulse/Shortlist";
@@ -204,6 +204,7 @@ export default function PulsePage() {
 /** How far stocks moved over the last 1-7 sessions; today's comes with the Pulse snapshot, longer periods on demand. */
 function MovesCard({ data, market }: { data: Pulse; market: MarketId }) {
   const [days, setDays] = useState(1);
+  const [mode, setMode] = useState<MoveMode>("bands");
   const [moves, setMoves] = useState<PulseMoves | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
@@ -222,8 +223,17 @@ function MovesCard({ data, market }: { data: Pulse; market: MarketId }) {
   return (
     <Card
       title={`How far stocks moved ${span}`}
-      note={`Number of stocks in each band of their move ${span}${days > 1 ? " (live price vs the close " + days + " sessions back)" : ""}. A tall middle means a quiet period; heavy tails mean a broad move. Click a bar to see its stocks.`}
+      note={`${mode === "atleast" ? "Number of stocks at or beyond each move: \"+2% or more\" also counts +4%, +6% and higher; \"-2% or worse\" also counts -4% and lower." : "Number of stocks in each band of their move."} ${days > 1 ? "Live price vs the close " + days + " sessions back. " : ""}Click a bar to see its stocks.`}
       action={
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+        <div role="radiogroup" aria-label="View" className="flex rounded-md border border-line p-0.5 text-xs">
+          {([["bands", "Bands"], ["atleast", "At least"]] as const).map(([m, l]) => (
+            <button key={m} role="radio" aria-checked={mode === m} onClick={() => setMode(m)}
+              className={clsx("rounded px-2 py-0.5", mode === m ? "bg-wash font-medium text-ink" : "text-ink-3 hover:text-ink")}>
+              {l}
+            </button>
+          ))}
+        </div>
         <label className="flex shrink-0 items-center gap-1.5 text-xs text-ink-3">
           Period
           <select value={days} onChange={(e) => setDays(Number(e.target.value))} aria-label="Number of sessions"
@@ -233,11 +243,12 @@ function MovesCard({ data, market }: { data: Pulse; market: MarketId }) {
             ))}
           </select>
         </label>
+        </div>
       }
     >
       {error && <p className="text-sm text-ink-2">{error}</p>}
       {!error && !bins && <div className="h-56 animate-pulse rounded-lg bg-wash" />}
-      {bins && <MoveHistogram key={days} bins={bins} market={market} days={days} />}
+      {bins && <MoveHistogram key={`${days}-${mode}`} bins={bins} market={market} days={days} mode={mode} />}
     </Card>
   );
 }
