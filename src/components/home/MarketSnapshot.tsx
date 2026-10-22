@@ -88,8 +88,8 @@ export function MarketSnapshot() {
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-wash px-4 py-3 text-sm">
         <span className="text-ink-2">
           {user
-            ? "You’re signed in: open the full market with every stock, charts and forecasts."
-            : `Showing a preview. Sign in to browse all ${data ? data.listed.toLocaleString() : ""} ${MARKETS[market].name === "India" ? "Indian" : "US"} stocks, open charts and run AI forecasts.`}
+            ? "You’re signed in: open the full market with every stock, charts and tested signals."
+            : `Showing a preview. Sign in to browse all ${data ? data.listed.toLocaleString() : ""} ${MARKETS[market].name === "India" ? "Indian" : "US"} stocks, open charts and see the tested signals.`}
         </span>
         <Link href={user ? "/markets" : "/signup"} className="inline-flex items-center gap-1.5 font-medium text-ink hover:underline">
           {user ? "Open markets" : "Create a free account"} <ArrowRight className="h-4 w-4" />

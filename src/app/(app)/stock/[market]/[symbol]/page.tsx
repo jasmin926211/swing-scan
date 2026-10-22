@@ -5,13 +5,11 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import clsx from "clsx";
 import { ArrowLeft } from "lucide-react";
-import { getHistory, getPatterns, getQuote, type Candle, type Forecast, type Interval, type MarketId, type PatternSignal, type StockQuote } from "@/lib/api";
+import { getHistory, getPatterns, getQuote, type Candle, type Interval, type MarketId, type PatternSignal, type StockQuote } from "@/lib/api";
 import { MARKETS, changeColor, compact, marketStateLabel, price, signedPct } from "@/lib/format";
 import { useMarket } from "@/lib/market";
 import { PriceChart } from "@/components/charts/PriceChart";
 import { RangeBar } from "@/components/RangeBar";
-import { ForecastPanel } from "@/components/ForecastPanel";
-import { AccuracyCheck, useAccuracyCheck } from "@/components/AccuracyCheck";
 import { ValidatedPatterns } from "@/components/ValidatedPatterns";
 import { StockLogo } from "@/components/StockLogo";
 import { NewsButton } from "@/components/NewsDialog";
@@ -37,8 +35,6 @@ export default function StockPage() {
   const [interval, setBarInterval] = useState<Interval>("1d");
   const [candles, setCandles] = useState<Candle[] | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
-  const [forecast, setForecast] = useState<Forecast | null>(null);
-  const [showPaths, setShowPaths] = useState(false);
   const [signals, setSignals] = useState<PatternSignal[] | null>(null);
   const [liquid, setLiquid] = useState(true);
   const [patternError, setPatternError] = useState<string | null>(null);
@@ -61,14 +57,6 @@ export default function StockPage() {
       alive = false;
     };
   }, [market, symbol]);
-  const accuracy = useAccuracyCheck(market, symbol, interval);
-
-  // Every forecast is followed by the AI's recent track record on this stock (once per stock & interval),
-  // so the panel can say when the forecast deserves little trust.
-  function onForecast(f: Forecast) {
-    setForecast(f);
-    if (!accuracy.result && !accuracy.running) accuracy.run();
-  }
 
   // Opening a stock link selects its country in the header. Only on route change, so the
   // header's own country switch (which navigates away) isn't undone.
@@ -104,7 +92,6 @@ export default function StockPage() {
     let alive = true;
     setCandles(null);
     setHistoryError(null);
-    setForecast(null); // a forecast belongs to one bar interval
     getHistory(market, symbol, interval)
       .then((h) => alive && setCandles(h.candles))
       .catch((e) => alive && setHistoryError((e as Error).message));
@@ -179,8 +166,7 @@ export default function StockPage() {
 
       <ExpectedMove market={market} symbol={symbol} livePrice={quote?.price} />
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <section className="self-start rounded-xl border border-line lg:col-span-2">
+      <section className="rounded-xl border border-line">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3 py-2">
             <div className="flex gap-1 text-sm">
               {INTERVALS.map((i) => (
@@ -196,12 +182,6 @@ export default function StockPage() {
                 </button>
               ))}
             </div>
-            {forecast && (
-              <label className="flex items-center gap-2 text-xs text-ink-2">
-                <input type="checkbox" checked={showPaths} onChange={(e) => setShowPaths(e.target.checked)} className="accent-accent" />
-                Show all {forecast.paths.length} sampled paths
-              </label>
-            )}
           </div>
           <div className="p-2">
             {historyError ? (
@@ -210,8 +190,6 @@ export default function StockPage() {
               <PriceChart
                 candles={candles}
                 interval={interval}
-                forecast={forecast}
-                showPaths={showPaths}
                 decimals={2}
                 signals={signals ?? []}
                 selected={selectedSignal}
@@ -221,18 +199,7 @@ export default function StockPage() {
               <div className="h-[520px] animate-pulse rounded-lg bg-wash" />
             )}
           </div>
-        </section>
-
-        <ForecastPanel
-          key={`${market}/${symbol}/${interval}`}
-          market={market}
-          symbol={symbol}
-          interval={interval}
-          forecast={forecast}
-          onForecast={onForecast}
-          accuracy={accuracy}
-        />
-      </div>
+      </section>
 
       <ValidatedPatterns
         signals={signals}
@@ -245,8 +212,6 @@ export default function StockPage() {
       />
 
       {quote?.has_fno && <OiLevels market={market} symbol={symbol} />}
-
-      <AccuracyCheck market={market} symbol={symbol} interval={interval} check={accuracy} />
 
       <TradeChecklist market={market} symbol={symbol} />
     </div>

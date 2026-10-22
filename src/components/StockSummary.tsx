@@ -2,16 +2,17 @@
 
 import { useEffect, useState } from "react";
 import clsx from "clsx";
-import { AlertTriangle, ChevronDown, TrendingDown, TrendingUp } from "lucide-react";
+import { ChevronDown, Info, TrendingDown, TrendingUp } from "lucide-react";
 import { getSummary, type MarketId, type StockSummary as Summary, type SummaryPoint, type SummarySide } from "@/lib/api";
 
 const COLUMNS: { side: SummarySide; title: string; Icon: typeof TrendingUp; tone: string }[] = [
-  { side: "bull", title: "Points for", Icon: TrendingUp, tone: "text-up" },
-  { side: "bear", title: "Points against", Icon: TrendingDown, tone: "text-down" },
-  { side: "check", title: "Check before trading", Icon: AlertTriangle, tone: "text-warn" },
+  { side: "bull", title: "Tested points for", Icon: TrendingUp, tone: "text-up" },
+  { side: "bear", title: "Tested points against", Icon: TrendingDown, tone: "text-down" },
+  { side: "check", title: "Facts to check", Icon: Info, tone: "text-ink-2" },
 ];
 
-/** The stock's evidence in one place, each point marked as tested on 10 years of data or only a fact. No verdict. */
+/** The stock's evidence in one place. Only points that held up in 10-year tests sit for or against; everything else
+ *  (trend, 52-week range, fundamentals, futures positioning, ...) is a neutral fact. No verdict. */
 export function StockSummary({ market, symbol }: { market: MarketId; symbol: string }) {
   const [data, setData] = useState<Summary | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -33,9 +34,9 @@ export function StockSummary({ market, symbol }: { market: MarketId; symbol: str
       <div className="border-b border-line px-4 py-3">
         <h2 className="text-sm font-semibold">At a glance</h2>
         <p className="mt-0.5 text-xs leading-relaxed text-ink-3">
-          Everything the site knows about {symbol}, sorted into points for and against.{" "}
-          <TestedBadge tested /> means it held up in our 10-year tests; <TestedBadge tested={false} /> is a fact that wasn&apos;t
-          tested as a signal. There&apos;s no buy or sell verdict: no mix of these points has been tested as one.
+          Everything the site knows about {symbol}. Only points that held up in our 10-year tests (<TestedBadge tested />) are
+          put for or against; the rest are facts (<TestedBadge tested={false} />) that weren&apos;t tested as signals. There&apos;s no buy or
+          sell verdict: no mix of these points has been tested as one.
         </p>
       </div>
       {error && <p className="px-4 py-3 text-sm text-ink-2">{error}</p>}

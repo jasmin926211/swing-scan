@@ -49,7 +49,7 @@ export default function FnoHome() {
         <h1 className="text-xl font-semibold tracking-tight">{MARKETS[market].name} · Futures &amp; options</h1>
         <p className="mt-0.5 text-sm text-ink-2">
           {market === "in"
-            ? "Every NSE F&O stock and index. Open one for a plain-language summary of its open interest, the option chain and AI trade ideas."
+            ? "Every NSE F&O stock and index. Open one for a plain-language summary of its open interest, the option chain and defined-risk trade ideas."
             : "US stocks have options (no single-stock futures). The 200 largest are listed; search to open any other."}{" "}
           Analysis only — place orders in your broker app.
         </p>

@@ -43,8 +43,8 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
       <h1 className="text-2xl font-semibold tracking-tight">{isSignUp ? "Create your account" : "Welcome back"}</h1>
       <p className="mt-1 text-sm text-ink-2">
         {isSignUp
-          ? "Free. Unlocks every Indian and US stock, AI forecasts and F&O analysis."
-          : "Sign in to see every stock, run AI forecasts and plan F&O trades."}
+          ? "Free. Unlocks every Indian and US stock, tested signals, Market Pulse and F&O analysis."
+          : "Sign in to see every stock, the tested signals and F&O analysis."}
       </p>
       {expired && !isSignUp && (
         <p className="mt-4 rounded-lg bg-wash px-3 py-2 text-sm text-ink-2">Your session ended. Please sign in again.</p>

@@ -12,8 +12,8 @@ import { THEME_SCRIPT } from "@/lib/theme";
 const openSans = Open_Sans({ subsets: ["latin"], variable: "--font-open-sans", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "CandleTrade — Live markets & AI forecasts",
-  description: "Live Indian and US stock markets with AI forecasts and an honest track record next to every one.",
+  title: "CandleTrade — Live markets & tested signals",
+  description: "Live Indian and US stock markets with the few trading signals that held up on 10 years of data, and plain facts for the rest."
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
