@@ -332,6 +332,15 @@ export type ExpectedMove = {
 };
 export const getExpectedMove = (m: MarketId, symbol: string) => request<ExpectedMove>(`${stockPath(m, symbol)}/expected-move`);
 
+export type StopMethod = "history" | "scaled" | "formula" | null;
+/** Past moves (log, entry to the lowest low for buys / highest high for shorts) for the trade planner's stop check. */
+export type StopSamples = { buy: number[]; short: number[] };
+export type StopCheck = {
+  swing: { vol: number; gap: { down: number; up: number }; holds: ({ days: number; method: StopMethod } & StopSamples)[] };
+  intraday: { method: StopMethod; vol: number; sessions: number; entries: ({ time: string; remain: number } & StopSamples)[] } | null;
+};
+export const getStopCheck = (m: MarketId, symbol: string) => request<StopCheck>(`${stockPath(m, symbol)}/stop-check`);
+
 export type SummarySide = "bull" | "bear" | "check";
 export type SummaryPoint = { side: SummarySide; text: string; tested: boolean; detail: string };
 export type StockSummary = {
