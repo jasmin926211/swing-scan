@@ -14,6 +14,7 @@ import { ValidatedPatterns } from "@/components/ValidatedPatterns";
 import { StockLogo } from "@/components/StockLogo";
 import { NewsButton } from "@/components/NewsDialog";
 import { ExpectedMove } from "@/components/ExpectedMove";
+import { TradePlanner } from "@/components/TradePlanner";
 import { StockSummary } from "@/components/StockSummary";
 import { TradeChecklist } from "@/components/TradeChecklist";
 import { OiLevels } from "@/components/OiLevels";
@@ -165,6 +166,8 @@ export default function StockPage() {
       <StockSummary market={market} symbol={symbol} />
 
       <ExpectedMove market={market} symbol={symbol} livePrice={quote?.price} />
+
+      <TradePlanner market={market} symbol={symbol} livePrice={quote?.price} exchange={quote?.exchange} marketOpen={isOpen} />
 
       <section className="rounded-xl border border-line">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3 py-2">
