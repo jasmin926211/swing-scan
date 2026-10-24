@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import clsx from "clsx";
 import { ArrowLeft } from "lucide-react";
-import { getHistory, getPatterns, getQuote, type Candle, type Interval, type MarketId, type PatternSignal, type StockQuote } from "@/lib/api";
+import { getExpectedMove, getHistory, getPatterns, getQuote, type Candle, type ExpectedMove as Move, type Interval, type MarketId, type PatternSignal, type StockQuote } from "@/lib/api";
 import { MARKETS, changeColor, compact, marketStateLabel, price, signedPct } from "@/lib/format";
 import { useMarket } from "@/lib/market";
 import { PriceChart } from "@/components/charts/PriceChart";
@@ -40,6 +40,17 @@ export default function StockPage() {
   const [liquid, setLiquid] = useState(true);
   const [patternError, setPatternError] = useState<string | null>(null);
   const [selectedSignal, setSelectedSignal] = useState<number | null>(null);
+  const [move, setMove] = useState<Move | null>(null);
+
+  // The tested range drawn ahead of the daily chart (the same numbers as the Expected move card).
+  useEffect(() => {
+    let alive = true;
+    setMove(null);
+    getExpectedMove(market, symbol).then((m) => alive && setMove(m)).catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [market, symbol]);
 
   // Validated patterns don't depend on the chart's interval (they come from daily / weekly / monthly candles).
   useEffect(() => {
@@ -197,6 +208,7 @@ export default function StockPage() {
                 signals={signals ?? []}
                 selected={selectedSignal}
                 onSelect={setSelectedSignal}
+                move={move}
               />
             ) : (
               <div className="h-[520px] animate-pulse rounded-lg bg-wash" />
