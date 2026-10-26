@@ -22,6 +22,12 @@ const pctx = (v: number | null, d = 1) => (v == null ? "—" : `${num(v * 100, d
 const signedPctx = (v: number | null) => (v == null ? "—" : `${v > 0 ? "+" : ""}${num(v * 100)}%`);
 const quarter = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", { timeZone: "UTC", month: "short", year: "2-digit" });
 
+function missText(x: Rule, r: FundamentalsRow, th: Thresholds) {
+  const v = x.get(r);
+  const got = v == null ? "no data" : x.describe ? x.describe(v) : withUnit(v, x.unit);
+  return x.fixed ? got : `${got} (rule ${x.op === ">=" ? "≥" : x.op} ${withUnit(th[x.id].value, x.unit)})`;
+}
+
 function withUnit(v: number, unit: Rule["unit"]) {
   const n = num(v, unit === "×" ? 2 : 1).replace(/\.0+$/, "");
   return unit === "₹" ? `₹${n}` : unit === "₹ Cr" ? `₹${n} Cr` : unit === "pts" ? `${n} pts` : `${n}${unit}`;
@@ -31,8 +37,9 @@ type Col = { key: string; label: string; title?: string; rule?: string; get: (r:
 const COLS: Col[] = [
   { key: "price", label: "Price", rule: "price", get: (r) => r.price, fmt: (r) => price(r.price, "in") },
   { key: "pe", label: "P/E", rule: "pe", get: (r) => r.pe, fmt: (r) => num(r.pe) },
-  { key: "peg", label: "PEG", rule: "peg", title: "P/E ÷ 3-year profit growth", get: (r) => r.peg, fmt: (r) => num(r.peg, 2), className: "hidden lg:table-cell" },
+  { key: "peg", label: "PEG", rule: "peg", title: "P/E ÷ 3-year profit growth", get: (r) => r.peg, fmt: (r) => num(r.peg, 2), className: "hidden xl:table-cell" },
   { key: "roe", label: "ROE", rule: "roe", get: (r) => r.roe, fmt: (r) => pctx(r.roe) },
+  { key: "roce", label: "ROCE", rule: "roce", title: "Return on capital employed", get: (r) => r.roce, fmt: (r) => pctx(r.roce) },
   { key: "opm", label: "OPM", rule: "opm", title: "Operating profit margin, last 12 months", get: (r) => r.opm_ttm, fmt: (r) => pctx(r.opm_ttm) },
   { key: "sales_g3", label: "Sales 3Y", rule: "sales_g3", title: "Sales growth a year, over 3 years", get: (r) => r.sales_g3, fmt: (r) => signedPctx(r.sales_g3) },
   { key: "profit_g3", label: "Profit 3Y", rule: "profit_g3", title: "Profit growth a year, over 3 years", get: (r) => r.profit_g3, fmt: (r) => signedPctx(r.profit_g3) },
@@ -213,7 +220,7 @@ export default function FundamentalsPage() {
                 <tr className="text-left text-xs text-ink-3">
                   <th className="px-3 py-2.5 font-normal">Company</th>
                   {COLS.map((c) => (
-                    <th key={c.key} className={clsx("px-2.5 py-2.5 text-right font-normal", c.className)} title={c.title}
+                    <th key={c.key} className={clsx("px-2 py-2.5 text-right font-normal", c.className)} title={c.title}
                       aria-sort={sort.key === c.key ? (sort.desc ? "descending" : "ascending") : "none"}>
                       <button onClick={() => toggleSort(c.key)} className={clsx("inline-flex items-center gap-1 whitespace-nowrap hover:text-ink", sort.key === c.key && "text-ink")}>
                         {c.label}
@@ -240,10 +247,10 @@ export default function FundamentalsPage() {
                   near.map(({ r, fails }, i) => (
                     <Fragment key={r.symbol}>
                       {(i === 0 || near[i - 1].fails.length !== fails.length) && (
-                        <tr className="border-t border-line bg-wash">
-                          <td colSpan={COLS.length + 2} className="px-3 py-2 text-xs font-medium text-ink-2">
+                        <tr className="border-t border-line">
+                          <td colSpan={COLS.length + 2} className="px-3 pb-2 pt-5 text-[11px] font-medium uppercase tracking-wide text-ink-3">
                             Miss {fails.length === 1 ? "one rule" : `${fails.length} rules`}
-                            {i === 0 && <span className="font-normal text-ink-3"> · the failing numbers are marked</span>}
+                            {i === 0 && <span className="font-normal normal-case tracking-normal"> · the missing numbers are underlined</span>}
                           </td>
                         </tr>
                       )}
@@ -313,8 +320,8 @@ function ResultRow({ r, fails, th, open, onOpen, panelWidth }: {
   return (
     <Fragment>
       <tr onClick={onOpen} className={clsx("group cursor-pointer border-t border-line hover:bg-wash", open && "bg-select")} aria-expanded={open}>
-        <td className="px-3 py-2.5">
-          <div className="flex items-center gap-2.5">
+        <td className="px-3 py-3">
+          <div className="flex items-center gap-3">
             <span className="hidden sm:block">
               <StockLogo market="in" symbol={r.symbol} size={28} />
             </span>
@@ -326,23 +333,29 @@ function ResultRow({ r, fails, th, open, onOpen, panelWidth }: {
                 </span>
               </p>
               <p className="max-w-[150px] truncate text-xs text-ink-3 sm:max-w-[220px]">{r.name}</p>
-              {failed.map((x) => {
-                const v = x.get(r);
-                return (
-                  <p key={x.id} className="mt-0.5 text-[11px] text-down">
-                    ✕ {x.label}: {v == null ? "no data" : x.describe ? x.describe(v) : withUnit(v, x.unit)}
-                    {!x.fixed && <span className="text-ink-3"> (rule {x.op === ">=" ? "≥" : x.op} {withUnit(th[x.id].value, x.unit)})</span>}
-                  </p>
-                );
-              })}
+              {failed.length > 0 && (
+                <p className="mt-1 max-w-[220px] text-[11px] leading-snug text-ink-3 sm:max-w-[260px]"
+                  title={failed.map((x) => `${x.label}: ${missText(x, r, th)}`).join("\n")}>
+                  Misses{" "}
+                  {failed.map((x, i) => {
+                    const v = x.get(r);
+                    return (
+                      <Fragment key={x.id}>
+                        {i > 0 && " · "}
+                        <span className="text-ink-2">{x.short}</span> <span className="text-warn">{v == null ? "no data" : x.describe ? x.describe(v) : withUnit(v, x.unit)}</span>
+                      </Fragment>
+                    );
+                  })}
+                </p>
+              )}
             </div>
           </div>
         </td>
         {COLS.map((c) => {
           const bad = c.rule != null && fails.includes(c.rule);
           return (
-            <td key={c.key} className={clsx("tabular whitespace-nowrap px-2.5 py-2.5 text-right", c.className, bad ? "bg-down-wash font-medium text-down" : "text-ink-2")}>
-              {c.fmt(r)}
+            <td key={c.key} className={clsx("tabular whitespace-nowrap px-2 py-3 text-right", c.className, bad ? "text-warn" : "text-ink-2")}>
+              {bad ? <span className="underline decoration-warn/40 decoration-dotted underline-offset-4" title="Misses its rule">{c.fmt(r)}</span> : c.fmt(r)}
               {c.key === "promoter" && r.promoter != null && r.promoter_prev != null && r.promoter !== r.promoter_prev && (
                 <span className={clsx("ml-1 text-[10px]", r.promoter > r.promoter_prev ? "text-up" : "text-down")}>
                   {r.promoter > r.promoter_prev ? "▲" : "▼"}
@@ -380,6 +393,7 @@ function Definitions() {
         <p><span className="font-medium text-ink">Operating profit.</span> Sales minus expenses, before other income, interest, depreciation and tax. Margin = operating profit ÷ sales.</p>
         <p><span className="font-medium text-ink">Net profit.</span> The owners&apos; share (minority interests excluded). Growth from a loss year isn&apos;t defined and fails the rule.</p>
         <p><span className="font-medium text-ink">ROE.</span> Last financial year&apos;s net profit ÷ the average of its opening and closing equity.</p>
+        <p><span className="font-medium text-ink">ROCE.</span> Last financial year&apos;s profit before interest and tax ÷ the average of its opening and closing equity plus borrowings (minority interests included).</p>
         <p><span className="font-medium text-ink">Debt to equity.</span> Short- and long-term borrowings ÷ equity, at the latest half-yearly balance sheet. Lease liabilities aren&apos;t counted.</p>
         <p><span className="font-medium text-ink">P/E.</span> Live price × shares ÷ last 12 months&apos; net profit. PEG divides it by the 3-year profit growth in %.</p>
         <p><span className="font-medium text-ink">Cash flow.</span> From the yearly cash flow statement. Free cash flow = cash from operations minus spending on plant, equipment and intangibles, less plant sold. Leases and acquisitions aren&apos;t counted.</p>

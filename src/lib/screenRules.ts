@@ -8,6 +8,8 @@ export type Rule = {
   id: string;
   group: "Valuation" | "Ownership" | "Profitability" | "Growth" | "Balance sheet" | "Cash flow" | "Quality checks";
   label: string;
+  /** A few words for the list of misses under a company's name. */
+  short: string;
   op: Op;
   unit: "%" | "₹" | "₹ Cr" | "×" | "pts" | "";
   get: (r: FundamentalsRow) => number | null;
@@ -22,56 +24,58 @@ export type Rule = {
 const pc = (v: number | null) => (v == null ? null : v * 100);
 
 export const RULES: Rule[] = [
-  { id: "price", group: "Valuation", label: "Current price", op: "<", unit: "₹", get: (r) => r.price,
+  { id: "price", group: "Valuation", label: "Current price", short: "Price", op: "<", unit: "₹", get: (r) => r.price,
     hint: "Share price alone says nothing about value: a ₹4,000 share can be cheaper than a ₹40 one. Only useful as a budget limit." },
-  { id: "pe", group: "Valuation", label: "Price to earnings", op: "<", unit: "×", get: (r) => r.pe,
+  { id: "pe", group: "Valuation", label: "Price to earnings", short: "P/E", op: "<", unit: "×", get: (r) => r.pe,
     hint: "Price × shares ÷ last 12 months' net profit. Loss-making companies have no P/E and fail." },
-  { id: "peg", group: "Valuation", label: "P/E ÷ profit growth (PEG)", op: "<", unit: "×", get: (r) => r.peg, suggested: true,
+  { id: "peg", group: "Valuation", label: "P/E ÷ profit growth (PEG)", short: "PEG", op: "<", unit: "×", get: (r) => r.peg, suggested: true,
     hint: "P/E divided by 3-year profit growth (%). Under 1 is cheap for the growth, over 2 expensive (a rule of thumb, not tested)." },
 
-  { id: "promoter", group: "Ownership", label: "Promoter holding", op: ">", unit: "%", get: (r) => r.promoter,
+  { id: "promoter", group: "Ownership", label: "Promoter holding", short: "Promoter", op: ">", unit: "%", get: (r) => r.promoter,
     hint: "SEBI caps promoters at 75% (25% must be public), so above 70 leaves a narrow band, mostly PSUs and subsidiaries of foreign companies." },
-  { id: "promoter_change", group: "Ownership", label: "Change in promoter holding", op: ">=", unit: "pts",
+  { id: "promoter_change", group: "Ownership", label: "Change in promoter holding", short: "Promoter change", op: ">=", unit: "pts",
     get: (r) => (r.promoter != null && r.promoter_prev != null ? r.promoter - r.promoter_prev : null),
     hint: "Latest quarter vs the one before. A share issue (QIP) lowers it even when promoters sold nothing." },
-  { id: "encumbered", group: "Ownership", label: "Promoter shares pledged or encumbered", op: "<", unit: "%", get: (r) => pc(r.encumbered_pct),
+  { id: "encumbered", group: "Ownership", label: "Promoter shares pledged or encumbered", short: "Pledged", op: "<", unit: "%", get: (r) => pc(r.encumbered_pct),
     hint: "Pledges plus non-disposal undertakings and other encumbrances: lenders can force a sale of all three." },
 
-  { id: "roe", group: "Profitability", label: "Return on equity", op: ">", unit: "%", get: (r) => pc(r.roe),
+  { id: "roe", group: "Profitability", label: "Return on equity", short: "ROE", op: ">", unit: "%", get: (r) => pc(r.roe),
     hint: "Last financial year's net profit ÷ average equity." },
-  { id: "opm", group: "Profitability", label: "Operating profit margin", op: ">", unit: "%", get: (r) => pc(r.opm_ttm),
+  { id: "roce", group: "Profitability", label: "Return on capital employed", short: "ROCE", op: ">", unit: "%", get: (r) => pc(r.roce), suggested: true,
+    hint: "Profit before interest and tax ÷ average equity plus borrowings, last financial year. Unlike ROE, borrowing can't raise it: it shows what the business earns on all the money it uses." },
+  { id: "opm", group: "Profitability", label: "Operating profit margin", short: "OPM", op: ">", unit: "%", get: (r) => pc(r.opm_ttm),
     hint: "Last 12 months. Operating profit is before other income, interest, depreciation and tax." },
-  { id: "opm_rising", group: "Profitability", label: "Margin above the year before", op: ">", unit: "pts",
+  { id: "opm_rising", group: "Profitability", label: "Margin above the year before", short: "Margin vs last year", op: ">", unit: "pts",
     get: (r) => (r.opm_fy != null && r.opm_fy1 != null ? (r.opm_fy - r.opm_fy1) * 100 : null), fixed: { value: 0, text: "Last financial year vs the one before" } },
-  { id: "profit_q", group: "Profitability", label: "Net profit, latest quarter", op: ">", unit: "₹ Cr",
+  { id: "profit_q", group: "Profitability", label: "Net profit, latest quarter", short: "Quarter profit", op: ">", unit: "₹ Cr",
     get: (r) => (r.profit_q == null ? null : r.profit_q / 1e7), fixed: { value: 0, text: "A profit, not a loss" } },
 
-  { id: "sales_g3", group: "Growth", label: "Sales growth, 3 years", op: ">", unit: "%", get: (r) => pc(r.sales_g3),
+  { id: "sales_g3", group: "Growth", label: "Sales growth, 3 years", short: "Sales 3Y", op: ">", unit: "%", get: (r) => pc(r.sales_g3),
     hint: "Yearly rate (CAGR), last financial year vs three years before." },
-  { id: "profit_g3", group: "Growth", label: "Profit growth, 3 years", op: ">", unit: "%", get: (r) => pc(r.profit_g3),
+  { id: "profit_g3", group: "Growth", label: "Profit growth, 3 years", short: "Profit 3Y", op: ">", unit: "%", get: (r) => pc(r.profit_g3),
     hint: "Yearly rate (CAGR). None when the starting year was a loss." },
-  { id: "sales_g_q", group: "Growth", label: "Sales growth, latest quarter vs a year ago", op: ">", unit: "%", get: (r) => pc(r.sales_g_q) },
-  { id: "profit_g_q", group: "Growth", label: "Profit growth, latest quarter vs a year ago", op: ">", unit: "%", get: (r) => pc(r.profit_g_q),
+  { id: "sales_g_q", group: "Growth", label: "Sales growth, latest quarter vs a year ago", short: "Sales qtr", op: ">", unit: "%", get: (r) => pc(r.sales_g_q) },
+  { id: "profit_g_q", group: "Growth", label: "Profit growth, latest quarter vs a year ago", short: "Profit qtr", op: ">", unit: "%", get: (r) => pc(r.profit_g_q),
     hint: "None when the year-ago quarter was a loss." },
 
-  { id: "de", group: "Balance sheet", label: "Debt to equity", op: "<", unit: "×", get: (r) => r.de,
+  { id: "de", group: "Balance sheet", label: "Debt to equity", short: "D/E", op: "<", unit: "×", get: (r) => r.de,
     hint: "Borrowings ÷ equity at the latest half-yearly balance sheet (lease liabilities not counted)." },
 
-  { id: "cfo", group: "Cash flow", label: "Cash from operations ÷ net profit, 3 years", op: ">=", unit: "%", get: (r) => pc(r.cfo_to_profit), suggested: true,
+  { id: "cfo", group: "Cash flow", label: "Cash from operations ÷ net profit, 3 years", short: "Cash/profit", op: ">=", unit: "%", get: (r) => pc(r.cfo_to_profit), suggested: true,
     hint: "Profit that doesn't turn into cash (unpaid bills piling up, stock building up, accounting gains) is the commonest trap in growth screens." },
-  { id: "cfo_positive", group: "Cash flow", label: "Cash from operations positive", op: ">=", unit: "", get: (r) => r.cfo_positive_years, suggested: true,
+  { id: "cfo_positive", group: "Cash flow", label: "Cash from operations positive", short: "Cash positive", op: ">=", unit: "", get: (r) => r.cfo_positive_years, suggested: true,
     fixed: { value: 3, text: "In each of the last 3 years" }, describe: (v) => `in ${v} of 3 years` },
-  { id: "fcf", group: "Cash flow", label: "Free cash flow, last 3 years together", op: ">", unit: "₹ Cr", get: (r) => (r.fcf_3y == null ? null : r.fcf_3y / 1e7), suggested: true,
+  { id: "fcf", group: "Cash flow", label: "Free cash flow, last 3 years together", short: "FCF 3Y", op: ">", unit: "₹ Cr", get: (r) => (r.fcf_3y == null ? null : r.fcf_3y / 1e7), suggested: true,
     hint: "Cash from operations minus spending on plant and equipment. A fast-growing company building factories can be negative for a while; three years together smooths that." },
-  { id: "fcf_yield", group: "Cash flow", label: "Free cash flow yield", op: ">", unit: "%", get: (r) => pc(r.fcf_yield),
+  { id: "fcf_yield", group: "Cash flow", label: "Free cash flow yield", short: "FCF yield", op: ">", unit: "%", get: (r) => pc(r.fcf_yield),
     hint: "The last 3 years' average free cash flow ÷ market cap: the cash the business makes for each ₹100 you pay for it." },
 
-  { id: "other_income", group: "Quality checks", label: "Other income share of pre-tax profit", op: "<", unit: "%", suggested: true,
+  { id: "other_income", group: "Quality checks", label: "Other income share of pre-tax profit", short: "Other income", op: "<", unit: "%", suggested: true,
     get: (r) => (r.other_income_ttm != null && r.pbt_ttm != null && r.pbt_ttm > 0 ? (r.other_income_ttm / r.pbt_ttm) * 100 : null),
     hint: "Interest, gains on investments, one-offs: growth that comes from these isn't the business growing." },
-  { id: "mcap", group: "Quality checks", label: "Market cap", op: ">=", unit: "₹ Cr", get: (r) => (r.market_cap == null ? null : r.market_cap / 1e7), suggested: true,
+  { id: "mcap", group: "Quality checks", label: "Market cap", short: "Mkt cap", op: ">=", unit: "₹ Cr", get: (r) => (r.market_cap == null ? null : r.market_cap / 1e7), suggested: true,
     hint: "Very small companies are easier to manipulate and their filings less scrutinised." },
-  { id: "turnover", group: "Quality checks", label: "Average daily value traded", op: ">=", unit: "₹ Cr", get: (r) => (r.turnover == null ? null : r.turnover / 1e7), suggested: true,
+  { id: "turnover", group: "Quality checks", label: "Average daily value traded", short: "Value traded", op: ">=", unit: "₹ Cr", get: (r) => (r.turnover == null ? null : r.turnover / 1e7), suggested: true,
     hint: "Over 3 months. With 70%+ held by promoters, little stock trades: you may not be able to sell when you want." },
 ];
 
@@ -86,6 +90,7 @@ export const AS_WRITTEN: Thresholds = {
   promoter_change: { on: true, value: 0 },
   encumbered: { on: true, value: 1 },
   roe: { on: true, value: 15 },
+  roce: { on: false, value: 15 },
   opm: { on: true, value: 15 },
   opm_rising: { on: true, value: 0 },
   profit_q: { on: true, value: 0 },
@@ -110,6 +115,7 @@ export const SUGGESTED: Thresholds = {
   ...AS_WRITTEN,
   price: { on: false, value: 500 },
   promoter: { on: true, value: 50 },
+  roce: { on: true, value: 15 },
   cfo: { on: true, value: 80 },
   cfo_positive: { on: true, value: 3 },
   fcf: { on: true, value: 0 },

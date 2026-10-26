@@ -486,6 +486,7 @@ export type FundamentalsRow = {
   sales_g3: number | null;
   profit_g3: number | null;
   roe: number | null;
+  roce: number | null;
   de: number | null;
   debt: number | null;
   equity: number | null;
