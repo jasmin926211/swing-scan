@@ -15,7 +15,7 @@ const RULES_KEY = "ct.fundamentals.rules";
 const INPUT = "tabular w-16 rounded-lg border border-line bg-paper px-2 py-1 text-right text-sm text-ink outline-none focus:border-ink-3 disabled:opacity-40";
 const CLOSEST_MAX_MISSES = 3;
 const CLOSEST_ROWS = 60;
-const GROUPS = ["Valuation", "Ownership", "Profitability", "Growth", "Balance sheet", "Quality checks"] as const;
+const GROUPS = ["Valuation", "Ownership", "Profitability", "Growth", "Balance sheet", "Cash flow", "Quality checks"] as const;
 
 const num = (v: number | null, d = 1) => (v == null || !Number.isFinite(v) ? "—" : v.toLocaleString("en-IN", { maximumFractionDigits: d, minimumFractionDigits: d }));
 const pctx = (v: number | null, d = 1) => (v == null ? "—" : `${num(v * 100, d)}%`);
@@ -39,6 +39,7 @@ const COLS: Col[] = [
   { key: "sales_g_q", label: "Sales qtr", rule: "sales_g_q", title: "Latest quarter's sales vs the same quarter a year ago", get: (r) => r.sales_g_q, fmt: (r) => signedPctx(r.sales_g_q) },
   { key: "profit_g_q", label: "Profit qtr", rule: "profit_g_q", title: "Latest quarter's profit vs the same quarter a year ago", get: (r) => r.profit_g_q, fmt: (r) => signedPctx(r.profit_g_q) },
   { key: "de", label: "D/E", rule: "de", title: "Debt to equity", get: (r) => r.de, fmt: (r) => num(r.de, 2) },
+  { key: "cfo", label: "Cash/profit", rule: "cfo", title: "Cash from operations ÷ net profit, last 3 years", get: (r) => r.cfo_to_profit, fmt: (r) => pctx(r.cfo_to_profit, 0), className: "hidden lg:table-cell" },
   { key: "promoter", label: "Promoter", rule: "promoter", get: (r) => r.promoter, fmt: (r) => (r.promoter == null ? "—" : `${num(r.promoter)}%`) },
   { key: "encumbered", label: "Pledged", rule: "encumbered", title: "Promoter shares pledged or otherwise encumbered", get: (r) => r.encumbered_pct, fmt: (r) => pctx(r.encumbered_pct), className: "hidden md:table-cell" },
   { key: "market_cap", label: "Mkt cap", rule: "mcap", get: (r) => r.market_cap, fmt: (r) => compact(r.market_cap, "in"), className: "hidden md:table-cell" },
@@ -329,7 +330,7 @@ function ResultRow({ r, fails, th, open, onOpen, panelWidth }: {
                 const v = x.get(r);
                 return (
                   <p key={x.id} className="mt-0.5 text-[11px] text-down">
-                    ✕ {x.label}: {v == null ? "no data" : withUnit(v, x.unit)}
+                    ✕ {x.label}: {v == null ? "no data" : x.describe ? x.describe(v) : withUnit(v, x.unit)}
                     {!x.fixed && <span className="text-ink-3"> (rule {x.op === ">=" ? "≥" : x.op} {withUnit(th[x.id].value, x.unit)})</span>}
                   </p>
                 );
@@ -381,6 +382,7 @@ function Definitions() {
         <p><span className="font-medium text-ink">ROE.</span> Last financial year&apos;s net profit ÷ the average of its opening and closing equity.</p>
         <p><span className="font-medium text-ink">Debt to equity.</span> Short- and long-term borrowings ÷ equity, at the latest half-yearly balance sheet. Lease liabilities aren&apos;t counted.</p>
         <p><span className="font-medium text-ink">P/E.</span> Live price × shares ÷ last 12 months&apos; net profit. PEG divides it by the 3-year profit growth in %.</p>
+        <p><span className="font-medium text-ink">Cash flow.</span> From the yearly cash flow statement. Free cash flow = cash from operations minus spending on plant, equipment and intangibles, less plant sold. Leases and acquisitions aren&apos;t counted.</p>
         <p><span className="font-medium text-ink">Pledged.</span> Promoter shares pledged, under non-disposal undertakings, or otherwise encumbered, from the latest shareholding pattern.</p>
         <p><span className="font-medium text-ink">Missing numbers fail.</span> A company listed under three years ago has no 3-year growth, so it can&apos;t pass those rules.</p>
         <p><span className="font-medium text-ink">Mergers and demergers</span> change what a company is, so growth across one compares different businesses.</p>

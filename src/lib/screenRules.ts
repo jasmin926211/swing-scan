@@ -6,13 +6,15 @@ import type { FundamentalsRow } from "@/lib/api";
 export type Op = ">" | ">=" | "<";
 export type Rule = {
   id: string;
-  group: "Valuation" | "Ownership" | "Profitability" | "Growth" | "Balance sheet" | "Quality checks";
+  group: "Valuation" | "Ownership" | "Profitability" | "Growth" | "Balance sheet" | "Cash flow" | "Quality checks";
   label: string;
   op: Op;
   unit: "%" | "₹" | "₹ Cr" | "×" | "pts" | "";
   get: (r: FundamentalsRow) => number | null;
   /** A fixed comparison (e.g. "this year's margin above last year's"): no threshold to edit. */
   fixed?: { value: number; text: string };
+  /** How a value reads in a failure note, when the number alone wouldn't say. */
+  describe?: (v: number) => string;
   hint?: string;
   suggested?: boolean;
 };
@@ -55,8 +57,15 @@ export const RULES: Rule[] = [
   { id: "de", group: "Balance sheet", label: "Debt to equity", op: "<", unit: "×", get: (r) => r.de,
     hint: "Borrowings ÷ equity at the latest half-yearly balance sheet (lease liabilities not counted)." },
 
-  { id: "cfo", group: "Quality checks", label: "Cash from operations ÷ net profit, 3 years", op: ">=", unit: "%", get: (r) => pc(r.cfo_to_profit), suggested: true,
-    hint: "Profit that doesn't turn into cash (unpaid bills piling up, accounting gains) is the commonest trap in growth screens." },
+  { id: "cfo", group: "Cash flow", label: "Cash from operations ÷ net profit, 3 years", op: ">=", unit: "%", get: (r) => pc(r.cfo_to_profit), suggested: true,
+    hint: "Profit that doesn't turn into cash (unpaid bills piling up, stock building up, accounting gains) is the commonest trap in growth screens." },
+  { id: "cfo_positive", group: "Cash flow", label: "Cash from operations positive", op: ">=", unit: "", get: (r) => r.cfo_positive_years, suggested: true,
+    fixed: { value: 3, text: "In each of the last 3 years" }, describe: (v) => `in ${v} of 3 years` },
+  { id: "fcf", group: "Cash flow", label: "Free cash flow, last 3 years together", op: ">", unit: "₹ Cr", get: (r) => (r.fcf_3y == null ? null : r.fcf_3y / 1e7), suggested: true,
+    hint: "Cash from operations minus spending on plant and equipment. A fast-growing company building factories can be negative for a while; three years together smooths that." },
+  { id: "fcf_yield", group: "Cash flow", label: "Free cash flow yield", op: ">", unit: "%", get: (r) => pc(r.fcf_yield),
+    hint: "The last 3 years' average free cash flow ÷ market cap: the cash the business makes for each ₹100 you pay for it." },
+
   { id: "other_income", group: "Quality checks", label: "Other income share of pre-tax profit", op: "<", unit: "%", suggested: true,
     get: (r) => (r.other_income_ttm != null && r.pbt_ttm != null && r.pbt_ttm > 0 ? (r.other_income_ttm / r.pbt_ttm) * 100 : null),
     hint: "Interest, gains on investments, one-offs: growth that comes from these isn't the business growing." },
@@ -86,18 +95,24 @@ export const AS_WRITTEN: Thresholds = {
   profit_g_q: { on: true, value: 18 },
   de: { on: true, value: 0.5 },
   cfo: { on: false, value: 80 },
+  cfo_positive: { on: false, value: 3 },
+  fcf: { on: false, value: 0 },
+  fcf_yield: { on: false, value: 2 },
   other_income: { on: false, value: 25 },
   mcap: { on: false, value: 500 },
   turnover: { on: false, value: 1 },
 };
 
-/** As written, plus the quality checks, without the price cap (it isn't a fundamental) and with promoters above
+/** As written, plus the cash flow and quality checks (free cash flow yield stays optional: it penalises companies
+ *  investing heavily in growth), without the price cap (it isn't a fundamental) and with promoters above
  *  50% (above 70 leaves almost only PSUs and multinational subsidiaries). */
 export const SUGGESTED: Thresholds = {
   ...AS_WRITTEN,
   price: { on: false, value: 500 },
   promoter: { on: true, value: 50 },
   cfo: { on: true, value: 80 },
+  cfo_positive: { on: true, value: 3 },
+  fcf: { on: true, value: 0 },
   other_income: { on: true, value: 25 },
   mcap: { on: true, value: 500 },
   turnover: { on: true, value: 1 },

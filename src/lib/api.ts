@@ -491,6 +491,9 @@ export type FundamentalsRow = {
   equity: number | null;
   bs_date: string | null;
   cfo_to_profit: number | null;
+  cfo_positive_years: number | null;
+  fcf_3y: number | null;
+  fcf_yield: number | null;
   shares: number | null;
   eps_ttm: number | null;
   promoter: number | null;
@@ -502,7 +505,8 @@ export type FundamentalsRow = {
 };
 export type FundamentalsScreen = { generated_at: number; rows: FundamentalsRow[]; financial: number };
 export type PeYear = { end: string; eps: number | null; price: number | null; pe: number | null };
-export type StockFundamentals = FundamentalsRow & { pe_history?: PeYear[] | null };
+export type FundamentalsYear = { end: string; sales: number | null; profit: number | null; eps: number | null; cfo: number | null; fcf: number | null };
+export type StockFundamentals = FundamentalsRow & { history?: FundamentalsYear[]; pe_history?: PeYear[] | null };
 
 export const getFundamentals = () => request<FundamentalsScreen>("/api/markets/in/fundamentals");
 export const getStockFundamentals = (symbol: string) => request<StockFundamentals>(`${stockPath("in", symbol)}/fundamentals`);

@@ -20,7 +20,7 @@ function median(xs: number[]) {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }
 
-/** One company's earnings and P/E over the last four financial years, and what today's price implies. */
+/** One company's earnings, P/E and free cash flow over the last four financial years, and what today's price implies. */
 export function StockValuation({ row }: { row: FundamentalsRow }) {
   const [d, setD] = useState<StockFundamentals | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +35,7 @@ export function StockValuation({ row }: { row: FundamentalsRow }) {
 
   const r = d ?? row;
   const hist = d?.pe_history ?? null;
+  const cash = (d?.history ?? []).filter((h) => h.cfo != null);
   const yearPes = (hist ?? []).map((h) => h.pe).filter((v): v is number => v != null && v > 0);
   const usualPe = yearPes.length >= 2 ? median(yearPes) : null;
   const usualPrice = usualPe != null && r.eps_ttm != null && r.eps_ttm > 0 ? usualPe * r.eps_ttm : null;
@@ -55,7 +56,7 @@ export function StockValuation({ row }: { row: FundamentalsRow }) {
 
       {error && <p className="text-sm text-down">{error}</p>}
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <MiniChart
           title="Earnings per share"
           note="Each financial year, and the last 12 months; adjusted for splits and bonus issues"
@@ -78,6 +79,18 @@ export function StockValuation({ row }: { row: FundamentalsRow }) {
           ]}
           refLine={usualPe != null ? { value: usualPe, label: `usual P/E ${fmt(usualPe)}` } : undefined}
           format={(v) => fmt(v)}
+        />
+        <MiniChart
+          title="Free cash flow"
+          note="₹ Cr each financial year: cash from operations minus spending on plant and equipment"
+          kind="bar"
+          loading={!d && !error}
+          points={cash.map((h) => ({
+            label: fy(h.end),
+            value: h.fcf == null ? null : h.fcf / 1e7,
+            tip: `From operations ₹${fmt(h.cfo! / 1e7, 0)} Cr${h.fcf == null ? " (spending not reported)" : `, spent ₹${fmt((h.cfo! - h.fcf) / 1e7, 0)} Cr`} · net profit ₹${fmt(h.profit == null ? null : h.profit / 1e7, 0)} Cr`,
+          }))}
+          format={(v) => fmt(v, 0)}
         />
       </div>
 
