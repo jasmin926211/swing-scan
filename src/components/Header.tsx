@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import clsx from "clsx";
-import { Activity } from "lucide-react";
+import { Activity, ScrollText } from "lucide-react";
 import type { MarketId } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { MARKETS } from "@/lib/format";
@@ -21,23 +21,27 @@ const PUBLIC_PAGES = [
 export function Header() {
   const { user, signedIn } = useAuth();
   const pathname = usePathname();
-  const inApp = ["/markets", "/stock", "/fno", "/pulse"].some((p) => pathname.startsWith(p));
+  const inApp = ["/markets", "/stock", "/fno", "/pulse", "/fundamentals"].some((p) => pathname.startsWith(p));
 
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-paper/90 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 md:px-6">
-        <div className="flex items-center gap-3 sm:gap-6">
+        <div className="flex items-center gap-2 sm:gap-6">
           <Logo href="/" compact={signedIn} />
           {signedIn ? (
-            <nav className="flex gap-1 text-sm">
+            <nav className="flex gap-0.5 text-sm sm:gap-1">
               <NavLink href="/markets" active={pathname.startsWith("/markets") || pathname.startsWith("/stock")}>
                 Markets
               </NavLink>
               <NavLink href="/fno" active={pathname.startsWith("/fno")}>
                 F&amp;O
               </NavLink>
+              <NavLink href="/fundamentals" active={pathname.startsWith("/fundamentals")}>
+                <ScrollText className="h-4 w-4 sm:hidden" aria-label="Fundamentals" />
+                <span className="hidden sm:inline">Fundamentals</span>
+              </NavLink>
               <NavLink href="/pulse" active={pathname.startsWith("/pulse")}>
-                {/* An icon on phones: the header has no room for a third word there. */}
+                {/* Icons on phones: the header has no room for more words there. */}
                 <Activity className="h-4 w-4 sm:hidden" aria-label="Pulse" />
                 <span className="hidden sm:inline">Pulse</span>
               </NavLink>
@@ -53,7 +57,7 @@ export function Header() {
           )}
         </div>
 
-        <div className="flex items-center gap-1 sm:gap-3">
+        <div className="flex items-center gap-0.5 sm:gap-3">
           {inApp && signedIn && <CountrySwitch />}
           <ThemeToggle />
           {user ? (
@@ -74,7 +78,7 @@ function NavLink({ href, active, children }: { href: string; active: boolean; ch
   return (
     <Link
       href={href}
-      className={clsx("flex items-center rounded-md px-2 py-1 transition-colors sm:px-2.5", active ? "bg-wash font-medium text-ink" : "text-ink-2 hover:text-ink")}
+      className={clsx("flex items-center rounded-md px-1.5 py-1 transition-colors sm:px-2.5", active ? "bg-wash font-medium text-ink" : "text-ink-2 hover:text-ink")}
     >
       {children}
     </Link>
@@ -100,11 +104,12 @@ function CountrySwitch() {
   const pathname = usePathname();
   const onFno = pathname.startsWith("/fno");
   const onPulse = pathname.startsWith("/pulse");
+  const onFundamentals = pathname.startsWith("/fundamentals");
 
   function choose(m: MarketId) {
     setMarket(m);
     // A stock or contract page belongs to one market; switching country goes back to that country's list.
-    const home = onFno ? "/fno" : onPulse ? "/pulse" : "/markets";
+    const home = onFno ? "/fno" : onPulse ? "/pulse" : onFundamentals ? "/fundamentals" : "/markets";
     if (pathname !== home) router.push(home);
   }
 

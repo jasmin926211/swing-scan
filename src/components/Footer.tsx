@@ -17,6 +17,7 @@ export function Footer() {
           links={[
             { href: "/markets", label: "Markets" },
             { href: "/fno", label: "Futures & options" },
+            { href: "/fundamentals", label: "Fundamentals screen" },
             { href: "/#tested", label: "What we tested" },
             { href: "/signup", label: "Create an account" },
           ]}
