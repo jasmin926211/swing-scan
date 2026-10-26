@@ -454,3 +454,59 @@ export type Flow = {
   heavy: number; dominant: number; windows: Record<"5" | "15" | "30", FlowWindow>;
 };
 export const getFlow = (m: MarketId) => request<Flow>(`/api/markets/${m}/flow`);
+
+/** One NSE main-board company's numbers from its own filings (backend app.fundamentals). Ratios are fractions,
+ *  promoter holding is in percent (as filed), amounts in rupees; null = not available from the filings. */
+export type FundamentalsRow = {
+  symbol: string;
+  name: string | null;
+  sector: string | null;
+  basis: "consolidated" | "standalone";
+  quarter_end: string;
+  filed: string | null;
+  fy_end: string | null;
+  price: number | null;
+  market_cap: number | null;
+  pe: number | null;
+  peg: number | null;
+  turnover: number | null;
+  sales_ttm: number | null;
+  profit_ttm: number | null;
+  opm_ttm: number | null;
+  opm_fy: number | null;
+  opm_fy1: number | null;
+  other_income_ttm: number | null;
+  pbt_ttm: number | null;
+  sales_q: number | null;
+  sales_q_prev: number | null;
+  profit_q: number | null;
+  profit_q_prev: number | null;
+  sales_g_q: number | null;
+  profit_g_q: number | null;
+  sales_g3: number | null;
+  profit_g3: number | null;
+  roe: number | null;
+  de: number | null;
+  debt: number | null;
+  equity: number | null;
+  bs_date: string | null;
+  cfo_to_profit: number | null;
+  cfo_positive_years: number | null;
+  fcf_3y: number | null;
+  fcf_yield: number | null;
+  shares: number | null;
+  eps_ttm: number | null;
+  promoter: number | null;
+  promoter_prev: number | null;
+  promoter_date: string | null;
+  promoter_prev_date: string | null;
+  encumbered_pct: number | null;
+  pledged_pct: number | null;
+};
+export type FundamentalsScreen = { generated_at: number; rows: FundamentalsRow[]; financial: number };
+export type PeYear = { end: string; eps: number | null; price: number | null; pe: number | null };
+export type FundamentalsYear = { end: string; sales: number | null; profit: number | null; eps: number | null; cfo: number | null; fcf: number | null };
+export type StockFundamentals = FundamentalsRow & { history?: FundamentalsYear[]; pe_history?: PeYear[] | null };
+
+export const getFundamentals = () => request<FundamentalsScreen>("/api/markets/in/fundamentals");
+export const getStockFundamentals = (symbol: string) => request<StockFundamentals>(`${stockPath("in", symbol)}/fundamentals`);
