@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import clsx from "clsx";
 import { ArrowLeft } from "lucide-react";
-import { getExpectedMove, getHistory, getPatterns, getQuote, type Candle, type ExpectedMove as Move, type Interval, type MarketId, type PatternSignal, type StockQuote } from "@/lib/api";
+import { getExpectedMove, getHistory, getPatterns, getQuote, type Candle, type ExpectedMove as Move, type Forecast, type Interval, type MarketId, type PatternSignal, type StockQuote } from "@/lib/api";
 import { MARKETS, changeColor, compact, marketStateLabel, price, signedPct } from "@/lib/format";
 import { useMarket } from "@/lib/market";
 import { PriceChart } from "@/components/charts/PriceChart";
@@ -14,6 +14,7 @@ import { ValidatedPatterns } from "@/components/ValidatedPatterns";
 import { StockLogo } from "@/components/StockLogo";
 import { NewsButton } from "@/components/NewsDialog";
 import { ExpectedMove } from "@/components/ExpectedMove";
+import { AiForecast } from "@/components/AiForecast";
 import { TradePlanner } from "@/components/TradePlanner";
 import { StockSummary } from "@/components/StockSummary";
 import { TradeChecklist } from "@/components/TradeChecklist";
@@ -41,11 +42,13 @@ export default function StockPage() {
   const [patternError, setPatternError] = useState<string | null>(null);
   const [selectedSignal, setSelectedSignal] = useState<number | null>(null);
   const [move, setMove] = useState<Move | null>(null);
+  const [forecast, setForecast] = useState<Forecast | null>(null);
 
   // The tested range drawn ahead of the daily chart (the same numbers as the Expected move card).
   useEffect(() => {
     let alive = true;
     setMove(null);
+    setForecast(null); // a forecast belongs to one stock
     getExpectedMove(market, symbol).then((m) => alive && setMove(m)).catch(() => {});
     return () => {
       alive = false;
@@ -180,6 +183,8 @@ export default function StockPage() {
 
       <TradePlanner market={market} symbol={symbol} livePrice={quote?.price} exchange={quote?.exchange} marketOpen={isOpen} />
 
+      <AiForecast market={market} symbol={symbol} interval={interval} forecast={forecast} onForecast={setForecast} />
+
       <section className="rounded-xl border border-line">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3 py-2">
             <div className="flex gap-1 text-sm">
@@ -209,6 +214,7 @@ export default function StockPage() {
                 selected={selectedSignal}
                 onSelect={setSelectedSignal}
                 move={move}
+                forecast={forecast}
               />
             ) : (
               <div className="h-[520px] animate-pulse rounded-lg bg-wash" />

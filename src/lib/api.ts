@@ -332,6 +332,27 @@ export type ExpectedMove = {
 };
 export const getExpectedMove = (m: MarketId, symbol: string) => request<ExpectedMove>(`${stockPath(m, symbol)}/expected-move`);
 
+/** The AI's price forecast for the next 10 sessions (daily bars, the one setting tested out of sample). */
+export type ForecastSummary = {
+  last_close: number;
+  /** the middle of the sampled paths' final closes */
+  predicted_close: number;
+  expected_return: number;
+  /** share of sampled paths ending above the last close: the model's own view */
+  prob_up: number;
+  close_p10: number;
+  close_p90: number;
+  predicted_high: number;
+  predicted_low: number;
+  outlook: "bullish" | "bearish" | "neutral";
+  /** how often stocks really closed higher after forecasts like this, in testing */
+  tested_prob_up: number | null;
+  direction_validated: boolean;
+};
+export type ForecastPoint = { time: number; open: number; high: number; low: number; close: number; p10: number; p25: number; p75: number; p90: number };
+export type Forecast = { as_of: number; bars_used: number; seconds: number; summary: ForecastSummary; points: ForecastPoint[]; paths: number[][] };
+export const runForecast = (m: MarketId, symbol: string) => post<Forecast>(`${stockPath(m, symbol)}/forecast`, {});
+
 export type StopMethod = "history" | "scaled" | "formula" | null;
 /** Past moves (log, entry to the lowest low for buys / highest high for shorts) for the trade planner's stop check. */
 export type StopSamples = { buy: number[]; short: number[] };

@@ -65,7 +65,7 @@ const IDEAS = [
 const FAQ = [
   {
     q: "Will CandleTrade tell me when a stock is going up?",
-    a: "Only where a method has proved itself in testing, and very few have. Stocks in the top 20% by momentum beat the average stock over the next months in 10 years of tests, and a small set of chart patterns passed; those are marked as tested. We also tested an AI price-forecasting model on thousands of past forecasts: its up / down view was right about half the time, no better than a coin flip, so we removed it rather than show calls that would often be wrong.",
+    a: "Only where a method has proved itself in testing, and very few have. Stocks in the top 20% by momentum beat the average stock over the next months in 10 years of tests, and a small set of chart patterns passed; those are marked as tested. We also tested an AI price-forecasting model on thousands of past forecasts: its up / down view was right about half the time, no better than a coin flip, while its price range held 83% of the time. So it’s shown on stock pages with that label: use its range, not its direction.",
   },
   {
     q: "What does “tested” mean here?",
@@ -103,7 +103,8 @@ export default function Home() {
           </h1>
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-ink-2">
             CandleTrade puts live prices for 11,000+ Indian and US stocks next to tools we have tested on 10 years of data. What
-            passed is marked as tested; what didn&apos;t, including our own AI forecasts, was removed instead of dressed up.
+            passed is marked as tested; what didn&apos;t is removed or labelled for what it is, like our AI price forecast, whose direction
+            was a coin flip in testing.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/signup" className="inline-flex items-center gap-2 rounded-lg bg-ink px-5 py-3 text-sm font-medium text-paper hover:opacity-90">
