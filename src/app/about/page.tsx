@@ -79,8 +79,9 @@ export default function About() {
               Buying breakouts with a stop and a 2:1 target lost money over {TESTED.breakoutTrades.toLocaleString()} trades. Heavy buying
               volume was followed by slightly worse returns, the next day and later. None of 108 intraday (15-minute) pattern setups
               passed. An AI price-forecasting model, tested on thousands of past forecasts for stocks it hadn&apos;t seen, called
-              direction no better than a coin flip, and a simple volatility formula estimated the size of moves better. We showed
-              that AI for a while and took it off the site.
+              direction no better than a coin flip, and a simple volatility formula estimated the size of moves better. We show
+              that AI&apos;s forecast on stock pages with what testing found: its 80% range held 83% of the time, its direction
+              didn&apos;t hold up.
             </p>
           </div>
           <ul className="space-y-3 text-sm">

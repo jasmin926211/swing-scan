@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useId, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 import clsx from "clsx";
-import type { Candle, ExpectedMove, Interval, PatternSignal } from "@/lib/api";
+import type { Candle, ExpectedMove, Forecast, Interval, PatternSignal } from "@/lib/api";
 import { useChartColors, FONT } from "@/lib/charts/theme";
 import { useWidth } from "@/lib/charts/useWidth";
 import { CROSS_PAIRS, EMA_PERIODS, crossovers, ema, type Cross, type EmaPeriod } from "@/lib/charts/ema";
@@ -69,6 +69,7 @@ export function PriceChart({
   selected = null,
   onSelect,
   move = null,
+  forecast = null,
 }: {
   candles: Candle[];
   interval: Interval;
@@ -80,6 +81,8 @@ export function PriceChart({
   onSelect?: (i: number) => void;
   /** the tested Expected move (daily volatility), drawn as a range cone ahead of a daily chart */
   move?: Pick<ExpectedMove, "daily_vol"> | null;
+  /** the AI's 10-session forecast (daily bars only): a dashed middle line in its 80% band, in place of the cone */
+  forecast?: Forecast | null;
 }) {
   const COLORS = useChartColors();
   const [box, width] = useWidth<HTMLDivElement>();
@@ -122,13 +125,14 @@ export function PriceChart({
   }
 
   const n = candles.length;
-  const coneAvailable = interval === "1d" && move != null && n > 0;
+  const fc = useMemo(() => (interval === "1d" && forecast && n > 0 ? forecast.points : []), [interval, forecast, n]);
+  const coneAvailable = interval === "1d" && move != null && n > 0 && fc.length === 0;
   const showCone = coneAvailable && coneOn;
-  const future = showCone ? CONE_DAYS : 0; // empty sessions after the last bar, for the cone
+  const future = fc.length || (showCone ? CONE_DAYS : 0); // empty sessions after the last bar, for the forecast or the cone
   const total = n + future;
   const times = useMemo(
-    () => [...candles.map((c) => c[0]), ...(future && n ? nextWeekdays(candles[n - 1][0], future) : [])],
-    [candles, future, n],
+    () => [...candles.map((c) => c[0]), ...(fc.length ? fc.map((p) => p.time) : future && n ? nextWeekdays(candles[n - 1][0], future) : [])],
+    [candles, future, n, fc],
   );
   const lastClose = n ? candles[n - 1][4] : 0;
   const cone = useMemo(
@@ -213,12 +217,13 @@ export function PriceChart({
   const y = useMemo(() => {
     const planLevels = plan ? [plan.entry, plan.stop, plan.target] : [];
     const coneVisible = cone.filter((_, dd) => n - 1 + dd >= lo && n - 1 + dd <= hi);
-    const lows = [...visible.map((c) => c[3]), ...planLevels, ...emaVisible, ...coneVisible.map((c) => c[0])];
-    const highs = [...visible.map((c) => c[2]), ...planLevels, ...emaVisible, ...coneVisible.map((c) => c[1])];
+    const fcVisible = fc.filter((_, j) => n + j >= lo && n + j <= hi);
+    const lows = [...visible.map((c) => c[3]), ...planLevels, ...emaVisible, ...coneVisible.map((c) => c[0]), ...fcVisible.map((p) => p.p10)];
+    const highs = [...visible.map((c) => c[2]), ...planLevels, ...emaVisible, ...coneVisible.map((c) => c[1]), ...fcVisible.map((p) => p.p90)];
     const [min, max] = [d3.min(lows) ?? 0, d3.max(highs) ?? 1];
     const pad = (max - min) * 0.06 || max * 0.01;
     return d3.scaleLinear().domain([min - pad, max + pad]).nice(6).range([priceH, 0]);
-  }, [visible, priceH, plan, emaVisible, cone, n, lo, hi]);
+  }, [visible, priceH, plan, emaVisible, cone, fc, n, lo, hi]);
   const yVol = useMemo(
     () => d3.scaleLinear().domain([0, d3.max(visible, (c) => c[5]) || 1]).range([volH, 0]),
     [visible, volH],
@@ -272,6 +277,7 @@ export function PriceChart({
 
   const hovered = hover && hover.i < n ? candles[hover.i] : null;
   const hoverAhead = hover && hover.i >= n && cone.length ? hover.i - (n - 1) : null; // sessions after the last bar
+  const hoverFc = hover && hover.i >= n && fc.length ? fc[hover.i - n] : null;
   const tipLeft = hover ? x(hover.i) + M.left : 0;
 
   return (
@@ -372,6 +378,30 @@ export function PriceChart({
                           {pct(v)}
                         </text>
                       ))}
+                    </g>
+                  );
+                })()}
+                {/* the AI forecast: 80% band (p10-p90) and its middle path, from the last close */}
+                {fc.length > 0 && (() => {
+                  const pts = [{ i: n - 1, mid: lastClose, p10: lastClose, p90: lastClose }, ...fc.map((p, j) => ({ i: n + j, mid: p.close, p10: p.p10, p90: p.p90 }))];
+                  const area = d3.area<(typeof pts)[number]>().x((p) => x(p.i)).y0((p) => y(p.p10)).y1((p) => y(p.p90)).curve(d3.curveMonotoneX)(pts) ?? "";
+                  const line = d3.line<(typeof pts)[number]>().x((p) => x(p.i)).y((p) => y(p.mid)).curve(d3.curveMonotoneX)(pts) ?? "";
+                  const end = pts[pts.length - 1];
+                  return (
+                    <g pointerEvents="none">
+                      <line x1={x(n - 0.5)} x2={x(n - 0.5)} y1={0} y2={priceH} stroke={COLORS.forecast} strokeDasharray="2 3" strokeOpacity={0.7} />
+                      {x(n - 0.5) + 90 < innerW ? (
+                        <text x={x(n - 0.5) + 5} y={12} fontSize={10.5} fill={COLORS.ink2} paintOrder="stroke" stroke={COLORS.paper} strokeWidth={3}>AI forecast →</text>
+                      ) : (
+                        <text x={x(n - 0.5) - 5} y={12} textAnchor="end" fontSize={10.5} fill={COLORS.ink2} paintOrder="stroke" stroke={COLORS.paper} strokeWidth={3}>AI forecast →</text>
+                      )}
+                      <path d={area} fill={COLORS.forecast} fillOpacity={0.14} stroke={COLORS.forecast} strokeOpacity={0.45} strokeWidth={1} />
+                      <path d={line} fill="none" stroke={COLORS.forecast} strokeWidth={2} strokeDasharray="5 4" />
+                      <circle cx={x(end.i)} cy={y(end.mid)} r={3.5} fill={COLORS.forecast} stroke={COLORS.paper} strokeWidth={1.5} />
+                      <text x={x(end.i) - 6} y={y(end.mid) - 7} textAnchor="end" fontSize={10.5} fontWeight={600} fill={COLORS.ink}
+                        paintOrder="stroke" stroke={COLORS.paper} strokeWidth={3} className="tabular">
+                        {fmt(end.mid)}
+                      </text>
                     </g>
                   );
                 })()}
@@ -508,6 +538,21 @@ export function PriceChart({
           </svg>
         )}
 
+        {hoverFc && hover && (
+          <div
+            className="pointer-events-none absolute top-3 z-10 max-w-60 rounded-lg border border-line bg-paper px-3 py-2 text-xs shadow-sm"
+            style={tipLeft > width / 2 ? { right: width - tipLeft + 14 } : { left: tipLeft + 14 }}
+          >
+            <p className="text-ink-3">
+              AI forecast · {hover.i - (n - 1)} {hover.i - (n - 1) === 1 ? "session" : "sessions"} ahead · {d3.utcFormat("%a %d %b")(new Date(hoverFc.time))}
+            </p>
+            <div className="tabular mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5">
+              <span className="text-ink-3">Middle</span><span className="font-semibold">{fmt(hoverFc.close)}</span>
+              <span className="text-ink-3">80% range</span><span>{fmt(hoverFc.p10)} – {fmt(hoverFc.p90)}</span>
+            </div>
+            <p className="mt-1 text-[11px] text-ink-3">The range held in testing; the line&apos;s direction was a coin flip.</p>
+          </div>
+        )}
         {hoverAhead != null && hover && (
           <div
             className="pointer-events-none absolute top-3 z-10 max-w-56 rounded-lg border border-line bg-paper px-3 py-2 text-xs shadow-sm"
@@ -559,6 +604,13 @@ export function PriceChart({
           <span className="mr-1 inline-block h-2 w-3 rounded-sm align-middle" style={{ background: COLORS.forecast, opacity: 0.35 }} />
           Expected range for the next {CONE_DAYS} sessions, from recent daily high-low ranges: in testing, 8 in 10 moves stayed inside the
           darker band and 19 in 20 inside the lighter one. It shows how far the price may move, not which way, and moves past it do happen.
+        </p>
+      )}
+      {fc.length > 0 && (
+        <p className="px-1 pt-1 text-[11px] leading-relaxed text-ink-3">
+          <span className="mr-1 inline-block h-0.5 w-3 align-middle" style={{ borderTop: `2px dashed ${COLORS.forecast}` }} />
+          AI forecast: the dashed line is the middle of 20 sampled price paths, the band their 80% range. In testing the band held about 83% of
+          outcomes, but the line pointed the right way only about half the time, so read the band, not the direction.
         </p>
       )}
       <p className="px-1 pt-1 text-[11px] text-ink-3">Scroll to zoom · drag to pan</p>
