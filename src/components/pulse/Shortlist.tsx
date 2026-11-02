@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
+import { ArrowDown, ArrowUp } from "lucide-react";
 import type { MarketId, Pulse } from "@/lib/api";
 import { compact, price } from "@/lib/format";
 import { StockLogo } from "@/components/StockLogo";
@@ -9,9 +11,32 @@ import { ShortlistSankey } from "./ShortlistSankey";
 
 const pct = (v: number, d = 1) => `${v >= 0 ? "+" : ""}${(v * 100).toFixed(d)}%`;
 
+type SortKey = "turnover20" | "change_pct";
+type Sort = { key: SortKey; desc: boolean } | null; // null = momentum rank
+
 /** From every listed stock to 30: the funnel, then the list. The method is momentum strategy C, tested on 10 years. */
 export function Shortlist({ data, record, market }: { data: Pulse["shortlist"]; record: Pulse["records"]["shortlist"]; market: MarketId }) {
   const max = data.funnel[0]?.count || 1;
+  const [sort, setSort] = useState<Sort>(null);
+  // Highest first, then lowest first, then back to the momentum ranking.
+  const cycle = (key: SortKey) => setSort((s) => (s?.key !== key ? { key, desc: true } : s.desc ? { key, desc: false } : null));
+  const ranked = data.stocks.map((s, i) => ({ s, rank: i + 1 }));
+  const rows = sort
+    ? [...ranked].sort((a, b) => {
+        const av = a.s[sort.key], bv = b.s[sort.key];
+        if (av == null || bv == null) return av == null ? (bv == null ? a.rank - b.rank : 1) : -1; // missing values last
+        return sort.desc ? bv - av : av - bv;
+      })
+    : ranked;
+  const header = (key: SortKey, label: string) => (
+    <th className="pb-2 text-right font-normal" aria-sort={sort?.key === key ? (sort.desc ? "descending" : "ascending") : "none"}>
+      <button onClick={() => cycle(key)} title={`Sort by ${label.toLowerCase()} (click again to reverse, a third time for the momentum rank)`}
+        className={clsx("inline-flex items-center gap-1 whitespace-nowrap hover:text-ink", sort?.key === key && "text-ink")}>
+        {label}
+        {sort?.key === key && (sort.desc ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />)}
+      </button>
+    </th>
+  );
   return (
     <div className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-[2fr_3fr]">
@@ -66,15 +91,15 @@ export function Shortlist({ data, record, market }: { data: Pulse["shortlist"]; 
               <th className="pb-2 text-right font-normal">Momentum</th>
               <th className="pb-2 pl-4 font-normal" title="Each of the last 5 completed sessions: green = closed higher, red = lower">Last 5 days</th>
               <th className="pb-2 text-right font-normal">From 52-week high</th>
-              <th className="pb-2 text-right font-normal">Traded / day</th>
+              {header("turnover20", "Traded / day")}
               <th className="pb-2 text-right font-normal">Price</th>
-              <th className="pb-2 text-right font-normal">Today</th>
+              {header("change_pct", "Today")}
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
-            {data.stocks.map((s, i) => (
+            {rows.map(({ s, rank }) => (
               <tr key={s.symbol} className="hover:bg-wash">
-                <td className="tabular py-2 text-xs text-ink-3">{i + 1}</td>
+                <td className="tabular py-2 text-xs text-ink-3" title="Rank by momentum">{rank}</td>
                 <td className="py-2">
                   <Link href={`/stock/${market}/${encodeURIComponent(s.symbol)}`} className="flex items-center gap-2">
                     <StockLogo market={market} symbol={s.symbol} size={20} />
