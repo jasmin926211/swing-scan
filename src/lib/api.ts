@@ -460,6 +460,8 @@ export type Pulse = {
 export type PulseShortlistStock = {
   symbol: string; name: string | null; sector: string | null; price: number; change_pct: number | null;
   rating: number; from_high: number | null; turnover20: number;
+  /** shares: traded so far today (live) and the average of the last 20 completed sessions */
+  volume?: number | null; avg_volume20?: number | null;
   /** % change of each of the last 5 completed sessions, oldest first (null until the nightly scan has them). */
   last5: number[] | null;
 };
