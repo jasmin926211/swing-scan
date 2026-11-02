@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import clsx from "clsx";
-import { Activity, ScrollText } from "lucide-react";
+import { Activity, ScrollText, Wallet } from "lucide-react";
 import type { MarketId } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { MARKETS } from "@/lib/format";
@@ -21,7 +21,7 @@ const PUBLIC_PAGES = [
 export function Header() {
   const { user, signedIn } = useAuth();
   const pathname = usePathname();
-  const inApp = ["/markets", "/stock", "/fno", "/pulse", "/fundamentals"].some((p) => pathname.startsWith(p));
+  const inApp = ["/markets", "/stock", "/fno", "/pulse", "/fundamentals", "/paper"].some((p) => pathname.startsWith(p));
 
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-paper/90 backdrop-blur">
@@ -44,6 +44,10 @@ export function Header() {
                 {/* Icons on phones: the header has no room for more words there. */}
                 <Activity className="h-4 w-4 sm:hidden" aria-label="Pulse" />
                 <span className="hidden sm:inline">Pulse</span>
+              </NavLink>
+              <NavLink href="/paper" active={pathname.startsWith("/paper")}>
+                <Wallet className="h-4 w-4 sm:hidden" aria-label="Paper portfolio" />
+                <span className="hidden sm:inline">Paper</span>
               </NavLink>
             </nav>
           ) : (
@@ -105,11 +109,12 @@ function CountrySwitch() {
   const onFno = pathname.startsWith("/fno");
   const onPulse = pathname.startsWith("/pulse");
   const onFundamentals = pathname.startsWith("/fundamentals");
+  const onPaper = pathname.startsWith("/paper");
 
   function choose(m: MarketId) {
     setMarket(m);
     // A stock or contract page belongs to one market; switching country goes back to that country's list.
-    const home = onFno ? "/fno" : onPulse ? "/pulse" : onFundamentals ? "/fundamentals" : "/markets";
+    const home = onFno ? "/fno" : onPulse ? "/pulse" : onFundamentals ? "/fundamentals" : onPaper ? "/paper" : "/markets";
     if (pathname !== home) router.push(home);
   }
 

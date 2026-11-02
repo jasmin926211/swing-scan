@@ -18,6 +18,7 @@ export function Footer() {
             { href: "/markets", label: "Markets" },
             { href: "/fno", label: "Futures & options" },
             { href: "/fundamentals", label: "Fundamentals screen" },
+            { href: "/paper", label: "Paper portfolio" },
             { href: "/#tested", label: "What we tested" },
             { href: "/signup", label: "Create an account" },
           ]}

@@ -532,3 +532,27 @@ export type StockFundamentals = FundamentalsRow & { history?: FundamentalsYear[]
 
 export const getFundamentals = () => request<FundamentalsScreen>("/api/markets/in/fundamentals");
 export const getStockFundamentals = (symbol: string) => request<StockFundamentals>(`${stockPath("in", symbol)}/fundamentals`);
+
+/** Momentum strategy C traded with simulated money (India), updated after each evening scan. */
+export type PaperTrade = { day: string; symbol: string; side: "buy" | "sell"; shares: number; price: number; fee: number };
+export type PaperPortfolio = {
+  capital: number;
+  cash: number;
+  value: number;
+  return: number;
+  benchmark_return: number;
+  max_drop: number;
+  start_day: string | null;
+  last_day: string | null;
+  trading_days: number;
+  next_rebalance_in: number | null;
+  pending: { signal_day: string; picks: string[] } | null;
+  equity: { day: string; value: number; benchmark: number }[];
+  holdings: { symbol: string; shares: number; price: number | null; value: number; cost: number | null }[];
+  rebalances: { signal_day: string; fill_day: string; picks: string[]; bought: number; sold: number; fees: number; value_at_open: number }[];
+  trades: PaperTrade[];
+  notes: string[];
+  rules: { hold: number; every: number; pool: number; cost_per_side: number };
+  backtest: { annual_return: number; max_drop: number; pool_annual: number; etf_annual: number };
+};
+export const getPaper = () => request<PaperPortfolio>(`/api/markets/in/paper`);
