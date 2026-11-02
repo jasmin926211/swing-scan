@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import clsx from "clsx";
 import * as d3 from "d3";
 import { getPaper, type PaperPortfolio } from "@/lib/api";
@@ -70,7 +69,7 @@ export default function PaperPage() {
               {data.pending ? (
                 <>
                   <p className="text-lg font-semibold">Next open</p>
-                  <p className="text-xs text-ink-3">{data.pending.picks.length} stocks chosen on {day(data.pending.signal_day)}&apos;s close</p>
+                  <p className="text-xs text-ink-3">{data.pending.count} stocks chosen on {day(data.pending.signal_day)}&apos;s close (not published)</p>
                 </>
               ) : (
                 <>
@@ -87,23 +86,10 @@ export default function PaperPage() {
             <EquityChart data={data} />
           </section>
 
-          {data.pending && (
-            <section className="rounded-xl border border-line p-4">
-              <p className="text-sm font-medium">Orders for the next open</p>
-              <p className="mb-2 text-xs text-ink-3">
-                Chosen on {day(data.pending.signal_day)}&apos;s close, best momentum first. Each gets an equal share of the portfolio, in whole shares.
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {data.pending.picks.map((s, i) => (
-                  <Link key={s} href={`/stock/in/${encodeURIComponent(s)}`} className="rounded-md border border-line px-2 py-1 text-xs hover:bg-wash">
-                    <span className="text-ink-3">{i + 1}.</span> {s}
-                  </Link>
-                ))}
-              </div>
-            </section>
-          )}
-
-          <Holdings data={data} />
+          <p className="rounded-xl border border-line px-4 py-3 text-xs leading-relaxed text-ink-2">
+            A research log, not a list to copy: the {data.holdings_count} stocks it holds now and its next orders aren&apos;t published.
+            Each month&apos;s trades appear below once the next rebalance has filled, about a month later.
+          </p>
           <Rebalances data={data} />
           <About data={data} />
         </>
@@ -194,52 +180,6 @@ function EquityChart({ data }: { data: PaperPortfolio }) {
         </div>
       )}
     </div>
-  );
-}
-
-function Holdings({ data }: { data: PaperPortfolio }) {
-  if (!data.holdings.length) return null;
-  return (
-    <section className="overflow-hidden rounded-xl border border-line">
-      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line px-4 py-3">
-        <p className="text-sm font-medium">Holdings ({data.holdings.length})</p>
-        <p className="text-xs text-ink-3">At {day(data.last_day)}&apos;s close · cash {rupees(data.cash)}</p>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-xs text-ink-3">
-              <th className="px-4 py-2 font-normal">Stock</th>
-              <th className="px-3 py-2 text-right font-normal">Shares</th>
-              <th className="px-3 py-2 text-right font-normal">Bought at</th>
-              <th className="px-3 py-2 text-right font-normal">Last close</th>
-              <th className="px-3 py-2 text-right font-normal">Change</th>
-              <th className="px-4 py-2 text-right font-normal">Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.holdings.map((h) => {
-              const ch = h.cost && h.price ? h.price / h.cost - 1 : null;
-              return (
-                <tr key={h.symbol} className="border-t border-line">
-                  <td className="px-4 py-2.5">
-                    <Link href={`/stock/in/${encodeURIComponent(h.symbol)}`} className="font-medium hover:underline">{h.symbol}</Link>
-                  </td>
-                  <td className="tabular px-3 py-2.5 text-right text-ink-2">{h.shares.toLocaleString("en-IN")}</td>
-                  <td className="tabular px-3 py-2.5 text-right text-ink-2">{h.cost != null ? price(h.cost, "in") : "—"}</td>
-                  <td className="tabular px-3 py-2.5 text-right text-ink-2">{h.price != null ? price(h.price, "in") : "—"}</td>
-                  <td className={clsx("tabular px-3 py-2.5 text-right", ch != null && tone(ch))}>{signed(ch)}</td>
-                  <td className="tabular px-4 py-2.5 text-right">{rupees(h.value)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      <p className="border-t border-line px-4 py-2 text-[11px] text-ink-3">
-        &quot;Bought at&quot; is the latest buy&apos;s price; splits and bonus issues change the share count, not this price.
-      </p>
-    </section>
   );
 }
 

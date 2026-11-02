@@ -170,7 +170,7 @@ function UserMenu() {
           <div className="my-1 border-t border-line" />
           {PUBLIC_PAGES.map((p) => (
             <Link key={p.href} href={p.href} onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2 text-sm text-ink-2 hover:bg-wash">
-              {p.href === "/" ? "CandleTrade home" : p.label}
+              {p.href === "/" ? "CandleTrend home" : p.label}
             </Link>
           ))}
           <button onClick={signOut} className="w-full rounded-lg px-3 py-2 text-left text-sm text-ink-2 hover:bg-wash">

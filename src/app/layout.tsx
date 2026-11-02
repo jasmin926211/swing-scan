@@ -12,7 +12,7 @@ import { THEME_SCRIPT } from "@/lib/theme";
 const openSans = Open_Sans({ subsets: ["latin"], variable: "--font-open-sans", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "CandleTrade — Live markets & tested signals",
+  title: "CandleTrend — Live markets & tested signals",
   description: "Live Indian and US stock markets, with every signal labelled by whether it held up in testing, and plain facts for the rest."
 };
 

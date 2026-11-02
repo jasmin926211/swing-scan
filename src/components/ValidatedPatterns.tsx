@@ -13,10 +13,10 @@ const STYLE: Record<PatternStyle, string> = {
 };
 
 const STATUS: Record<PatternStatus, { label: string; cls: string }> = {
-  new: { label: "New: entry at the next open", cls: "bg-accent-wash text-accent" },
+  new: { label: "New: the test enters at the next open", cls: "bg-accent-wash text-accent" },
   awaiting_confirmation: { label: "Waiting for a confirmation candle", cls: "bg-warn-wash text-warn" },
-  limit_order: { label: "Limit order waiting at the entry", cls: "bg-accent-wash text-accent" },
-  open: { label: "Trade still open", cls: "bg-accent-wash text-accent" },
+  limit_order: { label: "New: the test's limit order isn't filled yet", cls: "bg-accent-wash text-accent" },
+  open: { label: "Test trade still open", cls: "bg-accent-wash text-accent" },
   target_hit: { label: "Target hit", cls: "bg-up-wash text-up" },
   stopped: { label: "Stopped out", cls: "bg-down-wash text-down" },
   expired: { label: "Closed at the end of the holding period", cls: "bg-wash text-ink-2" },
@@ -46,8 +46,9 @@ export function ValidatedPatterns({ signals, liquid, loading, error, market, sel
       <div className="border-b border-line px-4 py-3">
         <h2 className="text-sm font-semibold">Validated patterns</h2>
         <p className="mt-0.5 text-xs leading-relaxed text-ink-3">
-          Only setups that, across 10 years of Indian and US stocks, were profitable after costs in two separate periods and
-          beat random entries. Even these miss often: check each one&apos;s record. Click one to see it on the chart.
+          Chart patterns detected on this stock that, across 10 years of Indian and US stocks, were profitable after costs in two
+          separate periods and beat random entries. Research, not a recommendation: the levels are how the test traded each pattern,
+          and even these miss often. Click one to see it on the chart.
         </p>
       </div>
       {loading && !signals && <div className="m-4 h-16 animate-pulse rounded-lg bg-wash" />}
@@ -87,8 +88,8 @@ export function ValidatedPatterns({ signals, liquid, loading, error, market, sel
                     <span className="ml-auto text-xs text-ink-3">{when}</span>
                   </div>
                   <p className="tabular mt-1.5 text-xs text-ink-2">
-                    {up ? "Buy" : "Sell / short"} {s.status === "new" || s.status === "awaiting_confirmation" ? "≈" : s.status === "limit_order" ? "with a limit order at" : "at"} {price(s.entry, market)} · stop{" "}
-                    {price(s.stop, market)} · target {price(s.target, market)} (1:{s.reward_risk})
+                    How the test trades it ({up ? "long" : "short"}): entry {s.status === "new" || s.status === "awaiting_confirmation" ? "≈ " : s.status === "limit_order" ? "limit " : ""}{price(s.entry, market)} · stop{" "}
+                    {price(s.stop, market)} · exit target {price(s.target, market)} (1:{s.reward_risk})
                     {s.filters.length > 0 && ` · ${s.filters.map((f) => FILTER_TEXT[f] ?? f).join(", ")}`}
                   </p>
                   <p className="tabular mt-1 text-xs text-ink-3">

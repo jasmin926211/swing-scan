@@ -81,7 +81,7 @@ export function PriceChart({
   onSelect?: (i: number) => void;
   /** the tested Expected move (daily volatility), drawn as a range cone ahead of a daily chart */
   move?: Pick<ExpectedMove, "daily_vol"> | null;
-  /** the AI's 10-session forecast (daily bars only): a dashed middle line in its 80% band, in place of the cone */
+  /** the AI's 10-session forecast (daily bars only): its 80% band, in place of the cone (no single forecast price) */
   forecast?: Forecast | null;
 }) {
   const COLORS = useChartColors();
@@ -381,11 +381,10 @@ export function PriceChart({
                     </g>
                   );
                 })()}
-                {/* the AI forecast: 80% band (p10-p90) and its middle path, from the last close */}
+                {/* the AI forecast: its 80% band (p10-p90) from the last close; no middle line (its direction was a coin flip) */}
                 {fc.length > 0 && (() => {
-                  const pts = [{ i: n - 1, mid: lastClose, p10: lastClose, p90: lastClose }, ...fc.map((p, j) => ({ i: n + j, mid: p.close, p10: p.p10, p90: p.p90 }))];
+                  const pts = [{ i: n - 1, p10: lastClose, p90: lastClose }, ...fc.map((p, j) => ({ i: n + j, p10: p.p10, p90: p.p90 }))];
                   const area = d3.area<(typeof pts)[number]>().x((p) => x(p.i)).y0((p) => y(p.p10)).y1((p) => y(p.p90)).curve(d3.curveMonotoneX)(pts) ?? "";
-                  const line = d3.line<(typeof pts)[number]>().x((p) => x(p.i)).y((p) => y(p.mid)).curve(d3.curveMonotoneX)(pts) ?? "";
                   const end = pts[pts.length - 1];
                   return (
                     <g pointerEvents="none">
@@ -396,12 +395,12 @@ export function PriceChart({
                         <text x={x(n - 0.5) - 5} y={12} textAnchor="end" fontSize={10.5} fill={COLORS.ink2} paintOrder="stroke" stroke={COLORS.paper} strokeWidth={3}>AI forecast →</text>
                       )}
                       <path d={area} fill={COLORS.forecast} fillOpacity={0.14} stroke={COLORS.forecast} strokeOpacity={0.45} strokeWidth={1} />
-                      <path d={line} fill="none" stroke={COLORS.forecast} strokeWidth={2} strokeDasharray="5 4" />
-                      <circle cx={x(end.i)} cy={y(end.mid)} r={3.5} fill={COLORS.forecast} stroke={COLORS.paper} strokeWidth={1.5} />
-                      <text x={x(end.i) - 6} y={y(end.mid) - 7} textAnchor="end" fontSize={10.5} fontWeight={600} fill={COLORS.ink}
-                        paintOrder="stroke" stroke={COLORS.paper} strokeWidth={3} className="tabular">
-                        {fmt(end.mid)}
-                      </text>
+                      {[end.p90, end.p10].map((v, k) => (
+                        <text key={k} x={x(end.i) - 6} y={y(v) + (k ? 13 : -6)} textAnchor="end" fontSize={10.5} fontWeight={600} fill={COLORS.ink2}
+                          paintOrder="stroke" stroke={COLORS.paper} strokeWidth={3} className="tabular">
+                          {fmt(v)}
+                        </text>
+                      ))}
                     </g>
                   );
                 })()}
@@ -547,10 +546,9 @@ export function PriceChart({
               AI forecast · {hover.i - (n - 1)} {hover.i - (n - 1) === 1 ? "session" : "sessions"} ahead · {d3.utcFormat("%a %d %b")(new Date(hoverFc.time))}
             </p>
             <div className="tabular mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5">
-              <span className="text-ink-3">Middle</span><span className="font-semibold">{fmt(hoverFc.close)}</span>
               <span className="text-ink-3">80% range</span><span>{fmt(hoverFc.p10)} – {fmt(hoverFc.p90)}</span>
             </div>
-            <p className="mt-1 text-[11px] text-ink-3">The range held in testing; the line&apos;s direction was a coin flip.</p>
+            <p className="mt-1 text-[11px] text-ink-3">How far, not which way: the range held in testing.</p>
           </div>
         )}
         {hoverAhead != null && hover && (
@@ -608,9 +606,9 @@ export function PriceChart({
       )}
       {fc.length > 0 && (
         <p className="px-1 pt-1 text-[11px] leading-relaxed text-ink-3">
-          <span className="mr-1 inline-block h-0.5 w-3 align-middle" style={{ borderTop: `2px dashed ${COLORS.forecast}` }} />
-          AI forecast: the dashed line is the middle of 20 sampled price paths, the band their 80% range. In testing the band held about 83% of
-          outcomes, but the line pointed the right way only about half the time, so read the band, not the direction.
+          <span className="mr-1 inline-block h-2 w-3 rounded-sm align-middle" style={{ background: COLORS.forecast, opacity: 0.35 }} />
+          AI forecast: the 80% range of 20 sampled price paths. In testing the price ended inside it about 83% of the time. The AI&apos;s
+          up / down lean was right only about half the time, so no direction or single price is shown.
         </p>
       )}
       <p className="px-1 pt-1 text-[11px] text-ink-3">Scroll to zoom · drag to pan</p>

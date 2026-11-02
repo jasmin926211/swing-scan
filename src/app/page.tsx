@@ -32,7 +32,7 @@ const STEPS = [
   { title: "Find a stock", body: "Browse the live market, the Pulse page or search about 6,600 Indian and US stocks." },
   { title: "Read the facts", body: "At a glance shows what was tested for and against, and the facts to check before a trade." },
   { title: "Know the normal move", body: "The Expected move shows how far the stock usually moves, so a stop isn’t inside ordinary noise." },
-  { title: "Decide with your plan", body: "You choose the trade, the stop and the size. CandleTrade never places orders." },
+  { title: "Decide with your plan", body: "You choose the trade, the stop and the size. CandleTrend never places orders." },
 ];
 
 const IDEAS = [
@@ -64,7 +64,7 @@ const IDEAS = [
 
 const FAQ = [
   {
-    q: "Will CandleTrade tell me when a stock is going up?",
+    q: "Will CandleTrend tell me when a stock is going up?",
     a: "Only where a method has proved itself in testing, and very few have. Stocks in the top 20% by momentum beat the average stock over the next months in 10 years of tests, and a small set of chart patterns passed; those are marked as tested. We also tested an AI price-forecasting model on thousands of past forecasts: its up / down view was right about half the time, no better than a coin flip, while its price range held 83% of the time. So it’s shown on stock pages with that label: use its range, not its direction.",
   },
   {
@@ -84,8 +84,8 @@ const FAQ = [
     a: "As a map of defined-risk trades, valued at expiry and per lot. The chance of profit shown is what the option market’s own prices imply, not a prediction: on average no idea has an edge over another before costs. Before trading, check the option’s volume, open interest and bid-ask spread, the lot size and your broker’s margin, and remember the values assume you hold until expiry.",
   },
   {
-    q: "Can I place trades from CandleTrade?",
-    a: "No, and that is deliberate. CandleTrade is for analysis: it never places, modifies or cancels orders. The Upstox connection is used only to read Indian F&O prices. You place every trade yourself in your broker’s app, and the decision and the risk stay with you.",
+    q: "Can I place trades from CandleTrend?",
+    a: "No, and that is deliberate. CandleTrend is for analysis: it never places, modifies or cancels orders. The Upstox connection is used only to read Indian F&O prices. You place every trade yourself in your broker’s app, and the decision and the risk stay with you.",
   },
 ];
 
@@ -102,7 +102,7 @@ export default function Home() {
             Live markets, with every signal labelled: tested, or not.
           </h1>
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-ink-2">
-            CandleTrade puts live prices for about 6,600 Indian and US stocks next to tools we have tested on years of data. What
+            CandleTrend puts live prices for about 6,600 Indian and US stocks next to tools we have tested on years of data. What
             passed is marked as tested; what didn&apos;t is removed or labelled for what it is, like our AI price forecast, whose direction
             was a coin flip in testing.
           </p>
@@ -153,7 +153,7 @@ export default function Home() {
       </Section>
 
       {/* Trading ideas */}
-      <Section id="ideas" eyebrow="Trading with CandleTrade" title="Six habits that matter more than any signal" intro="Some from our own tests, some standard risk practice.">
+      <Section id="ideas" eyebrow="Trading with CandleTrend" title="Six habits that matter more than any signal" intro="Some from our own tests, some standard risk practice.">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {IDEAS.map((idea, i) => (
             <div key={idea.title} className="rounded-xl bg-wash p-6">

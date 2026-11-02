@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { CONTACT } from "@/lib/site";
 import { Logo } from "./Logo";
 
 export function Footer() {
@@ -19,7 +18,7 @@ export function Footer() {
             { href: "/fno", label: "Futures & options" },
             { href: "/fundamentals", label: "Fundamentals screen" },
             { href: "/paper", label: "Paper portfolio" },
-            { href: "/pattern-lab", label: "Pattern lab" },
+            { href: "/pattern-lab", label: "Tested patterns" },
             { href: "/#tested", label: "What we tested" },
             { href: "/signup", label: "Create an account" },
           ]}
@@ -29,8 +28,8 @@ export function Footer() {
           links={[
             { href: "/about", label: "About us" },
             { href: "/contact", label: "Contact us" },
-            { href: `mailto:${CONTACT.email}`, label: CONTACT.email },
-            { href: `tel:${CONTACT.phone}`, label: CONTACT.phoneDisplay },
+            { href: "/privacy", label: "Privacy policy" },
+            { href: "/terms", label: "Terms of use" },
           ]}
         />
         <FooterColumn
@@ -45,10 +44,12 @@ export function Footer() {
       </div>
       <div className="border-t border-line">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-6 text-xs leading-relaxed text-ink-3 md:flex-row md:justify-between md:px-6">
-          <p>© {new Date().getFullYear()} CandleTrade</p>
+          <p>© {new Date().getFullYear()} CandleTrend</p>
           <p className="max-w-3xl md:text-right">
-            CandleTrade is a research tool, not investment advice, and never places trades. Even tested signals
-            are often wrong on a single trade; prices may be delayed. Trade only with money you can afford to lose.
+            CandleTrend is a research tool, not investment advice, and never places trades. It is not registered with SEBI as an
+            investment adviser or research analyst. Even tested signals are often wrong on a single trade; prices may be delayed.
+            Trade only with money you can afford to lose. <Link href="/terms" className="underline hover:text-ink">Terms</Link>{" "}
+            · <Link href="/privacy" className="underline hover:text-ink">Privacy</Link>
           </p>
         </div>
       </div>
