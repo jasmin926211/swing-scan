@@ -238,6 +238,9 @@ export const getMe = () => request<User>("/api/account/me");
 export const signIn = (email: string, password: string) => post<User>("/api/account/signin", { email, password });
 export const signUp = (name: string, email: string, password: string) => post<User>("/api/account/signup", { name, email, password });
 export const signOut = () => post<{ ok: boolean }>("/api/account/signout", {});
+// The admin key travels in the POST body, like the Upstox login's.
+export const resetPassword = (email: string, adminKey: string, password: string) =>
+  post<User>("/api/account/reset-password", { email, admin_key: adminKey, password });
 
 export type PublicStock = Pick<Stock, "symbol" | "name" | "sector" | "exchange" | "price" | "change" | "change_pct" | "market_cap">;
 export type PublicOverview = {
