@@ -14,26 +14,20 @@ type Example = {
   entry: number; stop: number; target: number; limit: boolean;
   swings?: [number, number][]; zone?: [number, number]; candles?: number;
 };
+type Setup = { style: string; market: "in" | "us"; filters: string[]; reward_risk: number; trades: number; hit_rate: number; avg_r: number; edge_r: number };
 type Pattern = {
   name: string; family: string; direction: 1 | -1; status: "validated" | "held_back" | "failed";
-  on_site: string[]; results: Result[]; example: Example | null;
+  on_site: string[]; setups: Setup[]; results: Result[]; example: Example | null;
 };
-type Lab = { generated: string; patterns: Pattern[] };
+type Lab = { generated: string; tested: number; patterns: Pattern[] };
 
-const STATUS = {
-  validated: { label: "On the site", cls: "bg-up-wash text-up" },
-  held_back: { label: "Held back", cls: "bg-warn-wash text-warn" },
-  failed: { label: "Failed the test", cls: "bg-wash text-ink-2" },
-} as const;
-const FILTERS = [["all", "All"], ["validated", "On the site"], ["held_back", "Held back"], ["failed", "Failed"]] as const;
-const STYLE_ORDER = ["Intraday 15m", "Intraday 1h", "Swing (daily)", "Positional (weekly)", "Long-term (monthly)"];
+const FILTER_TEXT: Record<string, string> = { volume: "high volume", trend: "with the trend", confirm: "after a confirmation candle" };
 const signed = (v: number | null | undefined) => (v == null ? "—" : `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toFixed(2)}R`);
 
-/** Every pattern we tested: a real example of what the detector found, and how it did in 10 years of data. */
+/** The patterns that passed a 10-year test: a real example of each, and the record it passed with. */
 export default function PatternLabPage() {
   const [lab, setLab] = useState<Lab | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<(typeof FILTERS)[number][0]>("all");
   const [family, setFamily] = useState("all");
   const [q, setQ] = useState("");
 
@@ -42,34 +36,26 @@ export default function PatternLabPage() {
   }, []);
 
   const families = useMemo(() => [...new Set((lab?.patterns ?? []).map((p) => p.family))].sort(), [lab]);
-  const shown = (lab?.patterns ?? []).filter(
-    (p) => (status === "all" || p.status === status) && (family === "all" || p.family === family) && p.name.toLowerCase().includes(q.toLowerCase()),
-  );
-  const count = (s: string) => (lab?.patterns ?? []).filter((p) => s === "all" || p.status === s).length;
+  const shown = (lab?.patterns ?? []).filter((p) => (family === "all" || p.family === family) && p.name.toLowerCase().includes(q.toLowerCase()));
 
   return (
     <div className="space-y-5">
       <section>
-        <h1 className="text-2xl font-semibold tracking-tight">Pattern lab</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Tested patterns</h1>
         <p className="mt-1 max-w-3xl text-sm leading-relaxed text-ink-2">
-          Every chart and candlestick pattern we tested on 10 years of Indian and US stocks: a real example of what the detector found, with the
-          entry, stop and 1:2 target the test used, and how the pattern did. Only the ones marked &quot;On the site&quot; are shown on stock pages.
+          The chart and candlestick patterns that held up when traded mechanically on 10 years of Indian and US stocks, after costs, in two separate
+          periods and better than random entries. Each card shows a real example and the record it passed with. These are the patterns flagged on
+          stock pages.
         </p>
         {lab && (
           <p className="mt-1.5 text-xs text-ink-3">
-            {lab.patterns.length} patterns · {count("validated")} on the site · {count("held_back")} held back (they passed, but almost all their
-            gains came from the 2020 crash and rebound) · {count("failed")} failed · examples from {lab.generated}
+            {lab.patterns.length} of the {lab.tested} patterns we tested passed. None wins most of the time: the best hit their target 35-60% of the
+            time and make money because their winners are bigger than their losers. Size every trade so a losing streak is affordable.
           </p>
         )}
       </section>
 
       <div className="flex flex-wrap items-center gap-2">
-        {FILTERS.map(([id, label]) => (
-          <button key={id} onClick={() => setStatus(id)} aria-pressed={status === id}
-            className={clsx("rounded-md px-2.5 py-1 text-xs", status === id ? "bg-ink font-medium text-paper" : "bg-wash text-ink-2 hover:text-ink")}>
-            {label} {lab && <span className="opacity-60">{count(id)}</span>}
-          </button>
-        ))}
         <select value={family} onChange={(e) => setFamily(e.target.value)} className="rounded-md border border-line bg-paper px-2 py-1 text-xs">
           <option value="all">Every family</option>
           {families.map((f) => <option key={f} value={f}>{f}</option>)}
@@ -87,14 +73,15 @@ export default function PatternLabPage() {
       {lab && shown.length === 0 && <p className="text-sm text-ink-2">No pattern matches.</p>}
 
       <details className="rounded-xl border border-line px-4 py-3 text-sm">
-        <summary className="cursor-pointer font-medium">How a pattern passes</summary>
+        <summary className="cursor-pointer font-medium">How a pattern passed</summary>
         <div className="mt-2 space-y-1.5 text-xs leading-relaxed text-ink-2">
           <p>Each pattern was traded mechanically on every liquid stock: entry at the next open (ICT blocks: a limit order at the zone&apos;s middle), the
             stop shown, targets of 1 to 3 times the risk, costs included, in two periods (2016-22 and 2023-26).</p>
           <p>To be shown on stock pages it needs at least 200 trades, a profit after costs in both periods, a result better than random entries with the
             same stops, at least +0.10R a trade and an edge too big to be luck across the thousands of setups tested.</p>
-          <p>The table on each card shows the 1:2 target without filters; a pattern can pass only in one style and market, or only with a filter (the
-            &quot;On the site&quot; line says where). R = the trade&apos;s risk, entry to stop. Full details: docs/PATTERNS.md.</p>
+          <p>Each card&apos;s table is the exact version that passed: where (timeframe and market), when (its filters) and its target. On other
+            timeframes, markets or without those filters the pattern didn&apos;t pass, and the stock pages only flag this version. Full records of
+            every pattern tested, including the ones that failed: docs/PATTERNS.md.</p>
         </div>
       </details>
     </div>
@@ -105,14 +92,13 @@ function PatternCard({ p }: { p: Pattern }) {
   const up = p.direction > 0;
   const Icon = up ? TrendingUp : TrendingDown;
   const ex = p.example;
-  const st = STATUS[p.status];
   return (
     <article className="rounded-xl border border-line" id={p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}>
       <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
         <span className={clsx("inline-flex items-center gap-1 text-sm font-semibold", up ? "text-up" : "text-down")}>
           <Icon className="h-4 w-4" /> {p.name}
         </span>
-        <span className={clsx("rounded px-1.5 py-0.5 text-[11px] font-medium", st.cls)}>{st.label}</span>
+        <span className="rounded bg-up-wash px-1.5 py-0.5 text-[11px] font-medium text-up">Passed</span>
         <span className="ml-auto text-[11px] text-ink-3">{p.family}</span>
       </div>
       {ex ? (
@@ -127,39 +113,34 @@ function PatternCard({ p }: { p: Pattern }) {
         <p className="px-4 pt-3 text-xs text-ink-3">No example on the sample stocks: this pattern is very rare.</p>
       )}
       <div className="overflow-x-auto px-4 pb-3 pt-2">
+        <p className="mb-1 text-[11px] font-medium text-ink-2">The record it passed with (10 years, after costs)</p>
         <table className="w-full text-[11px]">
           <thead>
             <tr className="text-left text-ink-3">
-              <th className="py-1 pr-2 font-normal">Style</th>
-              <th className="py-1 pr-2 font-normal">Market</th>
+              <th className="py-1 pr-2 font-normal">Where</th>
+              <th className="py-1 pr-2 font-normal">When</th>
               <th className="py-1 pr-2 text-right font-normal">Trades</th>
-              <th className="py-1 pr-2 text-right font-normal">Hit 1:2</th>
-              <th className="py-1 pr-2 text-right font-normal">Avg (2016-22 / 23-26)</th>
-              <th className="py-1 text-right font-normal">Random</th>
+              <th className="py-1 pr-2 text-right font-normal">Hit target</th>
+              <th className="py-1 pr-2 text-right font-normal">Avg per trade</th>
+              <th className="py-1 text-right font-normal">vs random</th>
             </tr>
           </thead>
           <tbody>
-            {[...p.results].sort((a, b) => a.market.localeCompare(b.market) || STYLE_ORDER.indexOf(a.style) - STYLE_ORDER.indexOf(b.style)).map((r) => {
-              const both = r.periods_avg_r.every((v) => v != null && v > 0);
-              return (
-                <tr key={`${r.style}-${r.market}`} className="tabular border-t border-line">
-                  <td className="py-1 pr-2 text-ink-2">{r.style}</td>
-                  <td className="py-1 pr-2 text-ink-2">{r.market === "in" ? "India" : "USA"}</td>
-                  <td className="py-1 pr-2 text-right text-ink-2">{r.trades.toLocaleString()}</td>
-                  <td className="py-1 pr-2 text-right text-ink-2">{(r.hit * 100).toFixed(0)}%</td>
-                  <td className={clsx("py-1 pr-2 text-right", both ? "text-up" : "text-ink-2")}>
-                    {signed(r.periods_avg_r[0])} / {signed(r.periods_avg_r[1])}
-                  </td>
-                  <td className="py-1 text-right text-ink-3">{signed(r.random_avg_r)}</td>
-                </tr>
-              );
-            })}
+            {p.setups.map((r, k) => (
+              <tr key={k} className="tabular border-t border-line">
+                <td className="py-1 pr-2 text-ink-2">{r.style}, {r.market === "in" ? "India" : "USA"}</td>
+                <td className="py-1 pr-2 text-ink-2">
+                  {r.filters.length ? r.filters.map((f) => FILTER_TEXT[f] ?? f).join(", ") : "any time"} · 1:{r.reward_risk}
+                </td>
+                <td className="py-1 pr-2 text-right text-ink-2">{r.trades.toLocaleString()}</td>
+                <td className="py-1 pr-2 text-right text-ink-2">{(r.hit_rate * 100).toFixed(0)}%</td>
+                <td className="py-1 pr-2 text-right text-up">{signed(r.avg_r)}</td>
+                <td className="py-1 text-right text-up">{signed(r.edge_r)}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
-        {p.on_site.length > 0 && <p className="mt-2 text-[11px] text-up">On stock pages: {p.on_site.join("; ")} (with the filters that passed)</p>}
-        {p.status === "held_back" && (
-          <p className="mt-2 text-[11px] text-warn">Passed the trade-by-trade test, but most of its gains came in a few months of 2020; held back until it passes a stricter, month-by-month test.</p>
-        )}
+        <p className="mt-1.5 text-[10px] text-ink-3">1:2 = the target is twice the risk (entry to stop). R = that risk: +0.20R on a ₹1,000 risk is ₹200 a trade on average.</p>
       </div>
     </article>
   );
