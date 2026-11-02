@@ -37,7 +37,7 @@ export const RULES: Rule[] = [
     get: (r) => (r.promoter != null && r.promoter_prev != null ? r.promoter - r.promoter_prev : null),
     hint: "Latest quarter vs the one before. A share issue (QIP) lowers it even when promoters sold nothing." },
   { id: "encumbered", group: "Ownership", label: "Promoter shares pledged or encumbered", short: "Pledged", op: "<", unit: "%", get: (r) => pc(r.encumbered_pct),
-    hint: "Pledges plus non-disposal undertakings and other encumbrances: lenders can force a sale of all three." },
+    hint: "Pledges plus non-disposal undertakings and other encumbrances: all three tie promoter shares to lenders, and a pledge can be sold by the lender if the loan goes bad." },
 
   { id: "roe", group: "Profitability", label: "Return on equity", short: "ROE", op: ">", unit: "%", get: (r) => pc(r.roe),
     hint: "Last financial year's net profit ÷ average equity." },
@@ -62,7 +62,7 @@ export const RULES: Rule[] = [
     hint: "Borrowings ÷ equity at the latest half-yearly balance sheet (lease liabilities not counted)." },
 
   { id: "cfo", group: "Cash flow", label: "Cash from operations ÷ net profit, 3 years", short: "Cash/profit", op: ">=", unit: "%", get: (r) => pc(r.cfo_to_profit), suggested: true,
-    hint: "Profit that doesn't turn into cash (unpaid bills piling up, stock building up, accounting gains) is the commonest trap in growth screens." },
+    hint: "Profit that doesn't turn into cash (unpaid bills piling up, stock building up, accounting gains) is a common trap in growth screens." },
   { id: "cfo_positive", group: "Cash flow", label: "Cash from operations positive", short: "Cash positive", op: ">=", unit: "", get: (r) => r.cfo_positive_years, suggested: true,
     fixed: { value: 3, text: "In each of the last 3 years" }, describe: (v) => `in ${v} of 3 years` },
   { id: "fcf", group: "Cash flow", label: "Free cash flow, last 3 years together", short: "FCF 3Y", op: ">", unit: "₹ Cr", get: (r) => (r.fcf_3y == null ? null : r.fcf_3y / 1e7), suggested: true,
@@ -74,7 +74,7 @@ export const RULES: Rule[] = [
     get: (r) => (r.other_income_ttm != null && r.pbt_ttm != null && r.pbt_ttm > 0 ? (r.other_income_ttm / r.pbt_ttm) * 100 : null),
     hint: "Interest, gains on investments, one-offs: growth that comes from these isn't the business growing." },
   { id: "mcap", group: "Quality checks", label: "Market cap", short: "Mkt cap", op: ">=", unit: "₹ Cr", get: (r) => (r.market_cap == null ? null : r.market_cap / 1e7), suggested: true,
-    hint: "Very small companies are easier to manipulate and their filings less scrutinised." },
+    hint: "Very small companies are easier to move with little money, and fewer analysts follow them." },
   { id: "turnover", group: "Quality checks", label: "Average daily value traded", short: "Value traded", op: ">=", unit: "₹ Cr", get: (r) => (r.turnover == null ? null : r.turnover / 1e7), suggested: true,
     hint: "Over 3 months. With 70%+ held by promoters, little stock trades: you may not be able to sell when you want." },
 ];

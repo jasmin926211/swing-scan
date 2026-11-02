@@ -9,7 +9,7 @@ export function Footer() {
         <div className="space-y-3 sm:col-span-3 md:col-span-2">
           <Logo />
           <p className="max-w-sm text-sm leading-relaxed text-ink-2">
-            Live Indian and US markets, with only the trading signals that held up on 10 years of data.
+            Live Indian and US markets, with every signal labelled by whether it held up in testing.
           </p>
         </div>
         <FooterColumn

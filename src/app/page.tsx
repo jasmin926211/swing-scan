@@ -8,13 +8,13 @@ import { TESTED } from "@/lib/site";
 const FEATURES = [
   {
     icon: CandlestickChart,
-    title: "Every listed stock, live",
-    body: "All NSE and BSE equities and every NYSE, Nasdaq and AMEX stock, refreshed every 15 seconds while markets are open. Search, sort, and filter by sector, exchange or F&O.",
+    title: "About 6,600 stocks, live",
+    body: "NSE, BSE, NYSE, Nasdaq and AMEX stocks that pass a quality screen (tiny, loss-making and surveillance-listed companies are left out), refreshed about every 20 seconds while markets are open. Search, sort, and filter by sector, exchange or F&O.",
   },
   {
     icon: FlaskConical,
     title: "Only patterns that passed a 10-year test",
-    body: `We tested ${TESTED.patternSetups}+ chart and candlestick setups on 10 years of data, against random entries and after costs. ${TESTED.patternsPassed} passed, and only those are marked on the charts, each with its own record.`,
+    body: `We tested ${TESTED.patternsTested} chart and candlestick patterns on 10 years of data, against random entries and after costs. ${TESTED.patternsPassed} passed, each only in certain timeframes and markets, and only those are marked on the charts, each with its own record.`,
   },
   {
     icon: Activity,
@@ -29,7 +29,7 @@ const FEATURES = [
 ];
 
 const STEPS = [
-  { title: "Find a stock", body: "Browse the live market, the Pulse page or search any of 11,000+ Indian and US stocks." },
+  { title: "Find a stock", body: "Browse the live market, the Pulse page or search about 6,600 Indian and US stocks." },
   { title: "Read the facts", body: "At a glance shows what was tested for and against, and the facts to check before a trade." },
   { title: "Know the normal move", body: "The Expected move shows how far the stock usually moves, so a stop isn’t inside ordinary noise." },
   { title: "Decide with your plan", body: "You choose the trade, the stop and the size. CandleTrade never places orders." },
@@ -38,7 +38,7 @@ const STEPS = [
 const IDEAS = [
   {
     title: "Most signals don’t work",
-    body: `Of ${TESTED.patternSetups}+ popular setups we tested, ${TESTED.patternsPassed} beat random entries after costs. Treat any untested signal, here or elsewhere, as a coin flip until proven otherwise.`,
+    body: `Of ${TESTED.patternsTested} popular patterns we tested, ${TESTED.patternsPassed} beat random entries after costs, and even those miss their target often. Treat any untested signal, here or elsewhere, as a coin flip until proven otherwise.`,
   },
   {
     title: "Risk 1–2% per trade",
@@ -54,7 +54,7 @@ const IDEAS = [
   },
   {
     title: "Costs decide short trades",
-    body: "Intraday, fees, taxes and slippage take 0.05–0.1% a round trip, often a third of a typical 15-minute move. Longer holds give an edge more room.",
+    body: "Intraday, fees, taxes and slippage take 0.05–0.1% a round trip: about half of a typical 15-minute move in a liquid Indian stock. Longer holds give an edge more room.",
   },
   {
     title: "Prefer defined risk",
@@ -73,7 +73,7 @@ const FAQ = [
   },
   {
     q: "Are prices real-time? Can I scalp with them?",
-    a: "Close to real-time, not tick-by-tick. During market hours stock prices refresh about every 20 seconds, so a price can be up to about a minute old; BSE prices from our data source can lag by 15 minutes. That works for swing and positional decisions, not for scalping: always check the live price in your broker before placing an order.",
+    a: "Close to real-time, not tick-by-tick. During market hours stock prices refresh about every 20 seconds, so a price can be up to about a minute old, and a stock that hasn't traded today is left out of market-wide lists; BSE prices from our data source can lag by 15 minutes. That works for swing and positional decisions, not for scalping: always check the live price in your broker before placing an order.",
   },
   {
     q: "How should I use the Expected move?",
@@ -99,10 +99,10 @@ export default function Home() {
             <span className="h-1.5 w-1.5 rounded-full bg-accent" /> Tested tools · India &amp; USA
           </p>
           <h1 className="mt-5 text-4xl font-semibold leading-[1.1] tracking-tight md:text-5xl">
-            Live markets, and only the signals that survived a 10-year test.
+            Live markets, with every signal labelled: tested, or not.
           </h1>
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-ink-2">
-            CandleTrade puts live prices for 11,000+ Indian and US stocks next to tools we have tested on 10 years of data. What
+            CandleTrade puts live prices for about 6,600 Indian and US stocks next to tools we have tested on years of data. What
             passed is marked as tested; what didn&apos;t is removed or labelled for what it is, like our AI price forecast, whose direction
             was a coin flip in testing.
           </p>
@@ -115,7 +115,7 @@ export default function Home() {
             </Link>
           </div>
           <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink-2">
-            {["Never places trades", "Every signal tested first", "NSE, BSE, NYSE & Nasdaq"].map((t) => (
+            {["Never places trades", "Every signal labelled tested or not", "NSE, BSE, NYSE & Nasdaq"].map((t) => (
               <li key={t} className="flex items-center gap-1.5">
                 <Check className="h-4 w-4 text-up" /> {t}
               </li>
@@ -153,7 +153,7 @@ export default function Home() {
       </Section>
 
       {/* Trading ideas */}
-      <Section id="ideas" eyebrow="Trading with CandleTrade" title="Six habits that matter more than any signal" intro="What 10 years of testing taught us about trading.">
+      <Section id="ideas" eyebrow="Trading with CandleTrade" title="Six habits that matter more than any signal" intro="Some from our own tests, some standard risk practice.">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {IDEAS.map((idea, i) => (
             <div key={idea.title} className="rounded-xl bg-wash p-6">
@@ -173,12 +173,12 @@ export default function Home() {
         intro="Each method was run on 10 years of past data, after costs, against random entries on the same stocks and days, and had to hold up in the earlier and the later years."
       >
         <div className="grid gap-4 sm:grid-cols-3">
-          <Stat value={`${TESTED.patternsPassed} of ${TESTED.patternSetups}+`} label="Pattern setups that passed" note="Only these are marked on the charts" />
-          <Stat value={`+${pct(TESTED.momentumEdgeQuarter, 1)}`} label="Top-20% momentum vs the average stock" note="Next 3 months, after costs, India and USA" />
+          <Stat value={`${TESTED.patternsPassed} of ${TESTED.patternsTested}`} label="Patterns that passed" note="Only these are marked on the charts" />
+          <Stat value={`+${pct(TESTED.momentumEdgeQuarter.in, 1)}`} label="Top-20% momentum vs the average stock" note={`Next 3 months, after costs, India (USA +${pct(TESTED.momentumEdgeQuarter.us, 1)})`} />
           <Stat value={pct(TESTED.expectedMoveCoverage)} label="Moves inside the Expected move" note="Tested on stocks the method hadn’t seen" />
         </div>
         <p className="mt-6 max-w-3xl text-sm leading-relaxed text-ink-2">
-          What failed is listed too: breakout buying lost money over {TESTED.breakoutTrades.toLocaleString()} trades, heavy-volume buying
+          What failed is listed too: breakout buying lost money over {TESTED.breakoutTrades.toLocaleString()} trades in India and the USA, heavy-volume buying
           and most intraday setups didn&apos;t beat random entries, and an AI forecasting model called direction no better than a coin flip.
           None of them is shown as a signal.
         </p>
@@ -207,7 +207,7 @@ export default function Home() {
         <div className="flex flex-col items-start justify-between gap-6 rounded-2xl bg-ink px-8 py-10 text-paper md:flex-row md:items-center">
           <div>
             <h2 className="text-2xl font-semibold tracking-tight">Trade on what&apos;s been tested.</h2>
-            <p className="mt-2 text-sm text-paper/70">Free account. Every stock live, with the tested signals and the facts.</p>
+            <p className="mt-2 text-sm text-paper/70">Free account. Live prices, with the tested signals and the facts.</p>
           </div>
           <div className="flex gap-3">
             <Link href="/signup" className="rounded-lg bg-paper px-5 py-3 text-sm font-medium text-ink hover:opacity-90">

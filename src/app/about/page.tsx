@@ -25,7 +25,7 @@ const HOW_WE_TEST = [
 ];
 
 const PRINCIPLES = [
-  { icon: Scale, title: "Tested, or labelled a fact", body: "A signal is shown as one only after it passes our tests. Everything else is shown as a plain fact, and what failed is removed, not dressed up." },
+  { icon: Scale, title: "Tested, or labelled a fact", body: "A signal is shown as one only after it passes our tests. Everything else is shown as a plain fact; what failed is removed, or shown with its failure stated (like the AI forecast's direction)." },
   { icon: UserCheck, title: "Your decision, your risk", body: "CandleTrade gives tested evidence and context. It never places trades and never tells you what to buy." },
   { icon: Lock, title: "Privacy by default", body: "Passwords are stored only as strong one-way hashes, sessions use secure cookies, and we don’t sell your data." },
   { icon: Eye, title: "Prices only", body: "The Upstox connection is used only to read Indian F&O prices. CandleTrade has no feature that places, changes or cancels orders, or moves funds." },
@@ -37,20 +37,20 @@ export default function About() {
       <PageHero
         eyebrow="About us"
         title="We test trading signals before we show them."
-        intro="CandleTrade brings live prices for every Indian and US stock together with the few signals that held up on 10 years of data, and says plainly which numbers are tested and which are only facts."
+        intro="CandleTrade brings live prices for about 6,600 Indian and US stocks together with the few signals that held up on 10 years of data, and says plainly which numbers are tested and which are only facts."
       />
 
       <Section eyebrow="What we do" title="From a live quote to a decision you can check">
         <div className="grid gap-8 text-ink-2 lg:grid-cols-2">
           <p className="leading-relaxed">
-            Most trading sites show indicators and patterns as if they worked. We test them first. Of {TESTED.patternSetups}+ popular
-            chart and candlestick setups, {TESTED.patternsPassed} beat random entries after costs in both halves of 10 years; only those
-            are marked on the charts. Stocks in the top 20% by momentum beat the average stock over the following months. The rest of
+            Most trading sites show indicators and patterns as if they worked. We test them first. Of {TESTED.patternsTested} popular
+            chart and candlestick patterns, {TESTED.patternsPassed} beat random entries after costs in both halves of 10 years, each only in
+            certain timeframes and markets; only those are marked on the charts. Stocks in the top 20% by momentum beat the average stock over the following months. The rest of
             the site is labelled as facts: trend, breadth, volume, fundamentals, open interest.
           </p>
           <p className="leading-relaxed">
-            Around that sits what a swing or F&amp;O trader checks daily: live prices for 11,000+ stocks across NSE, BSE, NYSE,
-            Nasdaq and AMEX, candlestick charts on three timeframes, the Expected move (how far a stock normally moves), Market
+            Around that sits what a swing or F&amp;O trader checks daily: live prices for about 6,600 stocks across NSE, BSE, NYSE,
+            Nasdaq and AMEX (those that pass a quality screen), candlestick charts on three timeframes, the Expected move (how far a stock normally moves), Market
             Pulse, and option chains with open interest, implied volatility and defined-risk trade ideas valued at the option
             market&apos;s own prices.
           </p>
@@ -68,15 +68,15 @@ export default function About() {
           ))}
         </div>
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          <Stat value={`${TESTED.patternsPassed} of ${TESTED.patternSetups}+`} label="Pattern setups that passed" note="Daily, weekly and monthly; India and USA" />
-          <Stat value={`+${pct(TESTED.momentumEdgeQuarter, 1)}`} label="Top-20% momentum vs the average stock" note="Next 3 months, after costs" />
+          <Stat value={`${TESTED.patternsPassed} of ${TESTED.patternsTested}`} label="Patterns that passed" note={`${TESTED.setupsPassed} setups: daily, weekly and monthly; India and USA`} />
+          <Stat value={`+${pct(TESTED.momentumEdgeQuarter.in, 1)}`} label="Top-20% momentum vs the average stock" note={`Next 3 months, after costs, India (USA +${pct(TESTED.momentumEdgeQuarter.us, 1)})`} />
           <Stat value={pct(TESTED.expectedMoveCoverage)} label="Moves inside the Expected move" note="On stocks the method hadn’t seen" />
         </div>
         <div className="mt-8 grid gap-8 lg:grid-cols-2">
           <div>
             <h3 className="font-semibold">What failed, and was removed</h3>
             <p className="mt-2 text-sm leading-relaxed text-ink-2">
-              Buying breakouts with a stop and a 2:1 target lost money over {TESTED.breakoutTrades.toLocaleString()} trades. Heavy buying
+              Buying breakouts with a stop and a 2:1 target lost money over {TESTED.breakoutTrades.toLocaleString()} trades in India and the USA. Heavy buying
               volume was followed by slightly worse returns, the next day and later. None of 108 intraday (15-minute) pattern setups
               passed. An AI price-forecasting model, tested on thousands of past forecasts for stocks it hadn&apos;t seen, called
               direction no better than a coin flip, and a simple volatility formula estimated the size of moves better. We show
@@ -102,8 +102,8 @@ export default function About() {
         </div>
         <div className="mt-8 grid gap-4 text-sm md:grid-cols-3">
           <InfoCard title="Data you can trace">
-            Prices from Yahoo Finance, refreshed every 15–20 seconds during market hours. Indian hourly candles and F&amp;O from
-            Upstox. Stock lists from NSE, BSE and Nasdaq.
+            Prices from Yahoo Finance, refreshed about every 20 seconds during market hours. Indian hourly candles and F&amp;O from
+            Upstox while it&apos;s connected (hourly candles fall back to Yahoo). Stock lists from NSE, BSE and Nasdaq, refreshed each weekday.
           </InfoCard>
           <InfoCard title="Completed candles only">
             Signals are read from finished bars; today&apos;s still-forming candle is left out, so they don&apos;t flicker on intraday noise.
@@ -115,7 +115,7 @@ export default function About() {
       </Section>
 
       {/* Supported markets */}
-      <Section id="coverage" eyebrow="Supported markets" title="Two markets, every listed stock">
+      <Section id="coverage" eyebrow="Supported markets" title="Two markets, quality-screened">
         <div className="grid gap-4 md:grid-cols-2">
           {Object.values(COVERAGE).map((m) => (
             <div key={m.name} className="rounded-xl border border-line p-6">
@@ -124,7 +124,7 @@ export default function About() {
                 <span className="text-sm text-ink-3">{m.exchanges}</span>
               </div>
               <p className="tabular mt-4 text-3xl font-semibold tracking-tight">{m.stocks}</p>
-              <p className="text-sm text-ink-2">stocks with live prices</p>
+              <p className="text-sm text-ink-2">stocks with live prices, after a quality screen</p>
               <dl className="mt-5 space-y-3 text-sm">
                 <div>
                   <dt className="text-xs text-ink-3">Indices</dt>
@@ -162,7 +162,7 @@ export default function About() {
         <div className="flex flex-col items-start justify-between gap-6 rounded-2xl bg-wash px-8 py-10 md:flex-row md:items-center">
           <div>
             <h2 className="text-2xl font-semibold tracking-tight">Questions, ideas or a bug to report?</h2>
-            <p className="mt-2 text-sm text-ink-2">We read every message.</p>
+            <p className="mt-2 text-sm text-ink-2">Use the contact form, or email us.</p>
           </div>
           <Link href="/contact" className="inline-flex items-center gap-2 rounded-lg bg-ink px-5 py-3 text-sm font-medium text-paper hover:opacity-90">
             Contact us <ArrowRight className="h-4 w-4" />

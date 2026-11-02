@@ -44,7 +44,7 @@ export function Shortlist({ data, record, market }: { data: Pulse["shortlist"]; 
             A group result for 1-month holds, not a signal on any one stock: many single names in it still fell, and the group itself
             dropped as much as {pct(record.max_drop, 0)} along the way. The test used only today&apos;s listed stocks, which flatters it.
             Low volatility and the 52-week high were tested as extra filters and didn&apos;t help. &ldquo;Last 5 days&rdquo; is a plain
-            fact about each stock&apos;s recent run, not a tested signal (in testing, strong short runs tended to give a little back).
+            fact about each stock&apos;s recent run, not a tested signal (in our test of heavy-volume up days, such runs gave a little back over the next weeks).
           </p>
         </div>
       </div>
