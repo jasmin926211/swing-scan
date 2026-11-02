@@ -110,7 +110,7 @@ export function ValidatedPatterns({ signals, liquid, loading, error, market, sel
       )}
       <p className="border-t border-line px-4 py-2.5 text-[11px] leading-relaxed text-ink-3">
         R = the trade&apos;s risk (entry to stop). Patterns are read from completed candles only. Not advice: past results don&apos;t
-        guarantee future ones.{" "}
+        guarantee future ones. <a href="/pattern-lab" className="text-accent hover:underline">Every pattern we tested →</a>{" "}
         {signals?.some((s) => s.direction < 0) && market === "in" && "Short setups in India need stock futures or options to hold overnight."}
       </p>
     </section>

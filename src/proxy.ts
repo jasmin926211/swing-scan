@@ -28,5 +28,5 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   // Members-only pages, plus the sign-in pages (to skip them when already signed in).
-  matcher: ["/markets/:path*", "/stock/:path*", "/fno/:path*", "/pulse/:path*", "/fundamentals/:path*", "/paper/:path*", "/signin", "/signup"],
+  matcher: ["/markets/:path*", "/stock/:path*", "/fno/:path*", "/pulse/:path*", "/fundamentals/:path*", "/paper/:path*", "/pattern-lab/:path*", "/signin", "/signup"],
 };

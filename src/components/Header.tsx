@@ -21,7 +21,7 @@ const PUBLIC_PAGES = [
 export function Header() {
   const { user, signedIn } = useAuth();
   const pathname = usePathname();
-  const inApp = ["/markets", "/stock", "/fno", "/pulse", "/fundamentals", "/paper"].some((p) => pathname.startsWith(p));
+  const inApp = ["/markets", "/stock", "/fno", "/pulse", "/fundamentals", "/paper", "/pattern-lab"].some((p) => pathname.startsWith(p));
 
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-paper/90 backdrop-blur">
