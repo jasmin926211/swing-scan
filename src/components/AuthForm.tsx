@@ -70,6 +70,11 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
             className={INPUT}
           />
         </Field>
+        {!isSignUp && (
+          <p className="-mt-2 text-right text-xs">
+            <Link href="/reset-password" className="text-ink-2 hover:text-ink hover:underline">Forgot password?</Link>
+          </p>
+        )}
         {error && <p className="text-sm text-down">{error}</p>}
         <button disabled={busy} className="w-full rounded-lg bg-ink py-2.5 text-sm font-medium text-paper hover:opacity-90 disabled:opacity-60">
           {busy ? "Please wait…" : isSignUp ? "Create account" : "Sign in"}
