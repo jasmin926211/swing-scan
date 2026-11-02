@@ -447,7 +447,7 @@ export type Pulse = {
   /** How many stocks moved by each band today (% edges; null = open-ended), with the band's most traded stocks. */
   histogram: { from: number | null; to: number | null; count: number; stocks: PulseStock[] }[];
   /** Momentum strategy C: top 30 by momentum among the most traded stocks, with the funnel that gets there. */
-  shortlist: { funnel: { label: string; count: number }[]; stocks: PulseShortlistStock[] };
+  shortlist: { funnel: { label: string; count: number }[]; stocks: PulseShortlistStock[]; sectors?: { sector: string; pool: number; picked: number }[] };
   bubbles: { symbol: string; sector: string | null; change_pct: number; rvol: number; turnover: number }[];
   buildup: { date: string; counts: Partial<Record<Buildup, number>> } | null;
   leaders: PulseLeader[];

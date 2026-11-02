@@ -5,6 +5,7 @@ import clsx from "clsx";
 import type { MarketId, Pulse } from "@/lib/api";
 import { compact, price } from "@/lib/format";
 import { StockLogo } from "@/components/StockLogo";
+import { ShortlistSankey } from "./ShortlistSankey";
 
 const pct = (v: number, d = 1) => `${v >= 0 ? "+" : ""}${(v * 100).toFixed(d)}%`;
 
@@ -47,6 +48,14 @@ export function Shortlist({ data, record, market }: { data: Pulse["shortlist"]; 
           </p>
         </div>
       </div>
+
+      {data.sectors && data.sectors.length > 0 && (
+        <div>
+          <p className="text-sm font-semibold">Where the {data.stocks.length} come from</p>
+          <p className="mb-2 text-xs text-ink-3">The most-traded stocks by sector, and how many from each made the top 30. Today&apos;s momentum, not a forecast.</p>
+          <ShortlistSankey sectors={data.sectors} poolLabel={data.funnel[data.funnel.length - 2]?.label ?? "Most traded"} />
+        </div>
+      )}
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[680px] text-sm">
