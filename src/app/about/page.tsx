@@ -5,8 +5,8 @@ import { InfoCard, PageHero, Section, Stat, pct } from "@/components/marketing";
 import { COVERAGE, TESTED } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "About us — CandleTrade",
-  description: "What CandleTrade is, how we test every signal before showing it, what passed and failed, and which markets we cover.",
+  title: "About us — CandleTrend",
+  description: "What CandleTrend is, how we test every signal before showing it, what passed and failed, and which markets we cover.",
 };
 
 const HOW_WE_TEST = [
@@ -26,9 +26,9 @@ const HOW_WE_TEST = [
 
 const PRINCIPLES = [
   { icon: Scale, title: "Tested, or labelled a fact", body: "A signal is shown as one only after it passes our tests. Everything else is shown as a plain fact; what failed is removed, or shown with its failure stated (like the AI forecast's direction)." },
-  { icon: UserCheck, title: "Your decision, your risk", body: "CandleTrade gives tested evidence and context. It never places trades and never tells you what to buy." },
+  { icon: UserCheck, title: "Your decision, your risk", body: "CandleTrend gives tested evidence and context. It never places trades and never tells you what to buy." },
   { icon: Lock, title: "Privacy by default", body: "Passwords are stored only as strong one-way hashes, sessions use secure cookies, and we don’t sell your data." },
-  { icon: Eye, title: "Prices only", body: "The Upstox connection is used only to read Indian F&O prices. CandleTrade has no feature that places, changes or cancels orders, or moves funds." },
+  { icon: Eye, title: "Prices only", body: "The Upstox connection is used only to read Indian F&O prices. CandleTrend has no feature that places, changes or cancels orders, or moves funds." },
 ];
 
 export default function About() {
@@ -37,7 +37,7 @@ export default function About() {
       <PageHero
         eyebrow="About us"
         title="We test trading signals before we show them."
-        intro="CandleTrade brings live prices for about 6,600 Indian and US stocks together with the few signals that held up on 10 years of data, and says plainly which numbers are tested and which are only facts."
+        intro="CandleTrend brings live prices for about 6,600 Indian and US stocks together with the few signals that held up on 10 years of data, and says plainly which numbers are tested and which are only facts."
       />
 
       <Section eyebrow="What we do" title="From a live quote to a decision you can check">
@@ -109,7 +109,7 @@ export default function About() {
             Signals are read from finished bars; today&apos;s still-forming candle is left out, so they don&apos;t flicker on intraday noise.
           </InfoCard>
           <InfoCard title="Analysis only, by design">
-            CandleTrade never places orders: the broker connection is used only to read prices, and your password is stored only as a strong hash.
+            CandleTrend never places orders: the broker connection is used only to read prices, and your password is stored only as a strong hash.
           </InfoCard>
         </div>
       </Section>

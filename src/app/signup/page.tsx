@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { AuthForm } from "@/components/AuthForm";
 
-export const metadata: Metadata = { title: "Create account — CandleTrade" };
+export const metadata: Metadata = { title: "Create account — CandleTrend" };
 
 export default function Page() {
   // AuthForm reads ?next= with useSearchParams, which needs a Suspense boundary.

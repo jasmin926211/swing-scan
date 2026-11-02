@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Mail, MessageSquareText, Phone } from "lucide-react";
+import { Mail, MessageSquareText } from "lucide-react";
 import { ContactForm } from "@/components/ContactForm";
 import { PageHero } from "@/components/marketing";
 import { CONTACT } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Contact us — CandleTrade",
-  description: "Questions, feedback or a bug to report: get in touch with the CandleTrade team.",
+  title: "Contact us — CandleTrend",
+  description: "Questions, feedback or a bug to report: get in touch with the CandleTrend team.",
 };
 
 export default function Contact() {
@@ -16,18 +16,13 @@ export default function Contact() {
       <PageHero
         eyebrow="Contact us"
         title="Talk to us"
-        intro="Questions about a signal, an idea for a feature or something that looks wrong: send us a message and we’ll get back to you."
+        intro="Questions about a signal, an idea for a feature or something that looks wrong: send us a message and we’ll reply by email."
       />
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 md:px-6 lg:grid-cols-5">
         <aside className="space-y-6 lg:col-span-2">
           <ContactItem icon={Mail} label="Email">
             <a href={`mailto:${CONTACT.email}`} className="font-medium hover:underline">
               {CONTACT.email}
-            </a>
-          </ContactItem>
-          <ContactItem icon={Phone} label="Phone">
-            <a href={`tel:${CONTACT.phone}`} className="font-medium hover:underline">
-              {CONTACT.phoneDisplay}
             </a>
           </ContactItem>
           <ContactItem icon={MessageSquareText} label="Before you write">

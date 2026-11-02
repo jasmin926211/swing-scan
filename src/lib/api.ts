@@ -549,9 +549,10 @@ export type PaperPortfolio = {
   last_day: string | null;
   trading_days: number;
   next_rebalance_in: number | null;
-  pending: { signal_day: string; picks: string[] } | null;
+  /** the next orders' count only: the picks aren't published */
+  pending: { signal_day: string; count: number } | null;
+  holdings_count: number;
   equity: { day: string; value: number; benchmark: number }[];
-  holdings: { symbol: string; shares: number; price: number | null; value: number; cost: number | null }[];
   rebalances: { signal_day: string; fill_day: string; picks: string[]; bought: number; sold: number; fees: number; value_at_open: number }[];
   trades: PaperTrade[];
   notes: string[];

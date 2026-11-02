@@ -25,9 +25,7 @@ export const COVERAGE = {
   },
 } as const;
 
-// Shown on the Contact page and in the footer.
+// Shown on the Contact and Privacy pages (the address for questions and data requests).
 export const CONTACT = {
   email: "jjt926211@gmail.com",
-  phone: "+61494047868",
-  phoneDisplay: "+61 494 047 868",
 };

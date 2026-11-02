@@ -81,8 +81,14 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
         </button>
       </form>
 
+      {isSignUp && (
+        <p className="mt-4 text-xs leading-relaxed text-ink-3">
+          By creating an account you agree to the <Link href="/terms" className="underline hover:text-ink">terms of use</Link> and the{" "}
+          <Link href="/privacy" className="underline hover:text-ink">privacy policy</Link>. CandleTrend is research, not investment advice.
+        </p>
+      )}
       <p className="mt-6 text-sm text-ink-2">
-        {isSignUp ? "Already have an account? " : "New to CandleTrade? "}
+        {isSignUp ? "Already have an account? " : "New to CandleTrend? "}
         <Link href={other} className="font-medium text-ink hover:underline">
           {isSignUp ? "Sign in" : "Create an account"}
         </Link>
