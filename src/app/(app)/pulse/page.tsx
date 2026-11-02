@@ -125,7 +125,7 @@ export default function PulsePage() {
 
           {active === "overview" && (
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <Card title="Breadth through the day" note="% of stocks above their 20 EMA. Rising from below 30–40% towards 60%+ often marks a fresh upswing.">
+              <Card title="Breadth through the day" note="% of stocks above their 20 EMA through the session. A description of the market, not a tested signal.">
                 <BreadthLine points={data.history} tz={TZ[market]} />
               </Card>
               <MovesCard data={data} market={market} />
@@ -186,7 +186,7 @@ export default function PulsePage() {
           )}
 
           {active === "shortlist" && (
-            <Card title={`Shortlist · ${data.shortlist.stocks.length} stocks`} note="Thousands of stocks narrowed to the strongest few, by the one method here that held up on 10 years of data.">
+            <Card title={`Shortlist · ${data.shortlist.stocks.length} stocks`} note="Thousands of stocks narrowed to the strongest few by momentum, the one stock-picking method here that held up on 10 years of data (now being checked live in the paper portfolio).">
               <Shortlist data={data.shortlist} record={data.records.shortlist} market={market} />
             </Card>
           )}
@@ -261,7 +261,7 @@ function MarketStrip({ data, market }: { data: Pulse; market: MarketId }) {
   const tiles = [
     { label: "Market mood", value: mood != null ? String(Math.round(mood * 100)) : "—", sub: mood != null ? moodLabel(mood) : "",
       tone: mood == null ? "" : mood >= 0.65 ? "text-up" : mood < 0.45 ? "text-down" : "text-ink-2",
-      title: "Breadth, advances vs declines and new highs vs lows, combined (0–100)" },
+      title: "Breadth, advances vs declines and new highs vs lows, averaged (0–100): a description of the market, not a tested signal" },
     { label: "Above 20 EMA", value: pct(data.breadth.above_ema20), sub: "of stocks", tone: "", title: "Share of stocks above their 20-day EMA" },
     { label: "Advances / declines", value: `${ad.advances} / ${ad.declines}`, sub: `${ad.unchanged} unchanged`, tone: ad.advances >= ad.declines ? "text-up" : "text-down", title: "" },
     { label: "52-week highs / lows", value: `${hl.highs} / ${hl.lows}`, sub: "today", tone: hl.highs >= hl.lows ? "text-up" : "text-down", title: "" },

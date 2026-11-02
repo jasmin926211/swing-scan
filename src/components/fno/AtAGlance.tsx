@@ -93,7 +93,7 @@ export function AtAGlance({ market, oi, move, spot, loading }: {
           {oi.max_pain != null && (
             <Fact label={<Term k="max_pain">Max pain {price(oi.max_pain, market)}</Term>}>
               {px != null && `${Math.abs(oi.max_pain / px - 1) < 0.005 ? "Right at" : oi.max_pain > px ? `${((oi.max_pain / px - 1) * 100).toFixed(1)}% above` : `${((1 - oi.max_pain / px) * 100).toFixed(1)}% below`} the price. `}
-              Near expiry some traders expect a drift towards it; it&apos;s a tendency, not a rule.
+              Near expiry some traders expect a drift towards it; a common belief, not tested here.
             </Fact>
           )}
           {movePct != null && px != null && (

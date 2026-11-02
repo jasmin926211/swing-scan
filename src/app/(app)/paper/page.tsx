@@ -35,7 +35,7 @@ export default function PaperPage() {
       <section>
         <h1 className="text-2xl font-semibold tracking-tight">Paper portfolio</h1>
         <p className="mt-1 max-w-3xl text-sm leading-relaxed text-ink-2">
-          The momentum strategy that held up in our 10-year test, traded with ₹10,00,000 of simulated money: no real orders are placed.
+          The momentum strategy that did best in our 10-year test (a version chosen after a first test, so it still needs live confirmation), traded with ₹10,00,000 of simulated money: no real orders are placed.
           It shows whether live prices, fills and costs behave the way the backtest assumed before any real money goes in.
         </p>
         {market !== "in" && <p className="mt-1 text-xs text-ink-3">It runs on Indian stocks only; the country switch doesn&apos;t change it.</p>}
