@@ -19,6 +19,7 @@ export function Footer() {
             { href: "/fno", label: "Futures & options" },
             { href: "/fundamentals", label: "Fundamentals screen" },
             { href: "/paper", label: "Paper portfolio" },
+            { href: "/pattern-lab", label: "Pattern lab" },
             { href: "/#tested", label: "What we tested" },
             { href: "/signup", label: "Create an account" },
           ]}

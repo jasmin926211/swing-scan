@@ -15,6 +15,7 @@ const STYLE: Record<PatternStyle, string> = {
 const STATUS: Record<PatternStatus, { label: string; cls: string }> = {
   new: { label: "New: entry at the next open", cls: "bg-accent-wash text-accent" },
   awaiting_confirmation: { label: "Waiting for a confirmation candle", cls: "bg-warn-wash text-warn" },
+  limit_order: { label: "Limit order waiting at the entry", cls: "bg-accent-wash text-accent" },
   open: { label: "Trade still open", cls: "bg-accent-wash text-accent" },
   target_hit: { label: "Target hit", cls: "bg-up-wash text-up" },
   stopped: { label: "Stopped out", cls: "bg-down-wash text-down" },
@@ -86,7 +87,7 @@ export function ValidatedPatterns({ signals, liquid, loading, error, market, sel
                     <span className="ml-auto text-xs text-ink-3">{when}</span>
                   </div>
                   <p className="tabular mt-1.5 text-xs text-ink-2">
-                    {up ? "Buy" : "Sell / short"} {s.status === "new" || s.status === "awaiting_confirmation" ? "≈" : "at"} {price(s.entry, market)} · stop{" "}
+                    {up ? "Buy" : "Sell / short"} {s.status === "new" || s.status === "awaiting_confirmation" ? "≈" : s.status === "limit_order" ? "with a limit order at" : "at"} {price(s.entry, market)} · stop{" "}
                     {price(s.stop, market)} · target {price(s.target, market)} (1:{s.reward_risk})
                     {s.filters.length > 0 && ` · ${s.filters.map((f) => FILTER_TEXT[f] ?? f).join(", ")}`}
                   </p>
@@ -109,7 +110,7 @@ export function ValidatedPatterns({ signals, liquid, loading, error, market, sel
       )}
       <p className="border-t border-line px-4 py-2.5 text-[11px] leading-relaxed text-ink-3">
         R = the trade&apos;s risk (entry to stop). Patterns are read from completed candles only. Not advice: past results don&apos;t
-        guarantee future ones.{" "}
+        guarantee future ones. <a href="/pattern-lab" className="text-accent hover:underline">Every pattern we tested →</a>{" "}
         {signals?.some((s) => s.direction < 0) && market === "in" && "Short setups in India need stock futures or options to hold overnight."}
       </p>
     </section>

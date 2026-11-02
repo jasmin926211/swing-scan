@@ -274,7 +274,7 @@ export const getHeatmap = (m: MarketId) => request<{ updated_at: number; market_
 // --- validated patterns ---
 
 export type PatternStyle = "swing" | "positional" | "long_term";
-export type PatternStatus = "new" | "awaiting_confirmation" | "open" | "target_hit" | "stopped" | "expired";
+export type PatternStatus = "new" | "awaiting_confirmation" | "limit_order" | "open" | "target_hit" | "stopped" | "expired";
 
 export type PatternSignal = {
   style: PatternStyle;
@@ -292,7 +292,7 @@ export type PatternSignal = {
   outcome_r: number | null;
   max_hold_bars: number;
   /** the setup's measured track record across all stocks */
-  record: { trades: number; hit_rate: number; avg_r: number; edge_r: number; held_bars: number };
+  record: { trades: number; hit_rate: number; avg_r: number; edge_r: number; held_bars: number | null };
 };
 
 /** Validated pattern signals on completed candles for one stock, newest first. */
