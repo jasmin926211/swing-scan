@@ -484,7 +484,7 @@ export function PriceChart({
               <g clipPath={`url(#plot-${clipId})`}>
                 {chosen && (() => {
                   // Past signals: lines over their holding period. Fresh ones (trade not taken yet): full-width levels.
-                  const fresh = chosen.sig.status === "new" || chosen.sig.status === "awaiting_confirmation";
+                  const fresh = chosen.sig.status === "new" || chosen.sig.status === "awaiting_confirmation" || chosen.sig.status === "limit_order";
                   const x0 = fresh ? 0 : x(chosen.i);
                   const x1 = Math.min(innerW, fresh || chosen.endIdx >= n - 1 ? innerW : x(chosen.endIdx + 0.5));
                   return (
