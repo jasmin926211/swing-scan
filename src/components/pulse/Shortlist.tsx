@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
+import { ArrowDown, ArrowUp } from "lucide-react";
 import type { MarketId, Pulse } from "@/lib/api";
 import { compact, price } from "@/lib/format";
 import { StockLogo } from "@/components/StockLogo";
@@ -9,9 +11,44 @@ import { ShortlistSankey } from "./ShortlistSankey";
 
 const pct = (v: number, d = 1) => `${v >= 0 ? "+" : ""}${(v * 100).toFixed(d)}%`;
 
+type SortKey = "turnover20" | "avg_volume20" | "rvol" | "change_pct";
+type Sort = { key: SortKey; desc: boolean } | null; // null = momentum rank
+type Row = Pulse["shortlist"]["stocks"][number];
+const rvol = (s: Row) => (s.volume != null && s.avg_volume20 ? s.volume / s.avg_volume20 : null);
+const VALUE: Record<SortKey, (s: Row) => number | null> = {
+  turnover20: (s) => s.turnover20, avg_volume20: (s) => s.avg_volume20 ?? null, rvol, change_pct: (s) => s.change_pct,
+};
+
+/** A share count, short: 12.4L / 1.2Cr in India, 850K / 1.2M in the USA. */
+function shares(v: number | null | undefined, market: MarketId) {
+  if (v == null) return "—";
+  if (market === "in") return v >= 1e7 ? `${(v / 1e7).toFixed(1)}Cr` : v >= 1e5 ? `${(v / 1e5).toFixed(1)}L` : Math.round(v).toLocaleString("en-IN");
+  return v >= 1e9 ? `${(v / 1e9).toFixed(1)}B` : v >= 1e6 ? `${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `${(v / 1e3).toFixed(0)}K` : String(Math.round(v));
+}
+
 /** From every listed stock to 30: the funnel, then the list. The method is momentum strategy C, tested on 10 years. */
 export function Shortlist({ data, record, market }: { data: Pulse["shortlist"]; record: Pulse["records"]["shortlist"]; market: MarketId }) {
   const max = data.funnel[0]?.count || 1;
+  const [sort, setSort] = useState<Sort>(null);
+  // Highest first, then lowest first, then back to the momentum ranking.
+  const cycle = (key: SortKey) => setSort((s) => (s?.key !== key ? { key, desc: true } : s.desc ? { key, desc: false } : null));
+  const ranked = data.stocks.map((s, i) => ({ s, rank: i + 1 }));
+  const rows = sort
+    ? [...ranked].sort((a, b) => {
+        const av = VALUE[sort.key](a.s), bv = VALUE[sort.key](b.s);
+        if (av == null || bv == null) return av == null ? (bv == null ? a.rank - b.rank : 1) : -1; // missing values last
+        return sort.desc ? bv - av : av - bv;
+      })
+    : ranked;
+  const header = (key: SortKey, label: string) => (
+    <th className="pb-2 text-right font-normal" aria-sort={sort?.key === key ? (sort.desc ? "descending" : "ascending") : "none"}>
+      <button onClick={() => cycle(key)} title={`Sort by ${label.toLowerCase()} (click again to reverse, a third time for the momentum rank)`}
+        className={clsx("inline-flex items-center gap-1 whitespace-nowrap hover:text-ink", sort?.key === key && "text-ink")}>
+        {label}
+        {sort?.key === key && (sort.desc ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />)}
+      </button>
+    </th>
+  );
   return (
     <div className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-[2fr_3fr]">
@@ -58,7 +95,7 @@ export function Shortlist({ data, record, market }: { data: Pulse["shortlist"]; 
       )}
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[680px] text-sm">
+        <table className="w-full min-w-[860px] text-sm">
           <thead>
             <tr className="border-b border-line text-left text-[11px] text-ink-3">
               <th className="w-8 pb-2 font-normal">#</th>
@@ -66,15 +103,17 @@ export function Shortlist({ data, record, market }: { data: Pulse["shortlist"]; 
               <th className="pb-2 text-right font-normal">Momentum</th>
               <th className="pb-2 pl-4 font-normal" title="Each of the last 5 completed sessions: green = closed higher, red = lower">Last 5 days</th>
               <th className="pb-2 text-right font-normal">From 52-week high</th>
-              <th className="pb-2 text-right font-normal">Traded / day</th>
+              {header("turnover20", "Traded / day")}
+              {header("avg_volume20", "Avg volume")}
+              {header("rvol", "Volume today")}
               <th className="pb-2 text-right font-normal">Price</th>
-              <th className="pb-2 text-right font-normal">Today</th>
+              {header("change_pct", "Today")}
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
-            {data.stocks.map((s, i) => (
+            {rows.map(({ s, rank }) => (
               <tr key={s.symbol} className="hover:bg-wash">
-                <td className="tabular py-2 text-xs text-ink-3">{i + 1}</td>
+                <td className="tabular py-2 text-xs text-ink-3" title="Rank by momentum">{rank}</td>
                 <td className="py-2">
                   <Link href={`/stock/${market}/${encodeURIComponent(s.symbol)}`} className="flex items-center gap-2">
                     <StockLogo market={market} symbol={s.symbol} size={20} />
@@ -92,6 +131,15 @@ export function Shortlist({ data, record, market }: { data: Pulse["shortlist"]; 
                   {s.from_high == null ? "—" : s.from_high > -0.005 ? "at high" : pct(s.from_high)}
                 </td>
                 <td className="tabular py-2 text-right text-xs text-ink-2">{compact(s.turnover20, market)}</td>
+                <td className="tabular py-2 text-right text-xs text-ink-2" title="Average shares traded a day, last 20 sessions">{shares(s.avg_volume20, market)}</td>
+                <td className="tabular py-2 text-right text-xs text-ink-2" title="Shares traded so far today, and as a multiple of the 20-day average">
+                  {shares(s.volume, market)}
+                  {rvol(s) != null && (
+                    <span className={clsx("ml-1.5 rounded px-1 text-[11px]", rvol(s)! >= 1.5 ? "bg-accent-wash font-medium text-accent" : "text-ink-3")}>
+                      {rvol(s)!.toFixed(1)}×
+                    </span>
+                  )}
+                </td>
                 <td className="tabular py-2 text-right">{price(s.price, market)}</td>
                 <td className={clsx("tabular py-2 text-right text-xs", (s.change_pct ?? 0) >= 0 ? "text-up" : "text-down")}>
                   {s.change_pct == null ? "—" : `${s.change_pct >= 0 ? "+" : ""}${s.change_pct.toFixed(2)}%`}
@@ -101,6 +149,11 @@ export function Shortlist({ data, record, market }: { data: Pulse["shortlist"]; 
           </tbody>
         </table>
       </div>
+      <p className="text-[11px] leading-relaxed text-ink-3">
+        Traded / day: average value traded over the last 20 sessions. Avg volume: average shares a day over the same 20 sessions.
+        Volume today: shares traded so far, so it reads low early in the session; the × compares it with the average. Heavy volume
+        isn&apos;t a buy signal: buying after heavy-volume up days did slightly worse than average in our 10-year test.
+      </p>
     </div>
   );
 }
